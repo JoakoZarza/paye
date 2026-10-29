@@ -53,6 +53,35 @@ func is_over() -> bool:
 	return phase == Phase.OVER
 
 
+## -1 si el jugador no declaró tanto en esta mano.
+func declared_tanto(p: int) -> int:
+	return _declared[p]
+
+
+func truco_level() -> int:
+	return _truco.level
+
+
+func truco_pending() -> bool:
+	return _truco.pending
+
+
+func envido_called() -> bool:
+	return not _envido.calls.is_empty()
+
+
+## -1 si no hubo envido querido o la declaración no terminó.
+func envido_winner() -> int:
+	return _envido_winner
+
+
+## Tanto de las cartas en mano y jugadas de p. La IA solo debe pedir el suyo.
+func own_tanto(p: int) -> int:
+	var all: Array[Card] = []
+	all.assign(cards[p] + played[p])
+	return Envido.tanto(all)
+
+
 func current_player() -> int:
 	match phase:
 		Phase.PLAYING:

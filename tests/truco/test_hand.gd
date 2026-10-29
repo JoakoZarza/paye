@@ -168,3 +168,19 @@ func test_envido_ilegal_respondiendo_retruco() -> void:
 	_do(h, T.RETRUCO, 1)
 	assert_eq(h.current_player(), 0)
 	assert_false(_has(h, T.ENVIDO))
+
+
+func test_lectores_publicos() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	_do(h, T.TRUCO, 0)
+	_do(h, T.ENVIDO, 1)
+	_do(h, T.QUIERO, 0)
+	_do(h, T.DECLARE_TANTO, 0, -1, 33)
+	_do(h, T.SON_BUENAS, 1)
+	assert_eq(h.declared_tanto(0), 33)
+	assert_eq(h.declared_tanto(1), -1)
+	assert_eq(h.truco_level(), 1)
+	assert_true(h.truco_pending())
+	assert_true(h.envido_called())
+	assert_eq(h.envido_winner(), 0)
+	assert_eq(h.own_tanto(0), 33)
