@@ -1,0 +1,5 @@
+{
+  "agresivo":  {"aggression": 0.85, "lying": 0.30, "cheating": 0.15, "stubbornness": 0.60, "tell_reliability": 0.80, "cheat_budget": 1},
+  "mentiroso": {"aggression": 0.50, "lying": 0.85, "cheating": 0.25, "stubbornness": 0.40, "tell_reliability": 0.40, "cheat_budget": 1},
+  "tramposo":  {"aggression": 0.45, "lying": 0.40, "cheating": 0.85, "stubbornness": 0.50, "tell_reliability": 0.65, "cheat_budget": 3}
+}
