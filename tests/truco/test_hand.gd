@@ -160,3 +160,11 @@ func test_envido_no_querido() -> void:
 	assert_eq(h.envido_points, [0, 2])
 	assert_eq(h.phase, TrucoHand.Phase.PLAYING)
 	assert_eq(h.current_player(), 0)
+
+
+func test_envido_ilegal_respondiendo_retruco() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	_do(h, T.TRUCO, 0)
+	_do(h, T.RETRUCO, 1)
+	assert_eq(h.current_player(), 0)
+	assert_false(_has(h, T.ENVIDO))

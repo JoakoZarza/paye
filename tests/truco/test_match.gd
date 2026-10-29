@@ -110,3 +110,13 @@ func test_partido_sigue_si_nadie_llega() -> void:
 	m.start_hand()
 	_do(m, T.MAZO, m.hand.current_player())
 	assert_eq(m.winner(), -1)
+
+
+func test_accion_despues_de_terminar_la_mano_no_suma_de_nuevo() -> void:
+	var m := _match(15, 1)
+	m.start_hand_with(_hand_0_has_33(), 0)
+	_do(m, T.MAZO, 0)
+	assert_eq(m.scores, [0, 1])
+	var events := m.apply(TrucoAction.make(T.MAZO, 0))
+	assert_eq(events[0].type, &"illegal_action")
+	assert_eq(m.scores, [0, 1])

@@ -172,7 +172,8 @@ func _is_legal(a: TrucoAction) -> bool:
 func _add_envido_calls(out: Array[TrucoAction], p: int) -> void:
 	if _envido_done or not baza_results.is_empty() or not played[p].is_empty():
 		return
-	if _truco.level > 0 and not _truco.pending:
+	# "El envido está primero" solo responde al primer truco, no al retruco.
+	if _truco.level > 1 or (_truco.level == 1 and not _truco.pending):
 		return
 	for type in ENVIDO_CALLS:
 		out.append(TrucoAction.make(type, p))

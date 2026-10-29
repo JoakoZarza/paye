@@ -45,7 +45,7 @@ func start_hand_with(p_cards: Array, p_mano: int) -> Array[GameEvent]:
 
 
 func apply(a: TrucoAction) -> Array[GameEvent]:
-	if hand == null or winner() != -1:
+	if hand == null or hand.is_over() or winner() != -1:
 		return [GameEvent.make(&"illegal_action", {"player": a.player, "type": a.type})]
 	var events := hand.apply(a)
 	if hand.is_over():
