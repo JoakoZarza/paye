@@ -1,0 +1,13 @@
+# Godot 4
+.godot/
+/android/
+*.translation
+export_presets.cfg
+.import/
+
+# Sistema
+Thumbs.db
+.DS_Store
+
+# Ledger de ejecución de planes
+.superpowers/
