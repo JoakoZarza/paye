@@ -68,3 +68,37 @@ func test_fiado_al_limite_y_sin_entrada_es_muerte() -> void:
 	assert_false(s.can_pay_entry(_economy))
 	s.die()
 	assert_eq(s.debt, 200)
+
+
+func test_entrada_cobra_propina() -> void:
+	var s := _state(20000)
+	s.round = 6
+	assert_true(s.pay_entry(_economy))
+	assert_eq(s.last_tip, 1400)
+	assert_eq(s.money, 16600)
+
+
+func test_retencion_del_fiado() -> void:
+	var s := _state(0)
+	s.fiado = 100
+	assert_eq(s.collect_prize(1000, _economy), {"retained": 100, "kept": 900}, "nunca más que el fiado")
+	assert_eq(s.fiado, 0)
+	s.fiado = 1000
+	assert_eq(s.collect_prize(1000, _economy)["retained"], 250)
+	assert_eq(s.fiado, 750)
+	assert_eq(s.money, 1650)
+
+
+func test_la_final_no_retiene() -> void:
+	var s := _state(0)
+	s.fiado = 500
+	assert_eq(s.collect_prize(10000000, _economy, true)["retained"], 0)
+	assert_eq(s.fiado, 500)
+
+
+func test_interes_al_pasar_de_ronda() -> void:
+	var s := _state(0)
+	assert_eq(s.apply_interest(_economy), 0)
+	s.fiado = 200
+	assert_eq(s.apply_interest(_economy), 20)
+	assert_eq(s.fiado, 220)

@@ -16,6 +16,17 @@ var rarity_weight: Dictionary = {"COMMON": 0.6, "RARE": 0.3, "LEGENDARY": 0.1}
 var fiado_limit: float = 2.0
 var flawless_multiplier: float = 2.0
 var undetected_cheat_multiplier: float = 1.5
+## Propina del bar: tip_rate de la plata por encima de tip_free_entries entradas.
+var tip_rate: float = 0.10
+var tip_free_entries: int = 3
+var fiado_interest: float = 0.10
+var fiado_retention: float = 0.25
+## Factores sobre el precio base para pasar a nivel II y a nivel III.
+var upgrade_cost: Array[float] = [1.5, 2.5]
+var gossip_suspicion: float = 0.3
+var greed_entries_per_cheat: int = 5
+var greed_max_extra: int = 2
+var one_more_fractions: Array[float] = [0.25, 0.5, 1.0]
 
 const PRICE_EPSILON := 0.000001
 
@@ -41,6 +52,15 @@ static func load_from(path: String = "res://data/economy.json") -> Economy:
 	economy.fiado_limit = float(data.get("fiado_limit", economy.fiado_limit))
 	economy.flawless_multiplier = float(data.get("flawless_multiplier", economy.flawless_multiplier))
 	economy.undetected_cheat_multiplier = float(data.get("undetected_cheat_multiplier", economy.undetected_cheat_multiplier))
+	economy.tip_rate = float(data.get("tip_rate", economy.tip_rate))
+	economy.tip_free_entries = int(data.get("tip_free_entries", economy.tip_free_entries))
+	economy.fiado_interest = float(data.get("fiado_interest", economy.fiado_interest))
+	economy.fiado_retention = float(data.get("fiado_retention", economy.fiado_retention))
+	economy.upgrade_cost = _float_array(data.get("upgrade_cost", economy.upgrade_cost))
+	economy.gossip_suspicion = float(data.get("gossip_suspicion", economy.gossip_suspicion))
+	economy.greed_entries_per_cheat = int(data.get("greed_entries_per_cheat", economy.greed_entries_per_cheat))
+	economy.greed_max_extra = int(data.get("greed_max_extra", economy.greed_max_extra))
+	economy.one_more_fractions = _float_array(data.get("one_more_fractions", economy.one_more_fractions))
 	return economy
 
 
@@ -57,12 +77,33 @@ static func _rounds(value: Variant) -> Array[Dictionary]:
 	return result
 
 
+static func _float_array(value: Variant) -> Array[float]:
+	var result: Array[float] = []
+	if value is Array:
+		for item: Variant in value:
+			result.append(float(item))
+	return result
+
+
 static func _float_dictionary(value: Variant) -> Dictionary:
 	var result: Dictionary = {}
 	if value is Dictionary:
 		for key: Variant in value:
 			result[String(key)] = float(value[key])
 	return result
+
+
+## Se calcula con la plata antes de pagar la entrada. Nunca impide entrar.
+func tip(money: int, round: int) -> int:
+	var free := entry(round) * tip_free_entries
+	return floori(float(maxi(0, money - free)) * tip_rate + PRICE_EPSILON)
+
+
+## Interés del fiado al pasar de ronda, redondeado para arriba.
+func fiado_with_interest(fiado: int) -> int:
+	if fiado <= 0:
+		return fiado
+	return ceili(float(fiado) * (1.0 + fiado_interest) - PRICE_EPSILON)
 
 
 func rounds_total() -> int:

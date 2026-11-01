@@ -21,5 +21,14 @@
   "rarity_weight": {"COMMON": 0.6, "RARE": 0.3, "LEGENDARY": 0.1},
   "fiado_limit": 2.0,
   "flawless_multiplier": 2.0,
-  "undetected_cheat_multiplier": 1.5
+  "undetected_cheat_multiplier": 1.5,
+  "tip_rate": 0.10,
+  "tip_free_entries": 3,
+  "fiado_interest": 0.10,
+  "fiado_retention": 0.25,
+  "upgrade_cost": [1.5, 2.5],
+  "gossip_suspicion": 0.3,
+  "greed_entries_per_cheat": 5,
+  "greed_max_extra": 2,
+  "one_more_fractions": [0.25, 0.5, 1.0]
 }

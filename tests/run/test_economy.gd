@@ -53,3 +53,19 @@ func test_un_solo_redondeo_con_descuento() -> void:
 func test_cambio_de_ofertas_sin_error_de_redondeo() -> void:
 	var e := Economy.load_from()
 	assert_eq(e.reroll_cost(3, 5), 210)
+
+
+func test_propina_del_bar() -> void:
+	var e := Economy.load_from()
+	assert_eq(e.tip(300, 1), 0, "justo 3 entradas: sin propina")
+	assert_eq(e.tip(400, 1), 10, "una entrada más: 10% de esa entrada")
+	assert_eq(e.tip(20000, 6), 1400)
+	assert_eq(e.tip(50, 1), 0)
+
+
+func test_interes_del_fiado() -> void:
+	var e := Economy.load_from()
+	assert_eq(e.fiado_with_interest(0), 0)
+	assert_eq(e.fiado_with_interest(1), 2, "redondea para arriba")
+	assert_eq(e.fiado_with_interest(100), 110)
+	assert_eq(e.fiado_with_interest(105), 116)
