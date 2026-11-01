@@ -21,11 +21,13 @@ var dealer: int
 var player: int
 ## Trampa del dealer en esta mano; null si juega limpio. Queda hasta la mano siguiente.
 var active_cheat: Cheat = null
+## Trampas del dealer que de verdad se aplicaron en este partido.
+var cheats_applied := 0
 
 var _rng: RandomNumberGenerator
 var _accused := false
 var _duplicate_planned := false
-var _duplicate_card: Card = null
+var _duplicate_from_brain := false
 var _known: Array[Card] = []
 var _marked_uses := 0
 
@@ -41,6 +43,7 @@ func _init(p_match: TrucoMatch, p_brain: DealerBrain, p_dealer: int, p_rng: Rand
 func start_match() -> void:
 	brain.start_match()
 	_marked_uses = 0
+	cheats_applied = 0
 
 
 ## forced_kind: NO_FORCED deja decidir al dealer; -1 o un Cheat.Kind fuerzan
@@ -60,8 +63,11 @@ func start_hand(forced_kind: int = NO_FORCED, p_cards: Array = [], p_mano: int =
 		truco_match.deck.remove_keys(dealt)
 	active_cheat = null
 	_accused = false
+	# Una duplicada que el dealer decidió y nunca pudo jugar le devuelve el presupuesto.
+	if _duplicate_planned and _duplicate_from_brain:
+		brain.cheat_budget += 1
 	_duplicate_planned = false
-	_duplicate_card = null
+	_duplicate_from_brain = forced_kind == NO_FORCED
 	_known = []
 	var available := available_cheats()
 	var kind := brain.decide_cheat(available) if forced_kind == NO_FORCED else forced_kind
@@ -85,15 +91,14 @@ func is_dealer_turn() -> bool:
 func dealer_step() -> Array[GameEvent]:
 	if not is_dealer_turn():
 		return [_illegal(dealer)]
-	_maybe_apply_duplicate()
 	var view := HandView.new(truco_match.hand, dealer)
 	view.known_opponent_cards = _known.duplicate()
 	var a := brain.choose(view)
-	var copy_played: bool = _duplicate_card != null and a.type == TrucoAction.Type.PLAY_CARD \
-		and truco_match.hand.cards[dealer][a.card_index] == _duplicate_card
-	var events := truco_match.apply(a)
-	if copy_played:
-		active_cheat.evidence_visible = true
+	var events: Array[GameEvent]
+	if a.type == TrucoAction.Type.PLAY_CARD and _duplicate_ready():
+		events = _play_duplicate()
+	else:
+		events = truco_match.apply(a)
 	brain.observe(events, dealer)
 	return events
 
@@ -181,39 +186,57 @@ func _start_cheat(kind: int) -> Array[GameEvent]:
 		Cheat.Kind.SLEEVE:
 			truco_match.hand.add_card(dealer, truco_match.deck.draw(1)[0])
 			active_cheat.evidence_visible = true
+			cheats_applied += 1
 			if _rng.randf() < SLEEVE_TELL_CHANCE:
 				events.append(GameEvent.make(&"cheat_tell", {"kind": kind}))
 		Cheat.Kind.ACCOMPLICE:
 			_known.assign(truco_match.hand.cards[player])
 			active_cheat.evidence_visible = true
+			cheats_applied += 1
 			events.append(GameEvent.make(&"cheat_tell", {"kind": kind}))
 		Cheat.Kind.DUPLICATE:
 			_duplicate_planned = true
 	return events
 
 
-## La copia reemplaza la carta más baja del dealer cuando ya salió una carta
-## alta en esta mano. No deja pista en vivo; la evidencia aparece al jugarla.
-func _maybe_apply_duplicate() -> void:
+## Carta duplicada: solo cuando el dealer abre una baza y ya salió una carta
+## alta en la mano. Cambia su carta más baja por una copia de la más alta jugada
+## y la juega en el mismo paso: antes no influye en nada, y como abrir una baza
+## nunca termina la mano, el jugador siempre tiene su turno para acusar.
+func _duplicate_ready() -> bool:
 	var hand := truco_match.hand
-	if not _duplicate_planned or hand.phase != TrucoHand.Phase.PLAYING or hand.cards[dealer].is_empty():
-		return
+	return _duplicate_planned and hand.phase == TrucoHand.Phase.PLAYING \
+		and hand.played[dealer].size() == hand.played[player].size() \
+		and not hand.cards[dealer].is_empty() and _best_played() != null
+
+
+func _best_played() -> Card:
 	var best: Card = null
 	for p in 2:
-		for c in hand.played[p]:
+		for c in truco_match.hand.played[p]:
 			if best == null or c.truco_rank() > best.truco_rank():
 				best = c
 	if best == null or best.truco_rank() < DUPLICATE_MIN_RANK:
-		return
+		return null
+	return best
+
+
+func _play_duplicate() -> Array[GameEvent]:
+	var hand := truco_match.hand
+	var best := _best_played()
 	var lowest := 0
 	for i in hand.cards[dealer].size():
 		if hand.cards[dealer][i].truco_rank() < hand.cards[dealer][lowest].truco_rank():
 			lowest = i
-	_duplicate_card = Card.new(best.suit, best.number)
-	hand.replace_card(dealer, lowest, _duplicate_card)
+	var copy := Card.new(best.suit, best.number)
+	for m in best.modifiers:
+		copy.add_modifier(m)
+	hand.replace_card(dealer, lowest, copy)
 	active_cheat.card_key = best.key()
+	active_cheat.evidence_visible = true
 	_duplicate_planned = false
-
+	cheats_applied += 1
+	return truco_match.apply(TrucoAction.make(TrucoAction.Type.PLAY_CARD, dealer, lowest))
 
 func _hand_running() -> bool:
 	return truco_match.hand != null and not truco_match.hand.is_over() and truco_match.winner() == -1

@@ -102,3 +102,24 @@ func test_humor_de_trampas_en_rango() -> void:
 	for v in [m.confidence, m.tilt, m.suspicion]:
 		assert_between(v, 0.0, 1.0)
 	assert_eq(m.suspicion, 1.0)
+
+
+func test_complice_no_quiere_un_envido_que_pierde() -> void:
+	var b := _brain(0.0, 0, 0.9)
+	for i in 50:
+		var h := TrucoHand.new([_cards([[O, 7], [O, 6], [B, 4]]), _cards([[E, 7], [E, 4], [B, 11]])], 0, 15)
+		h.apply(TrucoAction.make(T.ENVIDO, 0))
+		var v := HandView.new(h, 1)
+		v.known_opponent_cards = _cards([[O, 7], [O, 6], [B, 4]])
+		assert_eq(b.choose(v).type, T.NO_QUIERO)
+
+
+func test_sin_complice_la_misma_mano_a_veces_quiere_el_truco() -> void:
+	var b := _brain(0.0, 0, 0.2)
+	var quiero := 0
+	for i in 100:
+		var h := TrucoHand.new([_cards([[E, 1], [E, 7], [B, 4]]), _cards([[O, 3], [C, 6], [B, 11]])], 0, 15)
+		h.apply(TrucoAction.make(T.TRUCO, 0))
+		if b.choose(HandView.new(h, 1)).type == T.QUIERO:
+			quiero += 1
+	assert_gt(quiero, 0)

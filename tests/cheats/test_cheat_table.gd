@@ -76,3 +76,38 @@ func test_dealer_step_fuera_de_turno_es_ilegal() -> void:
 	var t := H.table(H.profile(0.0, 0))
 	t.start_hand(-1, _duplicate_cards(), 0)
 	assert_eq(t.dealer_step()[0].type, &"illegal_action")
+
+
+func test_duplicada_siempre_acusable_y_sin_ventaja_previa() -> void:
+	var copies := 0
+	for s in 300:
+		var t := H.table(H.profile(0.0, 0), s)
+		t.start_hand(K.DUPLICATE)
+		var hand := t.truco_match.hand
+		var steps := 0
+		while not hand.is_over() and steps < 80:
+			steps += 1
+			var played_keys := {}
+			for p in 2:
+				for c in hand.played[p]:
+					played_keys[c.key()] = played_keys.get(c.key(), 0) + 1
+			for c in hand.cards[1]:
+				assert_false(played_keys.has(c.key()), "la copia no puede estar en la mano del dealer antes de jugarse")
+			if played_keys.values().has(2):
+				copies += 1
+				assert_true(t.can_accuse(), "la copia jugada tiene que poder acusarse")
+				assert_eq(t.evidence().size(), 1)
+				break
+			if t.is_dealer_turn():
+				t.dealer_step()
+			else:
+				t.player_action(H.player_move(t))
+	assert_gt(copies, 0, "en 300 manos el dealer tiene que haber jugado alguna copia")
+
+
+func test_duplicada_no_aplicada_no_cuenta_como_trampa() -> void:
+	var t := H.table(H.profile(0.0, 0))
+	var low := [H.cards([[H.E, 4], [H.E, 5], [H.E, 6]]), H.cards([[H.B, 4], [H.B, 5], [H.B, 6]])]
+	t.start_hand(K.DUPLICATE, low, 0)
+	H.advance(t, func() -> bool: return false)
+	assert_eq(t.cheats_applied, 0)

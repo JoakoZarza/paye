@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 ## Partidos completos con trampas: el dealer contra un jugador al azar que acusa
 ## según una política.
 
@@ -35,7 +35,6 @@ func _play(id: StringName, policy: Policy, s: int) -> Dictionary:
 	while t.truco_match.winner() == -1 and steps < MAX_STEPS:
 		t.start_hand()
 		if t.active_cheat != null:
-			cheats += 1
 			if t.active_cheat.kind != Cheat.Kind.DUPLICATE and t.evidence().is_empty():
 				_evidence_failures += 1
 		while not t.truco_match.hand.is_over() and t.truco_match.winner() == -1 and steps < MAX_STEPS:
@@ -48,6 +47,7 @@ func _play(id: StringName, policy: Policy, s: int) -> Dictionary:
 				continue
 			var legal := t.truco_match.hand.legal_actions()
 			t.player_action(legal[picker.randi_range(0, legal.size() - 1)])
+	cheats = t.cheats_applied
 	if cheats > profile.cheat_budget:
 		_budget_failures += 1
 	return {"winner": t.truco_match.winner(), "cheats": cheats}

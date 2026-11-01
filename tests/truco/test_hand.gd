@@ -240,3 +240,13 @@ func test_agregar_y_reemplazar_cartas() -> void:
 	assert_eq(h.total_cards(1), 4)
 	h.replace_card(1, 0, Card.new(C, 3))
 	assert_eq(h.cards[1][0].key(), "3_COPA")
+
+
+func test_force_end_no_paga_un_envido_mentido_al_acusador() -> void:
+	var h := _hand([[O, 12], [O, 11], [C, 4]], [[E, 5], [E, 10], [B, 4]], 0)
+	_do(h, T.ENVIDO, 0)
+	_do(h, T.QUIERO, 1)
+	_do(h, T.DECLARE_TANTO, 0, -1, 33)
+	_do(h, T.SON_BUENAS, 1)
+	h.force_end(0, 1)
+	assert_eq(h.envido_points, [0, 0])

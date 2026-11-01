@@ -1,4 +1,4 @@
-class_name TrucoHand
+﻿class_name TrucoHand
 extends RefCounted
 ## Máquina de estados de una mano de truco 1 contra 1, sin flor. Recibe
 ## acciones, devuelve eventos. Ver DISENO §3 y Plan 1, Tarea 6.
@@ -69,7 +69,7 @@ func total_cards(p: int) -> int:
 
 ## Termina la mano por una trampa descubierta (DISENO §4.2 y §4.3). El ganador
 ## suma lo que vale el truco en este momento; el tramposo pierde el envido de la
-## mano; si el ganador ganaba el envido, lo cobra sin verificación.
+## mano; si el ganador ganaba el envido, lo cobra solo si no mintió.
 func force_end(winner: int, cheater: int) -> Array[GameEvent]:
 	if phase == Phase.OVER:
 		return [GameEvent.make(&"illegal_action", {"player": winner, "type": -1})]
@@ -77,8 +77,11 @@ func force_end(winner: int, cheater: int) -> Array[GameEvent]:
 	truco_points = [0, 0]
 	truco_points[winner] = maxi(value, 1)
 	envido_points[cheater] = 0
-	if _envido_accepted and _envido_winner == winner and phase != Phase.TANTO_DECLARATION:
-		envido_points[winner] += _envido_value
+	# El envido del acusador se cobra con una verificación implícita: si mintió, no cobra.
+	if _envido_accepted and _envido_winner == winner:
+		var lied := _declared[winner] > _real_tanto[winner] and _real_winner() != winner
+		if not lied:
+			envido_points[winner] += _envido_value
 	phase = Phase.OVER
 	return [GameEvent.make(&"hand_over", {"envido": envido_points.duplicate(), "truco": truco_points.duplicate()})]
 
