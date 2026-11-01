@@ -31,6 +31,9 @@ var rules := TableRules.new()
 var player_called_envido := false
 ## El Vaso de caña se aplicó a la declaración del jugador en esta mano.
 var _declaration_protected := false
+## Trampas del jugador en este partido (premio por trampa no detectada).
+var player_cheats_used := 0
+var player_cheats_caught := 0
 
 var _rng: RandomNumberGenerator
 var _accused := false
@@ -54,6 +57,8 @@ func start_match() -> void:
 	_marked_uses = 0
 	cheats_applied = 0
 	player_called_envido = false
+	player_cheats_used = 0
+	player_cheats_caught = 0
 
 
 ## forced_kind: NO_FORCED deja decidir al dealer; -1 o un Cheat.Kind fuerzan
@@ -193,7 +198,9 @@ func use_player_cheat(kind: PlayerCheat) -> Array[GameEvent]:
 		risk = MARKED_RISK + MARKED_RISK_PER_USE * _marked_uses
 		_marked_uses += 1
 	risk = minf(risk * (1.0 + brain.mood.suspicion), MAX_RISK)
+	player_cheats_used += 1
 	if _rng.randf() < risk:
+		player_cheats_caught += 1
 		var events: Array[GameEvent] = [GameEvent.make(&"player_caught", {"kind": kind})]
 		events.append_array(truco_match.hand.force_end(dealer, player))
 		events.append_array(truco_match.finish_forced_hand())
