@@ -14,6 +14,8 @@ const MIRROR_RISK := 0.25
 const MARKED_RISK := 0.10
 const MARKED_RISK_PER_USE := 0.10
 const MAX_RISK := 0.95
+const CIGARETTE_CHANCE := 0.5
+const ENVIDO_CALL_TYPES: Array[TrucoAction.Type] = [TrucoAction.Type.ENVIDO, TrucoAction.Type.REAL_ENVIDO, TrucoAction.Type.FALTA_ENVIDO]
 
 var truco_match: TrucoMatch
 var brain: DealerBrain
@@ -23,6 +25,10 @@ var player: int
 var active_cheat: Cheat = null
 ## Trampas del dealer que de verdad se aplicaron en este partido.
 var cheats_applied := 0
+## Banderas que prenden los amuletos y el mazo de la run.
+var rules := TableRules.new()
+## Si el jugador cantó algún envido en este partido (Moneda aplastada).
+var player_called_envido := false
 
 var _rng: RandomNumberGenerator
 var _accused := false
@@ -42,8 +48,10 @@ func _init(p_match: TrucoMatch, p_brain: DealerBrain, p_dealer: int, p_rng: Rand
 
 func start_match() -> void:
 	brain.start_match()
+	brain.cheat_budget *= rules.dealer_budget_multiplier
 	_marked_uses = 0
 	cheats_applied = 0
+	player_called_envido = false
 
 
 ## forced_kind: NO_FORCED deja decidir al dealer; -1 o un Cheat.Kind fuerzan
@@ -93,7 +101,7 @@ func dealer_step() -> Array[GameEvent]:
 		return [_illegal(dealer)]
 	var view := HandView.new(truco_match.hand, dealer)
 	view.known_opponent_cards = _known.duplicate()
-	var a := brain.choose(view)
+	var a := _apply_rules(brain.choose(view))
 	var events: Array[GameEvent]
 	if a.type == TrucoAction.Type.PLAY_CARD and _duplicate_ready():
 		events = _play_duplicate()
@@ -106,9 +114,29 @@ func dealer_step() -> Array[GameEvent]:
 func player_action(a: TrucoAction) -> Array[GameEvent]:
 	if a.player != player or not _hand_running():
 		return [_illegal(player)]
+	if a.type in ENVIDO_CALL_TYPES:
+		player_called_envido = true
 	var events := truco_match.apply(a)
 	brain.observe(events, dealer)
 	return events
+
+
+## Facón, Vaso de caña y Cigarrillo cambian la respuesta del dealer.
+func _apply_rules(a: TrucoAction) -> TrucoAction:
+	var hand := truco_match.hand
+	var responding := hand.phase == TrucoHand.Phase.ENVIDO_RESPONSE or hand.phase == TrucoHand.Phase.TRUCO_RESPONSE
+	if responding and rules.force_accept_next_call:
+		rules.force_accept_next_call = false
+		return TrucoAction.make(TrucoAction.Type.QUIERO, dealer)
+	if a.type != TrucoAction.Type.DEMAND_SHOW:
+		return a
+	if rules.skip_next_show:
+		rules.skip_next_show = false
+		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
+	var lied := hand.declared_tanto(player) > hand.own_tanto(player)
+	if rules.cigarette and lied and _rng.randf() < CIGARETTE_CHANCE:
+		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
+	return a
 
 
 func evidence() -> Array[Cheat]:
