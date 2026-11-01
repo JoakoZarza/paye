@@ -37,9 +37,10 @@ const SHOW_GAP_BONUS := 0.2
 const SHOW_MAX := 0.9
 
 const TRUCO_CALL := 0.7
-const TRUCO_CALL_AGGR := 0.3
-const TRUCO_BLUFF := 0.25
+const TRUCO_CALL_AGGR := 0.45
+const TRUCO_BLUFF := 0.15
 const TRUCO_RAISE := 0.85
+const TRUCO_RAISE_AGGR := 0.25
 const TRUCO_ACCEPT := 0.5
 const TRUCO_ACCEPT_AGGR := 0.2
 const TRUCO_ACCEPT_STUBBORN := 0.1
@@ -61,7 +62,7 @@ var model := PlayerModel.new()
 var last_tell: Tell = null
 var stats := {
 	&"decisions": 0, &"declarations": 0, &"lies": 0, &"envido_calls": 0,
-	&"truco_calls": 0, &"tells": 0, &"honest_tells": 0,
+	&"truco_calls": 0, &"truco_chances": 0, &"tells": 0, &"honest_tells": 0,
 }
 
 var _rng: RandomNumberGenerator
@@ -89,6 +90,11 @@ func choose(hand: TrucoHand, me: int) -> TrucoAction:
 		TrucoHand.Phase.SHOW_DECISION:
 			action = _decide_show(hand, me)
 	return _legalize(action, legal)
+
+
+## Llamar al empezar cada partido: el humor arranca de cero, la memoria del jugador sigue.
+func start_match() -> void:
+	mood = DealerMood.new()
 
 
 func observe(events: Array[GameEvent], me: int) -> void:
@@ -144,6 +150,8 @@ func _decide_playing(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> Tru
 		return envido_call
 	var pt := _perceived(_truco_strength(hand, me))
 	var truco_call := _find(legal, TRUCO_TYPES)
+	if truco_call != null:
+		stats[&"truco_chances"] += 1
 	if truco_call != null and (pt >= TRUCO_CALL - _aggr() * TRUCO_CALL_AGGR or _chance(_lie() * TRUCO_BLUFF)):
 		stats[&"truco_calls"] += 1
 		_emit_tell(pt)
@@ -194,7 +202,9 @@ func _decide_truco_response(hand: TrucoHand, me: int, legal: Array[TrucoAction])
 	var pt := _perceived(_truco_strength(hand, me))
 	_emit_tell(pt)
 	var raise := _find(legal, TRUCO_TYPES)
-	if raise != null and pt >= TRUCO_RAISE:
+	if raise != null:
+		stats[&"truco_chances"] += 1
+	if raise != null and pt >= TRUCO_RAISE - _aggr() * TRUCO_RAISE_AGGR:
 		stats[&"truco_calls"] += 1
 		return raise
 	var accept_at := TRUCO_ACCEPT - _aggr() * TRUCO_ACCEPT_AGGR \

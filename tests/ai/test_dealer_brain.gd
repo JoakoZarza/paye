@@ -132,3 +132,19 @@ func test_tilt_aumenta_faroles() -> void:
 				count += 1
 		bluffs.append(count)
 	assert_gt(bluffs[1], bluffs[0])
+
+
+func test_start_match_reinicia_humor_y_conserva_memoria() -> void:
+	var brain := _brain(_profile(0.5, 0.5))
+	brain.observe([GameEvent.make(&"lie_caught", {"player": 1}), GameEvent.make(&"lie_caught", {"player": 0})], 1)
+	brain.start_match()
+	assert_eq(brain.mood.tilt, 0.0)
+	assert_eq(brain.mood.confidence, 0.5)
+	assert_eq(brain.model.lies_caught, 1)
+
+
+func test_cuenta_oportunidades_de_truco() -> void:
+	var brain := _brain(_profile(0.9, 0.0))
+	var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 3], [C, 6], [B, 11]])], 1, 15)
+	brain.choose(h, 1)
+	assert_eq(brain.stats[&"truco_chances"], 1)

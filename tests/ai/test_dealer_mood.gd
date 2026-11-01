@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 
 
 func test_ganar_sube_confianza_y_baja_tilt() -> void:
@@ -6,7 +6,7 @@ func test_ganar_sube_confianza_y_baja_tilt() -> void:
 	mood.on_hand_result(false)
 	mood.on_hand_result(true)
 	assert_almost_eq(mood.confidence, 0.5, 0.0001)
-	assert_almost_eq(mood.tilt, 0.10, 0.0001)
+	assert_almost_eq(mood.tilt, 0.0, 0.0001)
 
 
 func test_pescado_mintiendo() -> void:

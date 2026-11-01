@@ -1,11 +1,11 @@
-class_name DealerMood
+﻿class_name DealerMood
 extends RefCounted
 ## Mantiene el humor y la confianza del dealer.
 
 const HAND_WON_CONFIDENCE: float = 0.10
 const HAND_LOST_CONFIDENCE: float = 0.10
 const HAND_LOST_TILT: float = 0.15
-const HAND_WON_TILT_DECAY: float = 0.05
+const HAND_WON_TILT_DECAY: float = 0.15
 const CAUGHT_LYING_TILT: float = 0.30
 const CAUGHT_LYING_CONFIDENCE: float = 0.15
 const CAUGHT_PLAYER_CONFIDENCE: float = 0.10
