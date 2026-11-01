@@ -29,6 +29,8 @@ var _gossip := false
 ## Una mano más: premio neto que se puede arriesgar y lo que está en juego.
 var _one_more_net := 0
 var _one_more_stake := 0
+## La única mano de "una mano más" o de la cuenta: si se juega otra, se pierde.
+var _single_hand: TrucoHand = null
 var _defs: Dictionary
 var _decks: Dictionary
 var _legacy_snapshot: Array[StringName] = []
@@ -54,6 +56,11 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 	if meta.run_in_progress:
 		meta.runs_played += 1
 	state = RunState.new()
+	_gossip = false
+	_one_more_net = 0
+	_one_more_stake = 0
+	_bill_missing = 0
+	_single_hand = null
 	state.money = economy.start_money
 	state.debt = meta.debt
 	state.deck = _decks[deck_id]
@@ -118,7 +125,7 @@ func finish_match() -> Array[GameEvent]:
 	var t := table()
 	if t.truco_match.winner() != PLAYER:
 		return die()
-	_gossip = t.player_cheats_caught > 0
+	_gossip = t.player_cheats_caught > 0 and not economy.is_final(state.round)
 	var prize := Prize.compute(economy.base_prize(state.round), t.truco_match.scores[DEALER],
 		t.player_cheats_used, t.player_cheats_caught, t.player_called_envido,
 		state.loadout, state.deck, economy, economy.is_final(state.round))
@@ -158,8 +165,8 @@ func one_more_options() -> Array[int]:
 	return out
 
 
-## Arriesga una parte del premio en una mano contra el mismo rival. Después
-## jugá la mano con systems.start_hand() y llamá a finish_one_more().
+## Arriesga una parte del premio en una mano contra el mismo rival. La mano ya
+## queda repartida: jugala en table() y llamá a finish_one_more().
 func one_more(fraction: float) -> Array[GameEvent]:
 	if phase != Phase.ONE_MORE or _one_more_stake > 0:
 		return [_illegal()]
@@ -173,7 +180,9 @@ func one_more(fraction: float) -> Array[GameEvent]:
 	_one_more_stake = stake
 	_open_table(rival_for(state.round), economy.target_points(state.round))
 	_checkpoint()
-	return [GameEvent.make(&"one_more_started", {"stake": stake})]
+	var events: Array[GameEvent] = [GameEvent.make(&"one_more_started", {"stake": stake})]
+	events.append_array(_start_single_hand())
+	return events
 
 
 func skip_one_more() -> Array[GameEvent]:
@@ -187,13 +196,12 @@ func skip_one_more() -> Array[GameEvent]:
 func finish_one_more() -> Array[GameEvent]:
 	if phase != Phase.ONE_MORE or _one_more_stake <= 0:
 		return [_illegal()]
-	var m := table().truco_match
-	if m.hand == null or (not m.hand.is_over() and m.winner() == -1):
+	if not _single_hand_over():
 		return [_illegal()]
 	var stake := _one_more_stake
 	_one_more_stake = 0
 	var event: GameEvent
-	if m.scores[PLAYER] > m.scores[DEALER]:
+	if _single_hand_won():
 		state.money += stake * 2
 		event = GameEvent.make(&"one_more_won", {"amount": stake, "money": state.money})
 	else:
@@ -231,7 +239,28 @@ func _settle_bill() -> Array[GameEvent]:
 	phase = Phase.BILL_HAND
 	_checkpoint()
 	events.append(GameEvent.make(&"bill_hand_started", {"missing": _bill_missing}))
+	events.append_array(_start_single_hand())
 	return events
+
+
+func _start_single_hand() -> Array[GameEvent]:
+	var events := systems.start_hand()
+	_single_hand = table().truco_match.hand
+	return events
+
+
+func _single_hand_over() -> bool:
+	var m := table().truco_match
+	if m.hand != _single_hand:
+		return true
+	return m.hand != null and (m.hand.is_over() or m.winner() != -1)
+
+
+## Gana quien sumó más puntos en esa mano; el empate es del rival. Si se repartió
+## otra mano en la misma mesa, la mano única ya se perdió.
+func _single_hand_won() -> bool:
+	var m := table().truco_match
+	return m.hand == _single_hand and m.scores[PLAYER] > m.scores[DEALER]
 
 
 func _bill_settled() -> void:
@@ -241,15 +270,14 @@ func _bill_settled() -> void:
 	_checkpoint()
 
 
-## Llamar cuando terminó la mano contra el Gualicho. Gana quien sumó más puntos
-## en esa mano; el empate es del Gualicho.
+## Llamar cuando terminó la mano contra el Gualicho (ya repartida al empezar la
+## fase). Gana quien sumó más puntos en esa mano; el empate es del Gualicho.
 func finish_bill_hand() -> Array[GameEvent]:
 	if phase != Phase.BILL_HAND:
 		return [_illegal()]
-	var m := table().truco_match
-	if m.hand == null or (not m.hand.is_over() and m.winner() == -1):
+	if not _single_hand_over():
 		return [_illegal()]
-	if m.scores[PLAYER] > m.scores[DEALER]:
+	if _single_hand_won():
 		_bill_settled()
 		return [GameEvent.make(&"bill_hand_won", {"missing": _bill_missing})]
 	var events: Array[GameEvent] = [GameEvent.make(&"bill_hand_lost", {"missing": _bill_missing})]
@@ -301,7 +329,8 @@ func next_round() -> Array[GameEvent]:
 
 ## La run termina. El legado se elige después con choose_legacy().
 func die() -> Array[GameEvent]:
-	if state == null or phase in ENDED or phase == Phase.FREE:
+	# Solo se muere al no poder entrar, al perder un partido o la mano de la cuenta.
+	if state == null or not phase in [Phase.BAR, Phase.MATCH, Phase.BILL_HAND]:
 		return [_illegal()]
 	_legacy_snapshot = _equipped_ids()
 	shop.offers.clear()

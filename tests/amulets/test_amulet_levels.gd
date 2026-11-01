@@ -45,8 +45,9 @@ func test_cargas_por_nivel() -> void:
 func test_marcador_iii_cambia_el_palo() -> void:
 	var sys := _system(["marker"], {"marker": 3})
 	sys.start_hand(-1, _cards(), 0)
-	assert_eq(sys.use(&"marker", {"card_index": 2, "number": 5, "suit": H.E})[0].type, &"illegal_action",
-		"no puede copiar el 5 de espada del rival")
+	assert_eq(sys.use(&"marker", {"card_index": 2, "number": 7, "suit": H.O})[0].type, &"illegal_action",
+		"no puede copiar su propio 7 de oro")
+	assert_true(sys.table.truco_match.hand.can_mark(0, 2, 5, H.E), "no delata el 5 de espada escondido del rival")
 	assert_eq(sys.use(&"marker", {"card_index": 2, "number": 5, "suit": H.B})[0].type, &"amulet_used")
 	var card: Card = sys.table.truco_match.hand.cards[0][2]
 	assert_eq(card.effective_number(), 5)
@@ -141,3 +142,41 @@ func test_reglas_de_la_mesa_siguen_el_nivel() -> void:
 	assert_almost_eq(marked.table.rules.marked_step_multiplier, 0.5, 0.0001)
 	var plain := _system(["cigarette"])
 	assert_almost_eq(plain.table.rules.cigarette_chance, 0.5, 0.0001)
+
+
+## Veces que el dealer igual pide mostrar un tanto mentido, sobre 400 manos.
+func _shows_demanded(level: int) -> int:
+	var sys := _system(["cigarette"], {"cigarette": level})
+	var t := sys.table
+	var shows := 0
+	for i in 400:
+		sys.start_hand(-1, [H.cards([[H.O, 7], [H.C, 6], [H.B, 4]]), H.cards([[H.E, 1], [H.E, 5], [H.B, 6]])], 0)
+		var m := t.truco_match
+		m.apply(TrucoAction.make(T.ENVIDO, 0))
+		m.apply(TrucoAction.make(T.QUIERO, 1))
+		m.apply(TrucoAction.make(T.DECLARE_TANTO, 0, -1, 33))
+		m.apply(TrucoAction.make(T.SON_BUENAS, 1))
+		# La verificación del tanto llega al terminar la mano.
+		m.apply(TrucoAction.make(T.MAZO, m.hand.current_player()))
+		assert_eq(m.hand.phase, TrucoHand.Phase.SHOW_DECISION)
+		if t._apply_rules(TrucoAction.make(T.DEMAND_SHOW, 1)).type == T.DEMAND_SHOW:
+			shows += 1
+	return shows
+
+
+func test_cigarrillo_mejorado_frena_mas_pedidos() -> void:
+	var level_1 := _shows_demanded(1)
+	var level_3 := _shows_demanded(3)
+	assert_almost_eq(float(level_1), 200.0, 40.0, "nivel I: pide mostrar la mitad de las veces")
+	assert_almost_eq(float(level_3), 80.0, 30.0, "nivel III: pide mostrar el 20% de las veces")
+
+func test_facon_iii_no_pasa_a_la_mano_siguiente() -> void:
+	var sys := _system(["facon"], {"facon": 3})
+	var t := sys.table
+	sys.start_hand(-1, _cards(), 0)
+	sys.use(&"facon")
+	t.player_action(TrucoAction.make(T.TRUCO, 0))
+	assert_eq(t._apply_rules(TrucoAction.make(T.NO_QUIERO, 1)).type, T.QUIERO)
+	sys.start_hand(-1, _cards(), 1)
+	assert_false(t.rules.force_accept_next_call)
+	assert_eq(t.rules.force_accept_extra, 0)

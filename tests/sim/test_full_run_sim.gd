@@ -84,7 +84,6 @@ func _play_run(rc: RunController, player: DealerBrain) -> int:
 				_buy_safe(rc)
 				rc.next_round()
 			P.BILL_HAND:
-				rc.systems.start_hand()
 				if not _play_hand(rc.table(), player):
 					return -1
 				rc.finish_bill_hand()

@@ -35,7 +35,6 @@ func _won(s := 4) -> RunController:
 
 func _end_hand(rc: RunController, player_points: int, rival_points: int) -> Array[GameEvent]:
 	var m := rc.table().truco_match
-	m.start_hand()
 	m.apply(TrucoAction.make(T.MAZO, m.hand.current_player()))
 	m.scores.assign([player_points, rival_points])
 	return rc.finish_one_more()
@@ -88,8 +87,9 @@ func test_fraccion_invalida_y_fases_ilegales() -> void:
 	rc.one_more(0.5)
 	assert_eq(rc.one_more(0.5)[0].type, &"illegal_action", "no se apuesta dos veces")
 	assert_eq(rc.skip_one_more()[0].type, &"illegal_action", "con la apuesta hecha no se saltea")
-	rc.table().truco_match.start_hand()
 	assert_eq(rc.finish_one_more()[0].type, &"illegal_action", "la mano no terminó")
+	assert_eq(rc.die()[0].type, &"illegal_action", "en una mano más no se muere")
+	assert_eq(rc.phase, P.ONE_MORE)
 
 
 func test_premio_neto_cero_se_saltea() -> void:
@@ -127,3 +127,13 @@ func test_no_aparece_en_la_final() -> void:
 	m.award(0, m.target)
 	assert_false(&"one_more_offered" in _types(rc.finish_match()))
 	assert_eq(rc.phase, P.FREE)
+
+
+func test_otra_mano_no_salva_la_apuesta() -> void:
+	var rc := _won()
+	rc.one_more(0.5)
+	var m := rc.table().truco_match
+	m.apply(TrucoAction.make(T.MAZO, m.hand.current_player()))
+	rc.systems.start_hand()
+	m.scores.assign([4, 0])
+	assert_has(_types(rc.finish_one_more()), &"one_more_lost")

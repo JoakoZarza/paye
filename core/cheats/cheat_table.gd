@@ -146,14 +146,16 @@ func _apply_rules(a: TrucoAction) -> TrucoAction:
 	if responding and rules.force_accept_next_call:
 		if rules.force_accept_extra > 0:
 			rules.force_accept_extra -= 1
+			rules.force_accept_raise_pending = true
 		else:
 			rules.force_accept_next_call = false
+			rules.force_accept_raise_pending = false
 		return TrucoAction.make(TrucoAction.Type.QUIERO, dealer)
 	if a.type != TrucoAction.Type.DEMAND_SHOW:
 		return a
 	if _declaration_protected:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
-	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() < rules.cigarette_chance:
+	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() >= rules.cigarette_chance:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
 	return a
 

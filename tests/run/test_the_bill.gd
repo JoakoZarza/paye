@@ -47,7 +47,6 @@ func _win_final(rc: RunController, extra: int, fiado := 0, debt := 0) -> Array[G
 ## Termina la mano contra el Gualicho con el marcador dado.
 func _end_bill_hand(rc: RunController, player_points: int, gualicho_points: int) -> Array[GameEvent]:
 	var m := rc.table().truco_match
-	m.start_hand()
 	m.apply(TrucoAction.make(T.MAZO, m.hand.current_player()))
 	assert_true(m.hand.is_over())
 	m.scores.assign([player_points, gualicho_points])
@@ -135,7 +134,6 @@ func test_la_cuenta_sin_amuletos_va_a_la_mano() -> void:
 func test_finish_bill_hand_con_la_mano_sin_terminar_es_ilegal() -> void:
 	var rc := _controller()
 	_win_final(rc, 0, 0, 1000)
-	rc.table().truco_match.start_hand()
 	assert_eq(rc.finish_bill_hand()[0].type, &"illegal_action")
 	assert_eq(rc.phase, RunController.Phase.BILL_HAND)
 
@@ -182,3 +180,14 @@ func test_morir_antes_del_final_arrastra_el_fiado() -> void:
 	m.award(1, m.target)
 	assert_has(_types(rc.finish_match()), &"run_died")
 	assert_eq(meta.debt, 130)
+
+
+func test_otra_mano_en_la_cuenta_es_derrota() -> void:
+	var rc := _controller()
+	_win_final(rc, 0, 0, 1000)
+	var m := rc.table().truco_match
+	m.apply(TrucoAction.make(T.MAZO, m.hand.current_player()))
+	# Repartir otra mano para buscar revancha no vale.
+	rc.systems.start_hand()
+	m.scores.assign([5, 0])
+	assert_has(_types(rc.finish_bill_hand()), &"bill_hand_lost")

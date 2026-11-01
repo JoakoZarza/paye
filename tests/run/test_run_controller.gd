@@ -324,3 +324,28 @@ func test_las_almas_no_reciben_trampas_extra() -> void:
 	rc.state.money = 1000000
 	assert_eq(rc.enter_match()[0].data["greed_cheats"], 0)
 	assert_eq(rc.table().brain.cheat_budget, 0)
+
+
+func test_el_chisme_no_pasa_a_la_run_siguiente() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.enter_match()
+	rc.table().player_cheats_caught = 1
+	_end_match(rc, 0)
+	rc.finish_match()
+	rc.skip_one_more()
+	rc.next_round()
+	rc.state.money = 0
+	rc.enter_match()
+	assert_eq(rc.phase, RunController.Phase.DEAD)
+	rc.start_run(&"normal")
+	rc.enter_match()
+	assert_eq(rc.table().brain.mood.suspicion, 0.0)
+
+
+func test_morir_solo_desde_el_bar_el_partido_o_la_cuenta() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	_win_round(rc)
+	assert_eq(rc.phase, RunController.Phase.SHOP)
+	assert_eq(rc.die()[0].type, &"illegal_action")

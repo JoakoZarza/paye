@@ -68,6 +68,8 @@ func upgrade(id: StringName, state: RunState) -> Dictionary:
 	if _upgraded:
 		return _result(false, &"already_upgraded")
 	var price := upgrade_price(id, state)
+	if price < 0:
+		return _result(false, &"max_level")
 	var pay := _pay(price, state)
 	if not pay["ok"]:
 		return pay

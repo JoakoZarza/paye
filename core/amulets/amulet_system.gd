@@ -30,12 +30,18 @@ func start_match() -> void:
 	table.rules.mirror_risk_multiplier = float(_value(&"mirror", "risk_multiplier", 1.0))
 	table.rules.marked_step_multiplier = float(_value(&"marked_cards", "risk_step_multiplier", 1.0))
 	table.rules.force_accept_extra = 0
+	table.rules.force_accept_raise_pending = false
 	table.start_match()
 
 
 func start_hand(forced_kind: int = CheatTable.NO_FORCED, p_cards: Array = [], p_mano: int = -1) -> Array[GameEvent]:
 	var events := table.start_hand(forced_kind, p_cards, p_mano)
 	_spare_preview = []
+	# La subida que obligaba el Facón III no pasa a la mano siguiente.
+	if table.rules.force_accept_raise_pending:
+		table.rules.force_accept_next_call = false
+		table.rules.force_accept_extra = 0
+		table.rules.force_accept_raise_pending = false
 	if loadout.has(&"glasses"):
 		var dealer_cards: Array = _hand().cards[table.dealer].duplicate()
 		var count := mini(int(_value(&"glasses", "reveal_count", 1)), dealer_cards.size())
@@ -112,6 +118,9 @@ func use(id: StringName, args: Dictionary = {}) -> Array[GameEvent]:
 					return [_illegal()]
 				card = options[choice]
 				_spare_preview = []
+				# El Marcador pudo convertir una carta tuya en la elegida después de verla.
+				if _on_table(hand, card):
+					return [_illegal()]
 			hand.replace_card(me, idx, card)
 			events.append(_used(id, {"card_index": idx, "card": card}))
 		&"cana_glass":
@@ -162,6 +171,14 @@ func _draw_spare(hand: TrucoHand, count: int) -> Array[Card]:
 			used.append("%d_%s" % [c.effective_number(), Card.Suit.keys()[c.effective_suit()]])
 	reserve.remove_keys(used)
 	return reserve.draw(count)
+
+
+func _on_table(hand: TrucoHand, card: Card) -> bool:
+	for p in 2:
+		for c in hand.cards[p] + hand.played[p]:
+			if c.key() == card.key() or (c.effective_number() == card.number and c.effective_suit() == card.suit):
+				return true
+	return false
 
 
 ## Valor del nivel actual del amuleto equipado, o default si no lo tenés.

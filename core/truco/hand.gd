@@ -88,7 +88,8 @@ func can_undo_last_call(by: int) -> bool:
 
 
 ## Marcador: el número es válido y la carta no queda igual a otra de la mano.
-## new_suit -1 deja el palo. Si cambia el palo, tampoco puede copiar una carta del rival.
+## new_suit -1 deja el palo. Si cambia el palo, tampoco puede copiar una carta que el
+## rival ya jugó; las de su mano no se miran, para que el Marcador no las delate.
 func can_mark(p: int, idx: int, new_number: int, new_suit: int = -1) -> bool:
 	if idx < 0 or idx >= cards[p].size() or not Card.is_valid_number(new_number):
 		return false
@@ -98,7 +99,7 @@ func can_mark(p: int, idx: int, new_number: int, new_suit: int = -1) -> bool:
 	var suit: int = target.effective_suit() if new_suit == -1 else new_suit
 	var others: Array = cards[p] + played[p]
 	if new_suit != -1:
-		others += cards[1 - p] + played[1 - p]
+		others += played[1 - p]
 	for other in others:
 		if other != target and other.effective_number() == new_number and other.effective_suit() == suit:
 			return false
