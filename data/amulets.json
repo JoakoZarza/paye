@@ -1,0 +1,14 @@
+{
+  "marker": {"category": "CARDS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
+  "spare_deck": {"category": "CARDS", "kind": "ACTIVE", "rarity": "RARE", "charges": 2},
+  "cigarette": {"category": "TANTO", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0},
+  "cana_glass": {"category": "TANTO", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
+  "rosary": {"category": "CALLS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
+  "facon": {"category": "CALLS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
+  "glasses": {"category": "INFO", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0},
+  "hat": {"category": "INFO", "kind": "ACTIVE", "rarity": "LEGENDARY", "charges": 1},
+  "mirror": {"category": "CHEAT", "kind": "ACTIVE", "rarity": "LEGENDARY", "charges": 2},
+  "marked_cards": {"category": "CHEAT", "kind": "ACTIVE", "rarity": "RARE", "charges": 3},
+  "red_ribbon": {"category": "ECONOMY", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0},
+  "train_coin": {"category": "ECONOMY", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0}
+}
