@@ -53,6 +53,11 @@ const MAZO_MIN_LEVEL := 2
 
 const MEMORY_BLUFF_DAMP := 0.5
 
+const CHEAT_RATE := 0.35
+const SUSPICION_DETER := 0.8
+const KNOWN_WIN := 0.9
+const KNOWN_LOSE := 0.2
+
 const TELL_STRONG := 0.6
 const TELL_ANGRY_TILT := 0.5
 const TELL_SMUG_CONFIDENCE := 0.7
@@ -62,6 +67,7 @@ var profile: RivalProfile
 var mood := DealerMood.new()
 var model := PlayerModel.new()
 var last_tell: Tell = null
+var cheat_budget: int = 0
 var stats := {
 	&"decisions": 0, &"declarations": 0, &"lies": 0, &"envido_calls": 0,
 	&"truco_calls": 0, &"truco_chances": 0, &"tells": 0, &"honest_tells": 0,
@@ -99,6 +105,25 @@ func choose(view: HandView) -> TrucoAction:
 ## Llamar al empezar cada partido: el humor arranca de cero, la memoria del jugador sigue.
 func start_match() -> void:
 	mood = DealerMood.new()
+	cheat_budget = profile.cheat_budget
+
+
+## Devuelve un Cheat.Kind de available, o -1 si no hace trampa en esta mano.
+func decide_cheat(available: Array[Cheat.Kind]) -> int:
+	if cheat_budget <= 0 or available.is_empty():
+		return -1
+	var p := profile.cheating * CHEAT_RATE * (1.0 - mood.suspicion * SUSPICION_DETER)
+	if not _chance(p):
+		return -1
+	cheat_budget -= 1
+	return available[_rng.randi_range(0, available.size() - 1)]
+
+
+## Con el cómplice: ¿su tanto le gana al del rival? En empate gana el mano.
+func _wins_known_envido(view: HandView) -> bool:
+	var mine := view.my_tanto()
+	var theirs := Envido.tanto(view.known_opponent_cards)
+	return mine > theirs or (mine == theirs and view.mano() == view.me)
 
 
 func _observe_call(player: int, call: int, me: int) -> void:
@@ -200,6 +225,8 @@ func _decide_envido_response(view: HandView, me: int, legal: Array[TrucoAction])
 	var re := HandStrength.envido(view.my_tanto())
 	var pe := _perceived(re)
 	_emit_tell(re)
+	if not view.known_opponent_cards.is_empty():
+		return TrucoAction.make(T.QUIERO if _wins_known_envido(view) else T.NO_QUIERO, me)
 	if pe >= ENVIDO_RAISE:
 		var raise := _envido_raise(legal, pe)
 		if raise != null:
@@ -267,6 +294,10 @@ func _maybe_call_envido(view: HandView, me: int, legal: Array[TrucoAction]) -> T
 		return null
 	var re := HandStrength.envido(view.my_tanto())
 	var pe := _perceived(re)
+	if not view.known_opponent_cards.is_empty():
+		if not _wins_known_envido(view):
+			return null
+		pe = 1.0
 	if pe < ENVIDO_CALL - _aggr() * ENVIDO_CALL_AGGR and not _chance(_lie() * ENVIDO_BLUFF * _bluff_damp(model.envido_accept_rate())):
 		return null
 	stats[&"envido_calls"] += 1
@@ -338,7 +369,24 @@ func _truco_strength(view: HandView, me: int) -> float:
 	# La carta propia tirada en la baza en curso todavía cuenta.
 	if view.played(me).size() > view.played(1 - me).size():
 		mine.append(view.played(me).back())
+	if not view.known_opponent_cards.is_empty():
+		return _known_truco_strength(view, mine)
 	return HandStrength.truco(mine, view.baza_results(), me)
+
+
+## Con el cómplice: compara su mejor carta con la mejor que le queda al rival.
+func _known_truco_strength(view: HandView, mine: Array[Card]) -> float:
+	var gone := {}
+	for c in view.played(1 - view.me):
+		gone[c.key()] = true
+	var best_theirs := 0
+	for c in view.known_opponent_cards:
+		if not gone.has(c.key()):
+			best_theirs = maxi(best_theirs, c.truco_rank())
+	var best_mine := 0
+	for c in mine:
+		best_mine = maxi(best_mine, c.truco_rank())
+	return KNOWN_WIN if best_mine > best_theirs else KNOWN_LOSE
 
 
 func _find(legal: Array[TrucoAction], types: Array) -> TrucoAction:
