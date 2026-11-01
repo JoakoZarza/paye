@@ -120,3 +120,26 @@ func test_accion_despues_de_terminar_la_mano_no_suma_de_nuevo() -> void:
 	var events := m.apply(TrucoAction.make(T.MAZO, 0))
 	assert_eq(events[0].type, &"illegal_action")
 	assert_eq(m.scores, [0, 1])
+
+
+func test_award_suma_con_tope_y_termina() -> void:
+	var m := _match(15, 1)
+	m.scores = [13, 0]
+	m.start_hand()
+	var events := m.award(0, 3)
+	assert_eq(m.scores, [15, 0])
+	assert_has(_types(events), &"match_over")
+
+
+func test_finish_forced_hand_suma_la_mano_forzada() -> void:
+	var m := _match(15, 1)
+	m.start_hand_with(_hand_0_has_33(), 0)
+	m.hand.force_end(1, 0)
+	m.finish_forced_hand()
+	assert_eq(m.scores, [0, 1])
+
+
+func test_el_mazo_queda_accesible() -> void:
+	var m := _match(15, 1)
+	m.start_hand()
+	assert_eq(m.deck.remaining(), 34)

@@ -9,6 +9,8 @@ var target: int
 var scores: Array[int] = [0, 0]
 var hand: TrucoHand
 var mano: int = -1
+## Mazo de la mano en curso (la trampa de la manga roba de acá).
+var deck: Deck
 
 var _rng: RandomNumberGenerator
 
@@ -30,7 +32,7 @@ func winner() -> int:
 
 
 func start_hand() -> Array[GameEvent]:
-	var deck := Deck.new(_rng)
+	deck = Deck.new(_rng)
 	deck.shuffle()
 	var dealt := [deck.draw(CARDS_PER_PLAYER), deck.draw(CARDS_PER_PLAYER)]
 	return start_hand_with(dealt, _next_mano())
@@ -49,12 +51,35 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 		return [GameEvent.make(&"illegal_action", {"player": a.player, "type": a.type})]
 	var events := hand.apply(a)
 	if hand.is_over():
-		_add_points(hand.envido_points)
-		if winner() == -1:
-			_add_points(hand.truco_points)
-		if winner() != -1:
-			events.append(GameEvent.make(&"match_over", {"winner": winner(), "scores": scores.duplicate()}))
+		events.append_array(_score_hand())
 	return events
+
+
+## Suma una mano terminada con TrucoHand.force_end.
+func finish_forced_hand() -> Array[GameEvent]:
+	assert(hand != null and hand.is_over(), "La mano no terminó")
+	return _score_hand()
+
+
+## Puntos de castigo (acusación equivocada), con tope en el objetivo.
+func award(p: int, points: int) -> Array[GameEvent]:
+	var gained: Array[int] = [0, 0]
+	gained[p] = points
+	_add_points(gained)
+	return _match_over_events()
+
+
+func _score_hand() -> Array[GameEvent]:
+	_add_points(hand.envido_points)
+	if winner() == -1:
+		_add_points(hand.truco_points)
+	return _match_over_events()
+
+
+func _match_over_events() -> Array[GameEvent]:
+	if winner() == -1:
+		return []
+	return [GameEvent.make(&"match_over", {"winner": winner(), "scores": scores.duplicate()})]
 
 
 func _next_mano() -> int:

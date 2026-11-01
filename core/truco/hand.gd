@@ -53,6 +53,36 @@ func is_over() -> bool:
 	return phase == Phase.OVER
 
 
+## Trampa de la manga: el jugador recibe una carta extra.
+func add_card(p: int, card: Card) -> void:
+	cards[p].append(card)
+
+
+## Carta duplicada: cambia una carta en mano por otra.
+func replace_card(p: int, idx: int, card: Card) -> void:
+	cards[p][idx] = card
+
+
+func total_cards(p: int) -> int:
+	return cards[p].size() + played[p].size()
+
+
+## Termina la mano por una trampa descubierta (DISENO §4.2 y §4.3). El ganador
+## suma lo que vale el truco en este momento; el tramposo pierde el envido de la
+## mano; si el ganador ganaba el envido, lo cobra sin verificación.
+func force_end(winner: int, cheater: int) -> Array[GameEvent]:
+	if phase == Phase.OVER:
+		return [GameEvent.make(&"illegal_action", {"player": winner, "type": -1})]
+	var value := _truco.rejected_value() if _truco.pending else _truco.accepted_value()
+	truco_points = [0, 0]
+	truco_points[winner] = maxi(value, 1)
+	envido_points[cheater] = 0
+	if _envido_accepted and _envido_winner == winner and phase != Phase.TANTO_DECLARATION:
+		envido_points[winner] += _envido_value
+	phase = Phase.OVER
+	return [GameEvent.make(&"hand_over", {"envido": envido_points.duplicate(), "truco": truco_points.duplicate()})]
+
+
 ## -1 si el jugador no declaró tanto en esta mano.
 func declared_tanto(p: int) -> int:
 	return _declared[p]

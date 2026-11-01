@@ -184,3 +184,59 @@ func test_lectores_publicos() -> void:
 	assert_true(h.envido_called())
 	assert_eq(h.envido_winner(), 0)
 	assert_eq(h.own_tanto(0), 33)
+
+
+func test_force_end_paga_el_truco_y_quita_el_envido() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 1)
+	_do(h, T.ENVIDO, 1)
+	_do(h, T.NO_QUIERO, 0)
+	_do(h, T.TRUCO, 1)
+	_do(h, T.QUIERO, 0)
+	assert_eq(h.envido_points, [0, 1])
+	h.force_end(0, 1)
+	assert_true(h.is_over())
+	assert_eq(h.truco_points, [2, 0])
+	assert_eq(h.envido_points, [0, 0])
+
+
+func test_force_end_con_truco_pendiente_paga_lo_asegurado() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 0)
+	_do(h, T.TRUCO, 0)
+	h.force_end(1, 0)
+	assert_eq(h.truco_points, [0, 1])
+
+
+func test_force_end_durante_declaracion() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	_do(h, T.ENVIDO, 0)
+	_do(h, T.QUIERO, 1)
+	var events := h.force_end(0, 1)
+	assert_eq(h.phase, TrucoHand.Phase.OVER)
+	assert_eq(events.back().type, &"hand_over")
+	assert_eq(h.envido_points, [0, 0])
+
+
+func test_force_end_da_el_envido_al_acusador_si_lo_ganaba() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	_do(h, T.ENVIDO, 0)
+	_do(h, T.QUIERO, 1)
+	_do(h, T.DECLARE_TANTO, 0, -1, 33)
+	_do(h, T.SON_BUENAS, 1)
+	h.force_end(0, 1)
+	assert_eq(h.envido_points, [2, 0])
+
+
+func test_force_end_en_mano_terminada_es_ilegal() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 0)
+	_do(h, T.MAZO, 0)
+	var events := h.force_end(0, 1)
+	assert_eq(events[0].type, &"illegal_action")
+	assert_eq(h.truco_points, [0, 1])
+
+
+func test_agregar_y_reemplazar_cartas() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 0)
+	h.add_card(1, Card.new(O, 7))
+	assert_eq(h.total_cards(1), 4)
+	h.replace_card(1, 0, Card.new(C, 3))
+	assert_eq(h.cards[1][0].key(), "3_COPA")
