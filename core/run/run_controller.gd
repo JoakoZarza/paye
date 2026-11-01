@@ -1,4 +1,4 @@
-class_name RunController
+﻿class_name RunController
 extends RefCounted
 ## Orquesta una run para las pantallas: bar, entrada, partido, premio, tienda,
 ## muerte o retiro. Emite eventos como el resto del núcleo. Ver DISENO §6 y §7.
@@ -22,6 +22,7 @@ var _rng: RandomNumberGenerator
 var _profiles: Dictionary
 var _defs: Dictionary
 var _decks: Dictionary
+var _legacy_snapshot: Array[StringName] = []
 
 
 func _init(p_economy: Economy, p_meta: MetaState, p_seed: int, p_meta_path: String = MetaState.DEFAULT_PATH) -> void:
@@ -37,6 +38,12 @@ func _init(p_economy: Economy, p_meta: MetaState, p_seed: int, p_meta_path: Stri
 
 
 func start_run(deck_id: StringName) -> Array[GameEvent]:
+	if state != null and phase in [Phase.BAR, Phase.MATCH, Phase.SHOP]:
+		return [_illegal()]
+	# Una run que quedó abierta (se cerró el juego) cuenta como jugada; su fiado ya
+	# quedó guardado como deuda en el último punto de control.
+	if meta.run_in_progress:
+		meta.runs_played += 1
 	state = RunState.new()
 	state.money = economy.start_money
 	state.debt = meta.debt
@@ -47,8 +54,8 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 		state.paid_for[legacy] = 0
 	# El legado se consume al empezar: guardarlo ya evita recuperarlo cerrando el juego.
 	meta.legacy = &""
-	meta.save_to(_meta_path)
 	phase = Phase.BAR
+	_checkpoint()
 	return [GameEvent.make(&"run_started", {"money": state.money, "debt": state.debt, "legacy": legacy, "deck": deck_id})]
 
 
@@ -58,7 +65,7 @@ func rival_for(round: int) -> RivalProfile:
 
 
 func enter_match() -> Array[GameEvent]:
-	if phase != Phase.BAR:
+	if state == null or phase != Phase.BAR:
 		return [_illegal()]
 	var entry := economy.entry(state.round)
 	if not state.pay_entry(economy):
@@ -87,7 +94,8 @@ func finish_match() -> Array[GameEvent]:
 		state.loadout, state.deck, economy)
 	var paid := state.collect_prize(prize["total"], economy)
 	phase = Phase.SHOP
-	shop.open(state)
+	shop.open(state, economy.is_boss(state.round))
+	_checkpoint()
 	var data := {"total": prize["total"], "multipliers": prize["multipliers"], "money": state.money}
 	data.merge(paid)
 	return [GameEvent.make(&"prize_paid", data)]
@@ -103,6 +111,7 @@ func retire() -> Array[GameEvent]:
 	phase = Phase.RETIRED
 	state.retired = true
 	meta.debt = 0
+	meta.run_in_progress = false
 	_record_run()
 	return [GameEvent.make(&"run_retired", {"money": state.money, "round": state.round})]
 
@@ -111,22 +120,61 @@ func next_round() -> Array[GameEvent]:
 	if phase != Phase.SHOP:
 		return [_illegal()]
 	state.round += 1
+	shop.offers.clear()
 	phase = Phase.BAR
+	_checkpoint()
 	return [GameEvent.make(&"round_started", {"round": state.round, "entry": economy.entry(state.round)})]
 
 
 ## La run termina. El legado se elige después con choose_legacy().
 func die() -> Array[GameEvent]:
-	if phase == Phase.DEAD or phase == Phase.RETIRED:
+	if state == null or phase == Phase.DEAD or phase == Phase.RETIRED:
 		return [_illegal()]
+	_legacy_snapshot = _equipped_ids()
+	shop.offers.clear()
 	state.die()
 	meta.debt = state.debt
+	meta.run_in_progress = false
 	phase = Phase.DEAD
 	_record_run()
 	return [GameEvent.make(&"run_died", {"round": state.round, "debt": state.debt, "choices": legacy_choices()})]
 
 
+## Al morir, los amuletos que tenías en ese momento (comprar después no suma).
 func legacy_choices() -> Array[StringName]:
+	if phase == Phase.DEAD:
+		return _legacy_snapshot.duplicate()
+	return _equipped_ids()
+
+
+# --- Tienda (solo en la fase SHOP) ---
+
+func buy(index: int) -> Dictionary:
+	if phase != Phase.SHOP:
+		return {"ok": false, "reason": &"closed", "paid": 0, "fiado": 0}
+	var r := shop.buy(index, state)
+	if r["ok"]:
+		_checkpoint()
+	return r
+
+
+func sell(id: StringName) -> int:
+	if phase != Phase.SHOP:
+		return 0
+	var value := shop.sell(id, state)
+	_checkpoint()
+	return value
+
+
+func reroll() -> bool:
+	if phase != Phase.SHOP:
+		return false
+	var ok := shop.reroll(state)
+	_checkpoint()
+	return ok
+
+
+func _equipped_ids() -> Array[StringName]:
 	var out: Array[StringName] = []
 	for def in state.loadout.equipped():
 		out.append(def.id)
@@ -143,6 +191,13 @@ func choose_legacy(id: StringName) -> bool:
 
 func table() -> CheatTable:
 	return systems.table if systems != null else null
+
+
+## Guarda la deuda que quedaría si la run se abandona ahora (deuda + fiado).
+func _checkpoint() -> void:
+	meta.debt = state.debt + state.fiado
+	meta.run_in_progress = true
+	meta.save_to(_meta_path)
 
 
 func _record_run() -> void:

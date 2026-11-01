@@ -165,3 +165,75 @@ func test_fuera_de_fase_es_ilegal() -> void:
 	assert_eq(rc.finish_match()[0].type, &"illegal_action")
 	assert_eq(rc.next_round()[0].type, &"illegal_action")
 	assert_eq(rc.retire()[0].type, &"illegal_action")
+
+
+func _win_round(rc: RunController) -> void:
+	rc.enter_match()
+	_end_match(rc, 0)
+	rc.finish_match()
+
+
+func test_tienda_solo_en_su_fase() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	assert_false(rc.buy(0)["ok"])
+	_win_round(rc)
+	rc.next_round()
+	rc.state.money = 0
+	rc.enter_match()
+	assert_eq(rc.phase, RunController.Phase.DEAD)
+	assert_eq(rc.shop.offers.size(), 0)
+	assert_false(rc.buy(0)["ok"])
+	assert_eq(rc.sell(&"hat"), 0)
+	assert_false(rc.reroll())
+
+
+func test_legado_solo_entre_los_que_tenias_al_morir() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.state.money = 0
+	rc.enter_match()
+	rc.state.loadout.equip(AmuletDef.load_all()[&"hat"])
+	assert_false(rc.choose_legacy(&"hat"))
+
+
+func test_abandonar_la_run_conserva_el_fiado_como_deuda() -> void:
+	var meta := MetaState.new()
+	var rc := _controller(meta)
+	rc.start_run(&"normal")
+	_win_round(rc)
+	rc.shop.offers.clear()
+	rc.shop.offers.append(AmuletDef.load_all()[&"hat"])
+	rc.buy(0)
+	var fiado := rc.state.fiado
+	assert_gt(fiado, 0)
+	var loaded := MetaState.load_from(META_PATH)
+	assert_true(loaded.run_in_progress)
+	var rc2 := _controller(loaded)
+	rc2.start_run(&"normal")
+	assert_eq(rc2.state.debt, fiado)
+	assert_eq(loaded.runs_played, 1)
+
+
+func test_jefe_abre_la_tienda_especial() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.state.round = 4
+	rc.state.money = 10000
+	_win_round(rc)
+	for d in rc.shop.offers:
+		assert_ne(d.rarity, AmuletDef.Rarity.COMMON)
+
+
+func test_no_se_reinicia_una_run_en_curso() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.state.money = 999
+	assert_eq(rc.start_run(&"normal")[0].type, &"illegal_action")
+	assert_eq(rc.state.money, 999)
+
+
+func test_sin_run_es_ilegal() -> void:
+	var rc := _controller()
+	assert_eq(rc.enter_match()[0].type, &"illegal_action")
+	assert_eq(rc.die()[0].type, &"illegal_action")

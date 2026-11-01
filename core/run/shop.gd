@@ -9,6 +9,7 @@ var rerolls := 0
 var _economy: Economy
 var _defs: Dictionary
 var _rng: RandomNumberGenerator
+var _premium := false
 
 
 func _init(p_economy: Economy, p_defs: Dictionary, p_rng: RandomNumberGenerator) -> void:
@@ -17,8 +18,10 @@ func _init(p_economy: Economy, p_defs: Dictionary, p_rng: RandomNumberGenerator)
 	_rng = p_rng
 
 
-func open(state: RunState) -> void:
+## premium: tienda especial después de un jefe, solo raros y legendarios.
+func open(state: RunState, premium: bool = false) -> void:
 	rerolls = 0
+	_premium = premium
 	_generate(state)
 
 
@@ -33,7 +36,9 @@ func buy(index: int, state: RunState) -> Dictionary:
 		return _result(false, &"no_slot")
 	var def := offers[index]
 	var price := price_of(def, state)
-	var from_money := mini(state.money, price)
+	# Comprar fiado nunca te deja sin la entrada siguiente (DISENO §7.4: "si sobrevivís").
+	var reserve := _economy.entry(state.round + 1)
+	var from_money := clampi(state.money - reserve, 0, price)
 	var on_credit := price - from_money
 	if on_credit > state.credit_available(_economy):
 		return _result(false, &"no_credit")
@@ -62,7 +67,10 @@ func sell(id: StringName, state: RunState) -> int:
 	state.loadout.unequip(id)
 	var value := _economy.sell_value(state.paid_for.get(id, 0))
 	state.paid_for.erase(id)
-	state.money += value
+	# Lo que se vende paga primero el fiado: vender no convierte deuda en plata.
+	var to_fiado := mini(state.fiado, value)
+	state.fiado -= to_fiado
+	state.money += value - to_fiado
 	return value
 
 
@@ -72,7 +80,7 @@ func _generate(state: RunState) -> void:
 	offers.clear()
 	var pool: Array[AmuletDef] = []
 	for def in _defs.values():
-		if not state.loadout.has(def.id):
+		if not state.loadout.has(def.id) and not (_premium and def.rarity == AmuletDef.Rarity.COMMON):
 			pool.append(def)
 	for i in _economy.shop_offers:
 		if pool.is_empty():

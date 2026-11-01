@@ -1,4 +1,4 @@
-class_name Economy extends RefCounted
+﻿class_name Economy extends RefCounted
 ## Lee y consulta los valores de la economía de una run.
 
 var start_money: int = 135
@@ -25,7 +25,7 @@ static func load_from(path: String = "res://data/economy.json") -> Economy:
 	var economy := Economy.new()
 	if not FileAccess.file_exists(path):
 		return economy
-	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	var parsed: Variant = _parse_json(FileAccess.get_file_as_string(path))
 	if not parsed is Dictionary:
 		return economy
 	var data: Dictionary = parsed
@@ -102,8 +102,15 @@ func price(rarity: AmuletDef.Rarity, round: int) -> int:
 
 
 func reroll_cost(round: int, rerolls_done: int) -> int:
-	var factor: float = reroll_base + reroll_step * float(rerolls_done)
-	return floori(float(entry(round + 1)) * factor)
+	# En centésimos enteros: 0.10 + 0.05 * k en float da 0.3499... y redondea mal.
+	var percent := roundi((reroll_base + reroll_step * float(rerolls_done)) * 100.0)
+	return entry(round + 1) * percent / 100
+
+
+## JSON.new().parse no ensucia el log con un error de motor si el archivo está mal.
+static func _parse_json(text: String) -> Variant:
+	var json := JSON.new()
+	return json.data if json.parse(text) == OK else null
 
 
 func sell_value(paid: int) -> int:

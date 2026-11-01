@@ -7,6 +7,8 @@ var debt: int = 0
 var legacy: StringName = &""
 var runs_played: int = 0
 var best_round: int = 0
+## Hay una run sin terminar: si el juego se cerró a mitad de run, cuenta como abandonada.
+var run_in_progress := false
 
 
 static func load_from(path: String = DEFAULT_PATH) -> MetaState:
@@ -18,7 +20,8 @@ static func load_from(path: String = DEFAULT_PATH) -> MetaState:
 	if json.parse(FileAccess.get_file_as_string(path)) != OK or not json.data is Dictionary:
 		return state
 	var data: Dictionary = json.data
-	state.debt = int(data.get("debt", 0))
+	state.debt = maxi(0, int(data.get("debt", 0)))
+	state.run_in_progress = bool(data.get("run_in_progress", false))
 	state.legacy = StringName(String(data.get("legacy", "")))
 	state.runs_played = int(data.get("runs_played", 0))
 	state.best_round = int(data.get("best_round", 0))
@@ -34,6 +37,7 @@ func save_to(path: String = DEFAULT_PATH) -> bool:
 		"legacy": String(legacy),
 		"runs_played": runs_played,
 		"best_round": best_round,
+		"run_in_progress": run_in_progress,
 	}
 	file.store_string(JSON.stringify(data))
 	return file.get_error() == OK

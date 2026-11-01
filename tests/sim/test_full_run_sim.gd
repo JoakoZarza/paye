@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 ## Runs completas por RunController jugando Truco de verdad, con un jugador de
 ## reglas simples y una política de compra segura.
 
@@ -90,7 +90,7 @@ func _buy_safe(rc: RunController) -> void:
 	var next_entry := _economy.entry(rc.state.round + 1)
 	for i in range(rc.shop.offers.size() - 1, -1, -1):
 		if rc.state.money - rc.shop.price_of(rc.shop.offers[i], rc.state) >= next_entry:
-			rc.shop.buy(i, rc.state)
+			rc.buy(i)
 
 
 func test_runs_completas_no_se_traban() -> void:

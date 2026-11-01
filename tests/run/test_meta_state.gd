@@ -48,3 +48,12 @@ func _remove_file(path: String) -> void:
 	var absolute_path: String = ProjectSettings.globalize_path(path)
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(absolute_path)
+
+
+func test_deuda_negativa_se_corrige() -> void:
+	var path := "user://test_meta_negativa.json"
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string("{\"debt\": -5000}")
+	f.close()
+	assert_eq(MetaState.load_from(path).debt, 0)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(path))

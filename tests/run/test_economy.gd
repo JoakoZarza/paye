@@ -36,3 +36,8 @@ func test_precio_y_cambio() -> void:
 func test_ronda_13_repite_factor() -> void:
 	var economy: Economy = EconomyScript.load_from()
 	assert_eq(economy.base_prize(13), floori(float(economy.entry(13)) * 3.5))
+
+
+func test_cambio_de_ofertas_sin_error_de_redondeo() -> void:
+	var e := Economy.load_from()
+	assert_eq(e.reroll_cost(3, 5), 945)

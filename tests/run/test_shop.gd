@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 
 var _economy: Economy
 var _defs: Dictionary
@@ -60,10 +60,10 @@ func test_comprar_fiado_dentro_del_limite() -> void:
 	_offer(shop, &"rosary")
 	var r := shop.buy(0, st)
 	assert_true(r["ok"])
-	assert_eq(r["paid"], 100)
-	assert_eq(r["fiado"], 80)
-	assert_eq(st.money, 0)
-	assert_eq(st.fiado, 80)
+	assert_eq(r["paid"], 0, "la plata queda reservada para la entrada siguiente")
+	assert_eq(r["fiado"], 180)
+	assert_eq(st.money, 100)
+	assert_eq(st.fiado, 180)
 
 
 func test_fiado_fuera_del_limite_falla_sin_cambiar_nada() -> void:
@@ -124,3 +124,35 @@ func test_rarezas_respetan_los_pesos() -> void:
 	assert_almost_eq(counts[AmuletDef.Rarity.COMMON] / 5000.0, 0.6, 0.03)
 	assert_almost_eq(counts[AmuletDef.Rarity.RARE] / 5000.0, 0.3, 0.03)
 	assert_almost_eq(counts[AmuletDef.Rarity.LEGENDARY] / 5000.0, 0.1, 0.03)
+
+
+func test_fiado_reserva_la_entrada_siguiente() -> void:
+	var shop := _shop()
+	var st := _state(635)
+	_offer(shop, &"hat")
+	var r := shop.buy(0, st)
+	assert_true(r["ok"])
+	assert_eq(r["paid"], 335)
+	assert_eq(r["fiado"], 25)
+	assert_eq(st.money, _economy.entry(2))
+	st.round = 2
+	assert_true(st.can_pay_entry(_economy), "comprar fiado no puede condenarte a no pagar la entrada")
+
+
+func test_vender_paga_primero_el_fiado() -> void:
+	var shop := _shop()
+	var st := _state(100)
+	_offer(shop, &"rosary")
+	shop.buy(0, st)
+	assert_eq(st.fiado, 180)
+	assert_eq(shop.sell(&"rosary", st), 90)
+	assert_eq(st.fiado, 90)
+	assert_eq(st.money, 100, "vender no convierte fiado en plata")
+
+
+func test_tienda_especial_sin_comunes() -> void:
+	for s in 100:
+		var shop := _shop(s)
+		shop.open(_state(0), true)
+		for d in shop.offers:
+			assert_ne(d.rarity, AmuletDef.Rarity.COMMON)
