@@ -1,6 +1,9 @@
 class_name DeckPicker
 extends VBoxContainer
+## Muestra los mazos disponibles y emite el mazo elegido.
+
 signal picked(deck_id: StringName)
+
 
 func _ready() -> void:
 	for value: Variant in RunDeck.load_all().values():
@@ -11,6 +14,7 @@ func _ready() -> void:
 			UiText.t("UI_DECK_" + String(deck.id).to_upper() + "_DESC")]
 		button.pressed.connect(_pick.bind(deck.id))
 		add_child(button)
+
 
 func _pick(deck_id: StringName) -> void:
 	picked.emit(deck_id)
