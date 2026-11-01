@@ -43,3 +43,35 @@ UI_AMULET_RED_RIBBON,Cinta roja
 UI_AMULET_RED_RIBBON_DESC,Reduce los precios de la tienda.
 UI_AMULET_TRAIN_COIN,Moneda aplastada por el tren
 UI_AMULET_TRAIN_COIN_DESC,Aumenta el premio si ganás sin cantar envido.
+UI_START_META,"Deuda: $%d · Legado: %s · Runs: %d · Mejor ronda: %d"
+UI_START_NONE,Ninguno
+UI_START_LOST,"La run anterior se perdió y su fiado pasó a deuda."
+UI_DECK_NORMAL_NAME,Normal
+UI_DECK_NORMAL_DESC,Partida equilibrada sin modificadores.
+UI_DECK_WIDOW_NAME,Viuda
+UI_DECK_WIDOW_DESC,Doble premio y doble presupuesto de trampas.
+UI_BAR_INFO,"Ronda %d · %s · Entrada $%d · Propina $%d · Objetivo %d · Plata $%d · Fiado $%d · Deuda $%d"
+UI_BAR_SIT,Sentarse
+UI_BAR_CANT_PAY,No te alcanza: morís
+UI_DEATH_INFO,"Llegaste a la ronda %d · Deuda que pasa: $%d"
+UI_ONE_MORE_PRIZE,"Premio: $%d · Fiado: $%d"
+UI_ONE_MORE_STAKE,Arriesgar $%d
+UI_ONE_MORE_SKIP,Seguir sin arriesgar
+UI_SHOP_INFO,"Ronda %d · Plata $%d · Fiado $%d · Próxima entrada $%d"
+UI_SHOP_PREMIUM,Tienda especial
+UI_SHOP_CREDIT," (parte fiado)"
+UI_SHOP_BUY,Comprar
+UI_SHOP_UPGRADE,Mejorar ($%d)
+UI_SHOP_SELL,Vender ($%d)
+UI_SHOP_REROLL,Cambiar ofertas ($%d)
+UI_SHOP_NEXT,Seguir
+UI_FREE_PAID,Cuenta pagada
+UI_FREE_LEFT,Plata que te quedó: $%d
+UI_FREE_RETIRE,Tomarte el colectivo
+UI_FREE_CONDEMN,Pedir otra vuelta
+UI_ENDING_GOOD,"El bar del purgatorio se desvanece mientras subís al colectivo. La noche queda atrás y por fin podés descansar."
+UI_ENDING_GREED,"Te quedás para siempre en el bar. El Gualicho sonríe mientras pedís otra vuelta."
+UI_RARITY_COMMON,Común
+UI_RARITY_RARE,Raro
+UI_RARITY_LEGENDARY,Legendario
+UI_LEVEL,nivel
