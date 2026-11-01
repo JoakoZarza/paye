@@ -1,14 +1,14 @@
 {
-  "marker": {"category": "CARDS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
-  "spare_deck": {"category": "CARDS", "kind": "ACTIVE", "rarity": "RARE", "charges": 2},
-  "cigarette": {"category": "TANTO", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0},
-  "cana_glass": {"category": "TANTO", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
-  "rosary": {"category": "CALLS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
-  "facon": {"category": "CALLS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1},
-  "glasses": {"category": "INFO", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0},
-  "hat": {"category": "INFO", "kind": "ACTIVE", "rarity": "LEGENDARY", "charges": 1},
-  "mirror": {"category": "CHEAT", "kind": "ACTIVE", "rarity": "LEGENDARY", "charges": 2},
-  "marked_cards": {"category": "CHEAT", "kind": "ACTIVE", "rarity": "RARE", "charges": 3},
-  "red_ribbon": {"category": "ECONOMY", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0},
-  "train_coin": {"category": "ECONOMY", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0}
+  "marker": {"category": "CARDS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1, "levels": [{"charges": 1, "change_suit": false}, {"charges": 2, "change_suit": false}, {"charges": 2, "change_suit": true}]},
+  "spare_deck": {"category": "CARDS", "kind": "ACTIVE", "rarity": "RARE", "charges": 2, "levels": [{"charges": 2, "choose_from": 1}, {"charges": 3, "choose_from": 1}, {"charges": 3, "choose_from": 2}]},
+  "cigarette": {"category": "TANTO", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0, "levels": [{"show_chance": 0.5}, {"show_chance": 0.35}, {"show_chance": 0.2}]},
+  "cana_glass": {"category": "TANTO", "kind": "ACTIVE", "rarity": "RARE", "charges": 1, "levels": [{"charges": 1, "no_suspicion": false}, {"charges": 2, "no_suspicion": false}, {"charges": 2, "no_suspicion": true}]},
+  "rosary": {"category": "CALLS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1, "levels": [{"charges": 1}, {"charges": 2}, {"charges": 3}]},
+  "facon": {"category": "CALLS", "kind": "ACTIVE", "rarity": "RARE", "charges": 1, "levels": [{"charges": 1, "raise_too": false}, {"charges": 2, "raise_too": false}, {"charges": 2, "raise_too": true}]},
+  "glasses": {"category": "INFO", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0, "levels": [{"reveal_count": 1, "reveal_suit": false}, {"reveal_count": 2, "reveal_suit": false}, {"reveal_count": 1, "reveal_suit": true}]},
+  "hat": {"category": "INFO", "kind": "ACTIVE", "rarity": "LEGENDARY", "charges": 1, "levels": [{"charges": 1, "reveal_suit": false}, {"charges": 2, "reveal_suit": false}, {"charges": 2, "reveal_suit": true}]},
+  "mirror": {"category": "CHEAT", "kind": "ACTIVE", "rarity": "LEGENDARY", "charges": 2, "levels": [{"charges": 2, "risk_multiplier": 1.0}, {"charges": 2, "risk_multiplier": 0.7}, {"charges": 3, "risk_multiplier": 0.7}]},
+  "marked_cards": {"category": "CHEAT", "kind": "ACTIVE", "rarity": "RARE", "charges": 3, "levels": [{"charges": 3, "risk_step_multiplier": 1.0}, {"charges": 4, "risk_step_multiplier": 0.5}, {"charges": 5, "risk_step_multiplier": 0.5}]},
+  "red_ribbon": {"category": "ECONOMY", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0, "levels": [{"price_multiplier": 0.8}, {"price_multiplier": 0.7}, {"price_multiplier": 0.6}]},
+  "train_coin": {"category": "ECONOMY", "kind": "PASSIVE", "rarity": "COMMON", "charges": 0, "levels": [{"prize_multiplier": 1.5}, {"prize_multiplier": 1.75}, {"prize_multiplier": 2.0}]}
 }
