@@ -18,24 +18,24 @@ Cada tarea de cada plan dice quién la ejecuta. Ninguna entrega se da por buena 
 - [x] Instalar Godot 4.7.2 (winget) y crear la variable de usuario `GODOT` con la ruta del ejecutable de consola.
 - [x] Node 24 ya instalado; Codex CLI 0.165.0 y plugin `codex@openai-codex` instalados.
 - [x] Gemini CLI 0.66.0 instalado.
-- [ ] Iniciar sesión en Codex (`codex login`) y en Gemini CLI (`gemini`).
-- [ ] Reiniciar la app de Claude y correr `/codex:setup`.
+- [x] Iniciar sesión en Codex (`codex login`) y correr `/codex:setup`.
+- [ ] Gemini CLI: el inicio de sesión falló (el plan gratis pasó a Antigravity CLI). Se resuelve en el Plan 6.
 - [ ] Crear el repositorio privado `JoakoZarza/paye` en GitHub y conectarlo (lo hacemos juntos cuando llegue el momento).
 
 ## Etapa 1 — MVP 2D
 
 | Plan | Contenido | Ejecuta | Se prueba con |
 |---|---|---|---|
-| 1. Núcleo del Truco | Proyecto Godot, GUT, cartas, tanto, cantos, bazas, mano, partido | Claude + Codex | Tests y simulación de 10.000 manos al azar |
-| 2. IA del dealer | Rasgos, humor, puntajes, mentira del tanto, pistas, 3 rivales | Claude | Partidos IA contra IA; estadísticas de faroles por rival |
-| 3. Trampas | Trampas del dealer, acusación, trampas del jugador, sospecha | Claude + Codex | Tests: toda trampa deja evidencia |
-| 4. Amuletos y mazos | Sistema de modificadores, 12 amuletos, mazos Normal y Viuda | Codex, revisa Claude | Tests por amuleto |
-| 5. Run y economía | Rondas, entrada y premio, multiplicadores, tienda, fiado, deuda, legado, muerte; **simulación de economía** para calibrar §7 | Claude | Simulación de miles de runs con gráfico de plata por ronda |
+| 1. Núcleo del Truco ✅ | Proyecto Godot, GUT, cartas, tanto, cantos, bazas, mano, partido | Claude + Codex | Tests y simulación de 10.000 manos al azar |
+| 2. IA del dealer ✅ | Rasgos, humor, puntajes, mentira del tanto, pistas, 3 rivales | Claude | Partidos IA contra IA; estadísticas de faroles por rival |
+| 3. Trampas ✅ | Trampas del dealer, acusación, trampas del jugador, sospecha | Claude + Codex | Tests: toda trampa deja evidencia |
+| 4. Amuletos y mazos ✅ | Sistema de modificadores, 12 amuletos, mazos Normal y Viuda | Codex, revisa Claude | Tests por amuleto |
+| 5. Run y economía ✅ (con 5b y 5c) | Rondas, entrada y premio, multiplicadores, tienda, fiado, deuda, legado, muerte; diseño v2 (9 rondas con pecados y almas, la cuenta del Gualicho); economía más dura (propina, interés y retención del fiado, mejoras de amuletos, una mano más) | Claude + Codex | Simulación de miles de runs y runs completas con IA |
 | 6. Pantallas 2D | Bar, mesa, apuesta, partido, acusación, tienda, muerte, final | Gemini/Qwen, revisa Claude | Joako juega runs completas |
 
 **Fin de la Etapa 1:** Joako juega runs completas en 2D, de la entrada al bar a los $10M o a la muerte.
 
-**Punto a revisar en el Plan 5:** con la escalera base, sin gastar, se llega a $10M al terminar la ronda 11. La simulación tiene que confirmar si la ronda 12 (jefe final, entrada $17,7M) tiene sentido o si el jefe final pasa a la ronda 11.
+**Para calibrar jugando en el Plan 6:** la ventaja humana (pistas y acusaciones), lo que suma cada amuleto y si se nota la curva en V de las almas. La simulación solo puede estimarlos.
 
 ## Etapa 2 — Port 3D con modelos básicos
 
@@ -47,4 +47,4 @@ Estilo PS1 (texturas sucias de baja resolución, niebla, pocos polígonos), men�
 
 ## Etapa 4 — Post-game y contenido
 
-Doble o nada, Truco maldito, acreedor como rival, logros y fichas, mazos restantes, subir la apuesta, más rivales y amuletos, inglés.
+Los círculos (la avaricia) y el Gualicho, Truco maldito, Noches (niveles de dificultad), logros y fichas, mazos restantes, subir la apuesta, más rivales y amuletos, inglés.
