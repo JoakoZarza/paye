@@ -263,6 +263,15 @@ func buy(index: int) -> Dictionary:
 	return r
 
 
+func upgrade(id: StringName) -> Dictionary:
+	if phase != Phase.SHOP:
+		return {"ok": false, "reason": &"closed", "paid": 0, "fiado": 0}
+	var r := shop.upgrade(id, state)
+	if r["ok"]:
+		_checkpoint()
+	return r
+
+
 func sell(id: StringName) -> int:
 	if phase != Phase.SHOP:
 		return 0

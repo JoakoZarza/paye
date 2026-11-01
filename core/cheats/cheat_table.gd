@@ -14,7 +14,6 @@ const MIRROR_RISK := 0.25
 const MARKED_RISK := 0.10
 const MARKED_RISK_PER_USE := 0.10
 const MAX_RISK := 0.95
-const CIGARETTE_CHANCE := 0.5
 const ENVIDO_CALL_TYPES: Array[TrucoAction.Type] = [TrucoAction.Type.ENVIDO, TrucoAction.Type.REAL_ENVIDO, TrucoAction.Type.FALTA_ENVIDO]
 
 var truco_match: TrucoMatch
@@ -145,13 +144,16 @@ func _apply_rules(a: TrucoAction) -> TrucoAction:
 	var hand := truco_match.hand
 	var responding := hand.phase == TrucoHand.Phase.ENVIDO_RESPONSE or hand.phase == TrucoHand.Phase.TRUCO_RESPONSE
 	if responding and rules.force_accept_next_call:
-		rules.force_accept_next_call = false
+		if rules.force_accept_extra > 0:
+			rules.force_accept_extra -= 1
+		else:
+			rules.force_accept_next_call = false
 		return TrucoAction.make(TrucoAction.Type.QUIERO, dealer)
 	if a.type != TrucoAction.Type.DEMAND_SHOW:
 		return a
 	if _declaration_protected:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
-	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() < CIGARETTE_CHANCE:
+	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() < rules.cigarette_chance:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
 	return a
 
@@ -200,9 +202,9 @@ func accuse(acc: Accusation) -> Array[GameEvent]:
 func use_player_cheat(kind: PlayerCheat) -> Array[GameEvent]:
 	if not _hand_running():
 		return [_illegal(player)]
-	var risk := MIRROR_RISK
+	var risk := MIRROR_RISK * rules.mirror_risk_multiplier
 	if kind == PlayerCheat.MARKED:
-		risk = MARKED_RISK + MARKED_RISK_PER_USE * _marked_uses
+		risk = MARKED_RISK + MARKED_RISK_PER_USE * rules.marked_step_multiplier * _marked_uses
 		_marked_uses += 1
 	risk = minf(risk * (1.0 + brain.mood.suspicion), MAX_RISK)
 	player_cheats_used += 1

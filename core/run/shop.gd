@@ -10,6 +10,8 @@ var _economy: Economy
 var _defs: Dictionary
 var _rng: RandomNumberGenerator
 var _premium := false
+## Una mejora por visita a la tienda (DISENO §8.1).
+var _upgraded := false
 
 
 func _init(p_economy: Economy, p_defs: Dictionary, p_rng: RandomNumberGenerator) -> void:
@@ -21,6 +23,7 @@ func _init(p_economy: Economy, p_defs: Dictionary, p_rng: RandomNumberGenerator)
 ## premium: tienda especial después de un jefe, solo raros y legendarios.
 func open(state: RunState, premium: bool = false) -> void:
 	rerolls = 0
+	_upgraded = false
 	_premium = premium
 	_generate(state)
 
@@ -36,7 +39,48 @@ func buy(index: int, state: RunState) -> Dictionary:
 		return _result(false, &"no_slot")
 	var def := offers[index]
 	var price := price_of(def, state)
-	# Comprar fiado nunca te deja sin la entrada siguiente (DISENO §7.4: "si sobrevivís").
+	var pay := _pay(price, state)
+	if not pay["ok"]:
+		return pay
+	state.loadout.equip(def)
+	state.paid_for[def.id] = price
+	state.purchases += 1
+	offers.remove_at(index)
+	return pay
+
+
+## Precio para subir un nivel; -1 si no está equipado o ya está al máximo.
+## Usa el precio base de la rareza, sin el +25% por compra.
+func upgrade_price(id: StringName, state: RunState) -> int:
+	var level := state.loadout.level(id)
+	if level == 0 or level >= AmuletDef.MAX_LEVEL or level > _economy.upgrade_cost.size():
+		return -1
+	var def: AmuletDef = _defs[id]
+	var factor: float = _economy.upgrade_cost[level - 1]
+	return _economy.price(def.rarity, state.round, 0, factor * state.loadout.shop_price_multiplier())
+
+
+func upgrade(id: StringName, state: RunState) -> Dictionary:
+	if not state.loadout.has(id):
+		return _result(false, &"not_equipped")
+	if state.loadout.level(id) >= AmuletDef.MAX_LEVEL:
+		return _result(false, &"max_level")
+	if _upgraded:
+		return _result(false, &"already_upgraded")
+	var price := upgrade_price(id, state)
+	var pay := _pay(price, state)
+	if not pay["ok"]:
+		return pay
+	state.loadout.upgrade(id)
+	state.paid_for[id] = int(state.paid_for.get(id, 0)) + price
+	_upgraded = true
+	pay["level"] = state.loadout.level(id)
+	return pay
+
+
+## Paga con plata o fiado. Comprar fiado nunca te deja sin la entrada siguiente
+## (DISENO §7.4: "si sobrevivís").
+func _pay(price: int, state: RunState) -> Dictionary:
 	var reserve := _economy.entry(state.round + 1)
 	var from_money := clampi(state.money - reserve, 0, price)
 	var on_credit := price - from_money
@@ -44,10 +88,6 @@ func buy(index: int, state: RunState) -> Dictionary:
 		return _result(false, &"no_credit")
 	state.money -= from_money
 	state.fiado += on_credit
-	state.loadout.equip(def)
-	state.paid_for[def.id] = price
-	state.purchases += 1
-	offers.remove_at(index)
 	return {"ok": true, "reason": &"", "paid": from_money, "fiado": on_credit}
 
 

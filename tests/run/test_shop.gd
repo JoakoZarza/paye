@@ -177,3 +177,51 @@ func test_vender_no_baja_el_contador() -> void:
 	shop.sell(&"rosary", st)
 	assert_eq(st.purchases, 1)
 	assert_eq(shop.price_of(_defs[&"rosary"], st), 337)
+
+
+func test_mejorar_un_amuleto() -> void:
+	var shop := _shop()
+	var st := _state(100000)
+	_offer(shop, &"rosary")
+	shop.buy(0, st)
+	assert_eq(shop.upgrade_price(&"rosary", st), 405, "1,5 × 270")
+	var r := shop.upgrade(&"rosary", st)
+	assert_true(r["ok"])
+	assert_eq(r["level"], 2)
+	assert_eq(st.purchases, 1, "mejorar no sube el contador de compras")
+	assert_eq(shop.upgrade(&"rosary", st)["reason"], &"already_upgraded")
+	assert_eq(st.loadout.level(&"rosary"), 2)
+	shop.open(st)
+	assert_eq(shop.upgrade_price(&"rosary", st), 675, "2,5 × 270")
+	assert_true(shop.upgrade(&"rosary", st)["ok"])
+	shop.open(st)
+	assert_eq(shop.upgrade(&"rosary", st)["reason"], &"max_level")
+	assert_eq(shop.upgrade_price(&"rosary", st), -1)
+	assert_eq(shop.upgrade(&"hat", st)["reason"], &"not_equipped")
+	assert_eq(st.money, 100000 - 270 - 405 - 675)
+
+
+func test_vender_mejorado_devuelve_la_mitad_de_todo() -> void:
+	var shop := _shop()
+	var st := _state(100000)
+	_offer(shop, &"rosary")
+	shop.buy(0, st)
+	shop.upgrade(&"rosary", st)
+	assert_eq(shop.sell(&"rosary", st), 337)
+
+
+func test_cinta_roja_descuenta_la_mejora() -> void:
+	var shop := _shop()
+	var st := _state(100000, ["red_ribbon"])
+	_offer(shop, &"rosary")
+	shop.buy(0, st)
+	assert_eq(shop.upgrade_price(&"rosary", st), 324)
+
+
+func test_mejora_sin_credito_no_cambia_nada() -> void:
+	var shop := _shop()
+	var st := _state(0, ["rosary"])
+	var r := shop.upgrade(&"rosary", st)
+	assert_eq(r["reason"], &"no_credit")
+	assert_eq(st.loadout.level(&"rosary"), 1)
+	assert_true(shop.upgrade(&"rosary", _state(100000, ["rosary"]))["ok"], "no gastó la mejora de la visita")
