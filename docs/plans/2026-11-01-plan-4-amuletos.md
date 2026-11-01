@@ -51,8 +51,7 @@ core/amulets/loadout.gd         Loadout: amuletos equipados y sus cargas
 core/amulets/table_rules.gd     TableRules: banderas que consulta la mesa
 core/amulets/amulet_system.gd   AmuletSystem: usa los amuletos sobre la mesa
 core/run/run_deck.gd            RunDeck: mazo de condición (Normal, Viuda)
-core/truco/hand.gd              (modificar) deshacer el último canto
-core/cards/...                  (sin cambios)
+core/truco/hand.gd              (modificar) deshacer el último canto y marcar cartas
 core/cheats/cheat_table.gd      (modificar) consulta TableRules
 data/amulets.json
 data/decks.json
