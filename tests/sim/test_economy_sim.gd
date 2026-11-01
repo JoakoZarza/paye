@@ -9,8 +9,10 @@ enum Outcome { FREE_PAID, FREE_SOLD, FREE_HAND, DIED_HAND, DIED_MATCH, DIED_BROK
 
 const SEED := 99
 const RUNS := 4000
-## Probabilidad de ganar cada ronda con un jugador promedio (DISENO §6: la V).
-const WIN_CURVE: Array[float] = [0.55, 0.8, 0.7, 0.85, 0.85, 0.65, 0.6, 0.8, 0.5]
+## Victoria por ronda medida en test_full_run_sim (jugador IA medio, sin acusar).
+const WIN_CURVE: Array[float] = [0.44, 0.60, 0.53, 0.53, 0.51, 0.43, 0.42, 0.50, 0.39]
+## Ventaja de un humano que lee pistas y acusa trampas, sumada a cada ronda.
+const SKILL_EDGES: Array[float] = [0.15, 0.25]
 const GUALICHO_WIN := 0.45
 const AMULET_BONUS := 0.03
 const MAX_P := 0.95
@@ -32,7 +34,7 @@ func before_all() -> void:
 
 
 ## Una run. Devuelve {outcome, round, money_by_round, amulets}.
-func _run(policy: Policy, rng: RandomNumberGenerator, start_debt: int) -> Dictionary:
+func _run(policy: Policy, rng: RandomNumberGenerator, start_debt: int, edge: float) -> Dictionary:
 	var st := RunState.new()
 	st.money = _economy.start_money
 	st.debt = start_debt
@@ -45,7 +47,7 @@ func _run(policy: Policy, rng: RandomNumberGenerator, start_debt: int) -> Dictio
 	while true:
 		if not st.pay_entry(_economy):
 			return result.call(Outcome.DIED_BROKE)
-		var p_win := minf(WIN_CURVE[st.round - 1] + AMULET_BONUS * st.loadout.equipped().size(), MAX_P)
+		var p_win := minf(WIN_CURVE[st.round - 1] + edge + AMULET_BONUS * st.loadout.equipped().size(), MAX_P)
 		if rng.randf() >= p_win:
 			return result.call(Outcome.DIED_MATCH)
 		var final := _economy.is_final(st.round)
@@ -94,7 +96,7 @@ func _shop(policy: Policy, shop: Shop, st: RunState) -> void:
 		bought = shop.buy(cheapest, st)["ok"]
 
 
-func _simulate(policy: Policy, start_debt: int = 0) -> Dictionary:
+func _simulate(policy: Policy, start_debt: int = 0, edge: float = SKILL_EDGES[0]) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = SEED + policy * 1000
 	var outcomes := {}
@@ -108,7 +110,7 @@ func _simulate(policy: Policy, start_debt: int = 0) -> Dictionary:
 	var amulets := 0
 	var fiado_at_final: Array = []
 	for i in RUNS:
-		var r := _run(policy, rng, start_debt)
+		var r := _run(policy, rng, start_debt, edge)
 		outcomes[r["outcome"]] += 1
 		if r["outcome"] in [Outcome.DIED_MATCH, Outcome.DIED_BROKE]:
 			deaths_by_round[r["round"]] += 1
@@ -143,8 +145,15 @@ func _pct(n: int) -> String:
 
 func test_tabla_de_economia() -> void:
 	gut.p("curva de victoria por ronda: %s; mano del Gualicho: %.2f" % [str(WIN_CURVE), GUALICHO_WIN])
+	for edge in SKILL_EDGES:
+		gut.p("### ventaja del jugador +%.2f" % edge)
+		_print_policies(edge)
+	pass_test("tabla impresa")
+
+
+func _print_policies(edge: float) -> void:
 	for policy in [Policy.NONE, Policy.SAFE, Policy.GREEDY]:
-		var s := _simulate(policy)
+		var s := _simulate(policy, 0, edge)
 		var o: Dictionary = s["outcomes"]
 		gut.p("== %s: libres %.1f%% (pagó %s, vendiendo %s, mano ganada %s) | muere en la mano %s | amuletos medios %.2f | fiado mediano en la final %d" % [
 			Policy.keys()[policy], s["free_rate"] * 100, _pct(o[Outcome.FREE_PAID]),
@@ -156,7 +165,6 @@ func test_tabla_de_economia() -> void:
 			rows.append("R%d muere %s, plata mediana %d" % [r, _pct(deaths[r]), s["median_money"][r - 1]])
 		gut.p("   " + " | ".join(rows))
 		gut.p("   sin plata para entrar: %s" % _pct(o[Outcome.DIED_BROKE]))
-	pass_test("tabla impresa")
 
 
 func test_tabla_con_deuda_arrastrada() -> void:
