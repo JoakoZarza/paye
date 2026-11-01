@@ -42,6 +42,8 @@ var _real_tanto: Array[int] = [0, 0]
 var _envido_winner := -1
 ## Fotos del estado antes de cada canto de la cadena en curso (para el Rosario).
 var _call_snapshots: Array[Dictionary] = []
+## Cantos que el Rosario le prohibió a cada jugador por el resto de la mano.
+var _call_veto: Array[Dictionary] = [{}, {}]
 
 
 func _init(p_cards: Array, p_mano: int, p_falta_points: int) -> void:
@@ -61,6 +63,8 @@ func undo_last_call(by: int) -> bool:
 	if not can_undo_last_call(by):
 		return false
 	var snap: Dictionary = _call_snapshots.pop_back()
+	# El rival no puede repetir el canto anulado en esta mano: si no, el Rosario no sirve.
+	_call_veto[1 - by][snap["kind"]] = true
 	phase = snap["phase"]
 	_turn = snap["turn"]
 	_truco.level = snap["truco_level"]
@@ -87,16 +91,23 @@ func can_undo_last_call(by: int) -> bool:
 func can_mark(p: int, idx: int, new_number: int) -> bool:
 	if idx < 0 or idx >= cards[p].size() or not Card.is_valid_number(new_number):
 		return false
-	var suit: Card.Suit = cards[p][idx].effective_suit()
-	for j in cards[p].size():
-		if j != idx and cards[p][j].effective_number() == new_number and cards[p][j].effective_suit() == suit:
+	var target: Card = cards[p][idx]
+	var suit: Card.Suit = target.effective_suit()
+	for other in cards[p] + played[p]:
+		if other != target and other.effective_number() == new_number and other.effective_suit() == suit:
 			return false
 	return true
 
 
-func _snapshot(caller: int) -> Dictionary:
+## Misma regla que al pedir que muestre: declaró más que su tanto real y además
+## pierde la comparación real (en empate gana el mano).
+func declaration_is_lie(p: int) -> bool:
+	return _declared[p] > _real_tanto[p] and _real_winner() != p
+
+
+func _snapshot(caller: int, kind: StringName) -> Dictionary:
 	return {
-		"caller": caller, "phase": phase, "turn": _turn,
+		"caller": caller, "kind": kind, "phase": phase, "turn": _turn,
 		"truco_level": _truco.level, "truco_pending": _truco.pending,
 		"quiero_owner": _truco.quiero_owner, "truco_last_caller": _truco.last_caller,
 		"envido_calls": _envido.calls.duplicate(), "envido_caller": _envido_caller,
@@ -190,19 +201,19 @@ func legal_actions() -> Array[TrucoAction]:
 			for i in cards[p].size():
 				out.append(TrucoAction.make(T.PLAY_CARD, p, i))
 			_add_envido_calls(out, p)
-			if _truco.can_raise(p):
+			if _truco.can_raise(p) and not _call_veto[p].has(&"truco"):
 				out.append(TrucoAction.make(TRUCO_CALLS[_truco.level], p))
 			out.append(TrucoAction.make(T.MAZO, p))
 		Phase.ENVIDO_RESPONSE:
 			out.append(TrucoAction.make(T.QUIERO, p))
 			out.append(TrucoAction.make(T.NO_QUIERO, p))
 			for type in ENVIDO_CALLS:
-				if _envido.can_add(ENVIDO_CALLS[type]):
+				if _envido.can_add(ENVIDO_CALLS[type]) and not _call_veto[p].has(&"envido"):
 					out.append(TrucoAction.make(type, p))
 		Phase.TRUCO_RESPONSE:
 			out.append(TrucoAction.make(T.QUIERO, p))
 			out.append(TrucoAction.make(T.NO_QUIERO, p))
-			if _truco.can_raise(p):
+			if _truco.can_raise(p) and not _call_veto[p].has(&"truco"):
 				out.append(TrucoAction.make(TRUCO_CALLS[_truco.level], p))
 			_add_envido_calls(out, p)
 			out.append(TrucoAction.make(T.MAZO, p))
@@ -224,7 +235,7 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 	var events: Array[GameEvent] = []
 	var p := a.player
 	if a.type in ENVIDO_CALLS or a.type in TRUCO_CALLS:
-		_call_snapshots.append(_snapshot(p))
+		_call_snapshots.append(_snapshot(p, &"envido" if a.type in ENVIDO_CALLS else &"truco"))
 	else:
 		_call_snapshots.clear()
 	match a.type:
@@ -287,7 +298,7 @@ func _is_legal(a: TrucoAction) -> bool:
 ## El envido se canta solo en la primera baza, antes de jugar tu carta, una vez
 ## por mano, y nunca después de un truco ya querido.
 func _add_envido_calls(out: Array[TrucoAction], p: int) -> void:
-	if _envido_done or not baza_results.is_empty() or not played[p].is_empty():
+	if _envido_done or not baza_results.is_empty() or not played[p].is_empty() or _call_veto[p].has(&"envido"):
 		return
 	# "El envido está primero" solo responde al primer truco, no al retruco.
 	if _truco.level > 1 or (_truco.level == 1 and not _truco.pending):

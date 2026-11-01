@@ -61,14 +61,15 @@ func _play(sys: AmuletSystem, player_turn: Callable) -> int:
 	return t.truco_match.winner()
 
 
-## Ninguna carta base aparece dos veces en la mesa, salvo la copia de la duplicada.
+## Ninguna carta (identidad efectiva) aparece dos veces en las cartas de un mismo
+## jugador, salvo la copia de la duplicada del dealer.
 func _check_cards(t: CheatTable) -> void:
-	var seen := {}
 	for p in 2:
+		var seen := {}
 		for c in t.truco_match.hand.cards[p] + t.truco_match.hand.played[p]:
-			var k: String = c.key()
+			var k: String = "%d_%d" % [c.effective_number(), c.effective_suit()]
 			if seen.has(k):
-				var dup := t.active_cheat != null and t.active_cheat.kind == Cheat.Kind.DUPLICATE and t.active_cheat.card_key == k
+				var dup: bool = t.active_cheat != null and t.active_cheat.kind == Cheat.Kind.DUPLICATE and t.active_cheat.card_key == c.key()
 				if not dup:
 					_repeated_cards += 1
 			seen[k] = true

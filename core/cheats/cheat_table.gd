@@ -29,6 +29,8 @@ var cheats_applied := 0
 var rules := TableRules.new()
 ## Si el jugador cantó algún envido en este partido (Moneda aplastada).
 var player_called_envido := false
+## El Vaso de caña se aplicó a la declaración del jugador en esta mano.
+var _declaration_protected := false
 
 var _rng: RandomNumberGenerator
 var _accused := false
@@ -70,6 +72,7 @@ func start_hand(forced_kind: int = NO_FORCED, p_cards: Array = [], p_mano: int =
 				dealt.append(card.key())
 		truco_match.deck.remove_keys(dealt)
 	active_cheat = null
+	_declaration_protected = false
 	_accused = false
 	# Una duplicada que el dealer decidió y nunca pudo jugar le devuelve el presupuesto.
 	if _duplicate_planned and _duplicate_from_brain:
@@ -114,9 +117,13 @@ func dealer_step() -> Array[GameEvent]:
 func player_action(a: TrucoAction) -> Array[GameEvent]:
 	if a.player != player or not _hand_running():
 		return [_illegal(player)]
-	if a.type in ENVIDO_CALL_TYPES:
-		player_called_envido = true
 	var events := truco_match.apply(a)
+	var legal := events.is_empty() or events[0].type != &"illegal_action"
+	if legal and a.type in ENVIDO_CALL_TYPES:
+		player_called_envido = true
+	if legal and a.type == TrucoAction.Type.DECLARE_TANTO and rules.skip_next_show:
+		rules.skip_next_show = false
+		_declaration_protected = true
 	brain.observe(events, dealer)
 	return events
 
@@ -130,11 +137,9 @@ func _apply_rules(a: TrucoAction) -> TrucoAction:
 		return TrucoAction.make(TrucoAction.Type.QUIERO, dealer)
 	if a.type != TrucoAction.Type.DEMAND_SHOW:
 		return a
-	if rules.skip_next_show:
-		rules.skip_next_show = false
+	if _declaration_protected:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
-	var lied := hand.declared_tanto(player) > hand.own_tanto(player)
-	if rules.cigarette and lied and _rng.randf() < CIGARETTE_CHANCE:
+	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() < CIGARETTE_CHANCE:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
 	return a
 

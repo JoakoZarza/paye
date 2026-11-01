@@ -21,6 +21,8 @@ func _init(p_table: CheatTable, p_loadout: Loadout, p_rng: RandomNumberGenerator
 
 func start_match() -> void:
 	loadout.reset_charges()
+	table.rules.force_accept_next_call = false
+	table.rules.skip_next_show = false
 	table.rules.cigarette = loadout.has(&"cigarette")
 	table.start_match()
 
@@ -98,7 +100,8 @@ func use(id: StringName, args: Dictionary = {}) -> Array[GameEvent]:
 	return events
 
 
-## Carta al azar de un mazo de reserva, sin ninguna de las que ya están en la mesa.
+## Carta al azar de un mazo de reserva, distinta de toda carta de la mesa,
+## tanto por su identidad base como por la efectiva (cartas marcadas).
 func _draw_spare(hand: TrucoHand) -> Card:
 	var reserve := Deck.new(_rng)
 	reserve.shuffle()
@@ -106,6 +109,7 @@ func _draw_spare(hand: TrucoHand) -> Card:
 	for p in 2:
 		for c in hand.cards[p] + hand.played[p]:
 			used.append(c.key())
+			used.append("%d_%s" % [c.effective_number(), Card.Suit.keys()[c.effective_suit()]])
 	reserve.remove_keys(used)
 	return reserve.draw(1)[0]
 

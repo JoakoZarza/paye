@@ -169,3 +169,64 @@ func test_cargas_se_reponen_por_partido() -> void:
 	sys.use(&"hat")
 	sys.start_match()
 	assert_eq(sys.loadout.charges_left(&"hat"), 1)
+
+
+func _identity(c: Card) -> String:
+	return "%d_%d" % [c.effective_number(), c.effective_suit()]
+
+
+func test_mazo_aparte_no_crea_una_carta_igual_a_una_marcada() -> void:
+	for s in 200:
+		var sys := _system(["marker", "spare_deck"], s)
+		sys.start_hand(-1, [H.cards([[H.O, 6], [H.O, 5], [H.C, 4]]), H.cards([[H.E, 1], [H.E, 5], [H.B, 6]])], 0)
+		sys.use(&"marker", {"card_index": 0, "number": 7})
+		sys.use(&"spare_deck", {"card_index": 2})
+		var ids := {}
+		for c in sys.table.truco_match.hand.cards[0]:
+			assert_false(ids.has(_identity(c)), "carta efectiva repetida: %s" % _identity(c))
+			ids[_identity(c)] = true
+
+
+func test_start_match_apaga_facon_y_vaso() -> void:
+	var sys := _system(["facon", "cana_glass"])
+	sys.start_hand(-1, _cards(), 0)
+	sys.use(&"facon")
+	sys.use(&"cana_glass")
+	sys.start_match()
+	assert_false(sys.table.rules.force_accept_next_call)
+	assert_false(sys.table.rules.skip_next_show)
+
+
+func test_vaso_se_consume_con_la_proxima_declaracion() -> void:
+	var sys := _system(["cana_glass"])
+	sys.start_hand(-1, _cards(), 0)
+	sys.use(&"cana_glass")
+	sys.table.player_action(TrucoAction.make(H.T.ENVIDO, 0))
+	H.advance(sys.table, func() -> bool: return sys.table.truco_match.hand.phase == TrucoHand.Phase.TANTO_DECLARATION)
+	if sys.table.truco_match.hand.phase != TrucoHand.Phase.TANTO_DECLARATION:
+		pending("el dealer no quiso el envido con esta semilla")
+		return
+	sys.table.player_action(TrucoAction.make(H.T.DECLARE_TANTO, 0, -1, 33))
+	assert_false(sys.table.rules.skip_next_show, "la declaración consume el vaso aunque el dealer no pida mostrar")
+
+
+func test_facon_sobrevive_al_rosario_y_obliga_despues() -> void:
+	for s in 80:
+		var sys := _system(["facon", "rosary"], s)
+		sys.start_hand(-1, _cards(), 0)
+		sys.use(&"facon")
+		sys.table.player_action(TrucoAction.make(H.T.PLAY_CARD, 0, 2))
+		sys.table.dealer_step()
+		if not sys.can_use(&"rosary"):
+			continue
+		sys.use(&"rosary")
+		assert_true(sys.table.rules.force_accept_next_call, "el rosario no apaga el facón")
+		while sys.table.is_dealer_turn():
+			sys.table.dealer_step()
+		var hand := sys.table.truco_match.hand
+		if hand.is_over() or hand.phase != TrucoHand.Phase.PLAYING or not hand.legal_actions().any(func(a: TrucoAction) -> bool: return a.type == H.T.TRUCO):
+			continue
+		sys.table.player_action(TrucoAction.make(H.T.TRUCO, 0))
+		assert_eq(sys.table.dealer_step()[0].type, &"call_accepted")
+		return
+	fail_test("ninguna semilla llegó a probar facón y rosario juntos")

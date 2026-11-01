@@ -314,3 +314,33 @@ func test_rosario_no_anula_truco_despues_de_un_envido_resuelto() -> void:
 	assert_eq(h.phase, TrucoHand.Phase.TRUCO_RESPONSE)
 	assert_false(h.can_undo_last_call(0))
 	assert_false(h.undo_last_call(0))
+
+
+func test_marcar_no_duplica_una_carta_ya_jugada() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	_do(h, T.PLAY_CARD, 0, 0)
+	assert_false(h.can_mark(0, 0, 7), "el 7 de oro ya se jugó")
+
+
+func test_declaracion_es_mentira_sigue_la_regla_de_mostrar() -> void:
+	var h := _hand([[O, 12], [O, 11], [C, 4]], [[E, 5], [E, 10], [B, 4]], 0)
+	_do(h, T.ENVIDO, 0)
+	_do(h, T.QUIERO, 1)
+	_do(h, T.DECLARE_TANTO, 0, -1, 33)
+	_do(h, T.SON_BUENAS, 1)
+	assert_true(h.declaration_is_lie(0))
+	var h2 := _hand([[O, 7], [O, 5], [C, 4]], [[E, 5], [E, 10], [B, 4]], 0)
+	_do(h2, T.ENVIDO, 0)
+	_do(h2, T.QUIERO, 1)
+	_do(h2, T.DECLARE_TANTO, 0, -1, 33)
+	_do(h2, T.SON_BUENAS, 1)
+	assert_false(h2.declaration_is_lie(0), "declaró de más pero igual gana: no es mentira que se castigue")
+
+
+func test_rosario_prohibe_repetir_el_canto_anulado() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 1)
+	_do(h, T.TRUCO, 1)
+	h.undo_last_call(0)
+	assert_false(_has(h, T.TRUCO), "el dealer no puede volver a cantar truco en esta mano")
+	_do(h, T.PLAY_CARD, 1, 0)
+	assert_true(_has(h, T.TRUCO), "el jugador sí puede cantar truco")
