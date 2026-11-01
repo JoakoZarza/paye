@@ -40,6 +40,8 @@ var _resume_phase: Phase = Phase.PLAYING
 var _declared: Array[int] = [-1, -1]
 var _real_tanto: Array[int] = [0, 0]
 var _envido_winner := -1
+## Fotos del estado antes de cada canto de la cadena en curso (para el Rosario).
+var _call_snapshots: Array[Dictionary] = []
 
 
 func _init(p_cards: Array, p_mano: int, p_falta_points: int) -> void:
@@ -51,6 +53,50 @@ func _init(p_cards: Array, p_mano: int, p_falta_points: int) -> void:
 
 func is_over() -> bool:
 	return phase == Phase.OVER
+
+
+## Rosario: si el último canto lo hizo el rival de y y espera su respuesta,
+## la mano vuelve al estado de antes de ese canto.
+func undo_last_call(by: int) -> bool:
+	if phase != Phase.ENVIDO_RESPONSE and phase != Phase.TRUCO_RESPONSE:
+		return false
+	if _call_snapshots.is_empty() or current_player() != by:
+		return false
+	var snap: Dictionary = _call_snapshots.back()
+	if snap["caller"] != 1 - by:
+		return false
+	_call_snapshots.pop_back()
+	phase = snap["phase"]
+	_turn = snap["turn"]
+	_truco.level = snap["truco_level"]
+	_truco.pending = snap["truco_pending"]
+	_truco.quiero_owner = snap["quiero_owner"]
+	_truco.last_caller = snap["truco_last_caller"]
+	_envido.calls.assign(snap["envido_calls"])
+	_envido_caller = snap["envido_caller"]
+	_resume_phase = snap["resume_phase"]
+	return true
+
+
+## Marcador: el número es válido y la carta no queda igual a otra de la mano.
+func can_mark(p: int, idx: int, new_number: int) -> bool:
+	if idx < 0 or idx >= cards[p].size() or not Card.is_valid_number(new_number):
+		return false
+	var suit: Card.Suit = cards[p][idx].effective_suit()
+	for j in cards[p].size():
+		if j != idx and cards[p][j].effective_number() == new_number and cards[p][j].effective_suit() == suit:
+			return false
+	return true
+
+
+func _snapshot(caller: int) -> Dictionary:
+	return {
+		"caller": caller, "phase": phase, "turn": _turn,
+		"truco_level": _truco.level, "truco_pending": _truco.pending,
+		"quiero_owner": _truco.quiero_owner, "truco_last_caller": _truco.last_caller,
+		"envido_calls": _envido.calls.duplicate(), "envido_caller": _envido_caller,
+		"resume_phase": _resume_phase,
+	}
 
 
 ## Trampa de la manga: el jugador recibe una carta extra.
@@ -172,6 +218,10 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 		return [GameEvent.make(&"illegal_action", {"player": a.player, "type": a.type})]
 	var events: Array[GameEvent] = []
 	var p := a.player
+	if a.type in ENVIDO_CALLS or a.type in TRUCO_CALLS:
+		_call_snapshots.append(_snapshot(p))
+	else:
+		_call_snapshots.clear()
 	match a.type:
 		T.PLAY_CARD:
 			_play_card(p, a.card_index, events)

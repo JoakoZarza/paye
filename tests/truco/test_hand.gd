@@ -250,3 +250,57 @@ func test_force_end_no_paga_un_envido_mentido_al_acusador() -> void:
 	_do(h, T.SON_BUENAS, 1)
 	h.force_end(0, 1)
 	assert_eq(h.envido_points, [0, 0])
+
+
+func test_rosario_anula_truco() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 1)
+	_do(h, T.TRUCO, 1)
+	assert_true(h.undo_last_call(0))
+	assert_eq(h.phase, TrucoHand.Phase.PLAYING)
+	assert_eq(h.truco_level(), 0)
+	assert_false(h.truco_pending())
+	assert_eq(h.current_player(), 1)
+
+
+func test_rosario_anula_la_subida_de_envido() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	_do(h, T.ENVIDO, 0)
+	_do(h, T.REAL_ENVIDO, 1)
+	assert_true(h.undo_last_call(0))
+	assert_eq(h.phase, TrucoHand.Phase.ENVIDO_RESPONSE)
+	assert_eq(h.current_player(), 1)
+	_do(h, T.NO_QUIERO, 1)
+	assert_eq(h.envido_points, [1, 0])
+
+
+func test_rosario_anula_retruco_y_vuelve_al_truco_pendiente() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 0)
+	_do(h, T.TRUCO, 0)
+	_do(h, T.RETRUCO, 1)
+	assert_true(h.undo_last_call(0))
+	assert_eq(h.truco_level(), 1)
+	assert_true(h.truco_pending())
+	assert_eq(h.current_player(), 1)
+
+
+func test_rosario_sin_canto_pendiente_no_hace_nada() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 1)
+	_do(h, T.TRUCO, 1)
+	_do(h, T.QUIERO, 0)
+	assert_false(h.undo_last_call(0))
+	assert_eq(h.truco_level(), 1)
+
+
+func test_rosario_no_anula_un_canto_propio() -> void:
+	var h := _hand([[E, 1], [B, 1], [C, 4]], [[E, 4], [E, 5], [E, 6]], 0)
+	_do(h, T.TRUCO, 0)
+	assert_false(h.undo_last_call(0))
+	assert_true(h.truco_pending())
+
+
+func test_marcar_no_duplica_una_carta() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 0)
+	assert_false(h.can_mark(0, 1, 7))
+	assert_true(h.can_mark(0, 1, 5))
+	assert_false(h.can_mark(0, 1, 8))
+	assert_false(h.can_mark(0, 5, 5))
