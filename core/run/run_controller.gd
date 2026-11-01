@@ -157,6 +157,11 @@ func _open_shop() -> void:
 
 # --- Una mano más (DISENO §6, Plan 5c decisión 7) ---
 
+## true mientras se juega la mano de "una mano más" (para las pantallas).
+func one_more_staked() -> bool:
+	return phase == Phase.ONE_MORE and _one_more_stake > 0
+
+
 ## Cuánto se puede arriesgar con cada fracción permitida.
 func one_more_options() -> Array[int]:
 	var out: Array[int] = []
