@@ -49,21 +49,28 @@ func test_legado_se_equipa_y_se_consume() -> void:
 	assert_eq(MetaState.load_from(META_PATH).legacy, &"")
 
 
-func test_rival_por_ronda() -> void:
+func test_nueve_rondas_con_pecados_y_almas() -> void:
 	var rc := _controller()
-	assert_eq(rc.rival_for(1).id, &"agresivo")
-	assert_eq(rc.rival_for(2).id, &"mentiroso")
-	assert_eq(rc.rival_for(3).id, &"tramposo")
-	var boss := rc.rival_for(4)
-	assert_eq(boss.id, &"agresivo")
-	assert_gt(boss.aggression, rc.rival_for(1).aggression)
+	assert_null(rc.rival_for(1), "sin run no hay rivales")
 	rc.start_run(&"normal")
-	rc.state.round = 4
+	for r in range(1, 10):
+		assert_eq(rc.rival_for(r).sin, RivalCatalog.RUN_ORDER[r - 1])
+	rc.state.round = 9
 	rc.state.money = 100000
 	var events := rc.enter_match()
 	assert_eq(events[0].data["target"], 30)
-	assert_true(events[0].data["boss"])
+	assert_true(events[0].data["final"])
+	assert_eq(events[0].data["sin"], &"soberbia")
 
+
+func test_misma_semilla_mismos_rivales() -> void:
+	var a := _controller(MetaState.new(), 77)
+	var b := _controller(MetaState.new(), 77)
+	a.start_run(&"normal")
+	b.start_run(&"normal")
+	for r in range(1, 10):
+		assert_eq(a.rival_for(r).id, b.rival_for(r).id)
+		assert_eq(a.rival_for(r).aggression, b.rival_for(r).aggression)
 
 func test_ganar_cobra_y_abre_la_tienda() -> void:
 	var rc := _controller()
@@ -112,23 +119,6 @@ func test_sin_entrada_es_muerte_y_el_fiado_es_deuda() -> void:
 	assert_eq(MetaState.load_from(META_PATH).debt, 80)
 
 
-func test_retiro_con_10_millones_exactos() -> void:
-	var meta := MetaState.new()
-	meta.debt = 999
-	var rc := _controller(meta)
-	rc.start_run(&"normal")
-	rc.state.debt = 0
-	rc.enter_match()
-	_end_match(rc, 0)
-	rc.finish_match()
-	assert_false(rc.can_retire())
-	rc.state.money = _economy.goal
-	assert_true(rc.can_retire())
-	assert_has(_types(rc.retire()), &"run_retired")
-	assert_eq(rc.phase, RunController.Phase.RETIRED)
-	assert_eq(meta.debt, 0)
-
-
 func test_morir_sin_amuletos() -> void:
 	var rc := _controller()
 	rc.start_run(&"normal")
@@ -164,6 +154,12 @@ func test_fuera_de_fase_es_ilegal() -> void:
 	rc.start_run(&"normal")
 	assert_eq(rc.finish_match()[0].type, &"illegal_action")
 	assert_eq(rc.next_round()[0].type, &"illegal_action")
+	assert_eq(rc.retire()[0].type, &"illegal_action")
+	assert_eq(rc.condemn()[0].type, &"illegal_action")
+	assert_eq(rc.finish_bill_hand()[0].type, &"illegal_action")
+	_win_round(rc)
+	assert_eq(rc.phase, RunController.Phase.SHOP)
+	assert_false(rc.can_retire(), "retirarse solo después de pagar la cuenta")
 	assert_eq(rc.retire()[0].type, &"illegal_action")
 
 
@@ -204,6 +200,7 @@ func test_abandonar_la_run_conserva_el_fiado_como_deuda() -> void:
 	_win_round(rc)
 	rc.shop.offers.clear()
 	rc.shop.offers.append(AmuletDef.load_all()[&"hat"])
+	rc.state.money = 200
 	rc.buy(0)
 	var fiado := rc.state.fiado
 	assert_gt(fiado, 0)
@@ -215,15 +212,27 @@ func test_abandonar_la_run_conserva_el_fiado_como_deuda() -> void:
 	assert_eq(loaded.runs_played, 1)
 
 
-func test_jefe_abre_la_tienda_especial() -> void:
+func test_pecado_abre_la_tienda_especial() -> void:
 	var rc := _controller()
 	rc.start_run(&"normal")
-	rc.state.round = 4
 	rc.state.money = 10000
 	_win_round(rc)
 	for d in rc.shop.offers:
 		assert_ne(d.rarity, AmuletDef.Rarity.COMMON)
 
+
+func test_alma_abre_la_tienda_comun() -> void:
+	var common := 0
+	for seed in 20:
+		var rc := _controller(MetaState.new(), seed)
+		rc.start_run(&"normal")
+		rc.state.round = 2
+		rc.state.money = 10000
+		_win_round(rc)
+		for d in rc.shop.offers:
+			if d.rarity == AmuletDef.Rarity.COMMON:
+				common += 1
+	assert_gt(common, 0)
 
 func test_no_se_reinicia_una_run_en_curso() -> void:
 	var rc := _controller()

@@ -1,11 +1,12 @@
-﻿class_name RunController
+class_name RunController
 extends RefCounted
 ## Orquesta una run para las pantallas: bar, entrada, partido, premio, tienda,
-## muerte o retiro. Emite eventos como el resto del núcleo. Ver DISENO §6 y §7.
+## la cuenta final y el después. Emite eventos como el resto del núcleo.
+## Ver DISENO §6 y §7.
 
-enum Phase { BAR, MATCH, SHOP, DEAD, RETIRED }
+enum Phase { BAR, MATCH, SHOP, BILL_HAND, FREE, DEAD, RETIRED, CONDEMNED }
 
-const RIVAL_ORDER: Array[StringName] = [&"agresivo", &"mentiroso", &"tramposo"]
+const ENDED: Array[Phase] = [Phase.DEAD, Phase.RETIRED, Phase.CONDEMNED]
 const PLAYER := 0
 const DEALER := 1
 
@@ -19,7 +20,10 @@ var systems: AmuletSystem
 
 var _meta_path: String
 var _rng: RandomNumberGenerator
-var _profiles: Dictionary
+var _catalog_data: Dictionary
+var _catalog: RivalCatalog
+## Lo que faltaba pagar al empezar la mano contra el Gualicho.
+var _bill_missing: int = 0
 var _defs: Dictionary
 var _decks: Dictionary
 var _legacy_snapshot: Array[StringName] = []
@@ -31,15 +35,14 @@ func _init(p_economy: Economy, p_meta: MetaState, p_seed: int, p_meta_path: Stri
 	_meta_path = p_meta_path
 	_rng = RandomNumberGenerator.new()
 	_rng.seed = p_seed
-	# Provisorio hasta la Tarea 5 del Plan 5b (RivalCatalog).
-	_profiles = RivalProfile.load_all("res://tests/fixtures/legacy_rivals.json")
+	_catalog_data = RivalProfile.load_catalog()
 	_defs = AmuletDef.load_all()
 	_decks = RunDeck.load_all()
 	shop = Shop.new(economy, _defs, _child_rng())
 
 
 func start_run(deck_id: StringName) -> Array[GameEvent]:
-	if state != null and phase in [Phase.BAR, Phase.MATCH, Phase.SHOP]:
+	if state != null and not phase in ENDED:
 		return [_illegal()]
 	# Una run que quedó abierta (se cerró el juego) cuenta como jugada; su fiado ya
 	# quedó guardado como deuda en el último punto de control.
@@ -49,6 +52,7 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 	state.money = economy.start_money
 	state.debt = meta.debt
 	state.deck = _decks[deck_id]
+	_catalog = RivalCatalog.new(_catalog_data, _child_rng())
 	var legacy := meta.legacy
 	if legacy != &"" and _defs.has(legacy):
 		state.loadout.equip(_defs[legacy])
@@ -60,9 +64,9 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 	return [GameEvent.make(&"run_started", {"money": state.money, "debt": state.debt, "legacy": legacy, "deck": deck_id})]
 
 
+## La versión de cada ronda la eligió la semilla al empezar la run.
 func rival_for(round: int) -> RivalProfile:
-	var id := RIVAL_ORDER[(round - 1) % RIVAL_ORDER.size()]
-	return _profiles[id].scaled_for_round(round)
+	return _catalog.rival_for(round) if _catalog != null else null
 
 
 func enter_match() -> Array[GameEvent]:
@@ -72,16 +76,20 @@ func enter_match() -> Array[GameEvent]:
 	if not state.pay_entry(economy):
 		return die()
 	var rival := rival_for(state.round)
-	var m := TrucoMatch.new(economy.target_points(state.round), _child_rng())
+	_open_table(rival, economy.target_points(state.round))
+	phase = Phase.MATCH
+	return [GameEvent.make(&"entry_paid", {
+		"entry": entry, "rival": rival.id, "sin": rival.sin, "final": economy.is_final(state.round),
+		"target": economy.target_points(state.round), "round": state.round,
+	})]
+
+
+func _open_table(rival: RivalProfile, target: int) -> void:
+	var m := TrucoMatch.new(target, _child_rng())
 	var table := CheatTable.new(m, DealerBrain.new(rival, _child_rng()), DEALER, _child_rng())
 	state.deck.apply_to(table.rules)
 	systems = AmuletSystem.new(table, state.loadout, _child_rng())
 	systems.start_match()
-	phase = Phase.MATCH
-	return [GameEvent.make(&"entry_paid", {
-		"entry": entry, "rival": rival.id, "boss": economy.is_boss(state.round),
-		"target": economy.target_points(state.round), "round": state.round,
-	})]
 
 
 func finish_match() -> Array[GameEvent]:
@@ -92,18 +100,78 @@ func finish_match() -> Array[GameEvent]:
 		return die()
 	var prize := Prize.compute(economy.base_prize(state.round), t.truco_match.scores[DEALER],
 		t.player_cheats_used, t.player_cheats_caught, t.player_called_envido,
-		state.loadout, state.deck, economy)
-	var paid := state.collect_prize(prize["total"], economy)
+		state.loadout, state.deck, economy, economy.is_final(state.round))
+	state.collect_prize(prize["total"])
+	var events: Array[GameEvent] = [GameEvent.make(&"prize_paid", {
+		"total": prize["total"], "multipliers": prize["multipliers"], "money": state.money})]
+	if economy.is_final(state.round):
+		events.append_array(_settle_bill())
+		return events
 	phase = Phase.SHOP
-	shop.open(state, economy.is_boss(state.round))
+	# Después de cada pecado, tienda especial (DISENO §6).
+	shop.open(state, rival_for(state.round).sin != RivalCatalog.ALMA)
 	_checkpoint()
-	var data := {"total": prize["total"], "multipliers": prize["multipliers"], "money": state.money}
-	data.merge(paid)
-	return [GameEvent.make(&"prize_paid", data)]
+	return events
 
 
+## La cuenta del bar: con plata, después vendiendo amuletos y si no alcanza,
+## una mano contra el Gualicho (Plan 5b, decisión 5).
+func _settle_bill() -> Array[GameEvent]:
+	var bill := state.bill(economy)
+	var events: Array[GameEvent] = []
+	if state.money < bill:
+		var ids := _equipped_ids()
+		if not ids.is_empty():
+			var amount := 0
+			for id in ids:
+				amount += economy.sell_value(state.paid_for.get(id, 0))
+				state.loadout.unequip(id)
+				state.paid_for.erase(id)
+			state.money += amount
+			events.append(GameEvent.make(&"bill_amulets_sold", {"amount": amount, "ids": ids}))
+	if state.money >= bill:
+		state.money -= bill
+		_bill_settled()
+		events.append(GameEvent.make(&"bill_paid", {"bill": bill, "left": state.money}))
+		return events
+	_bill_missing = bill - state.money
+	# Todo lo que tenías ya es del bar; si abandonás o perdés, debés lo que faltaba.
+	state.money = 0
+	state.fiado = 0
+	state.debt = _bill_missing
+	_open_table(_catalog.gualicho(), economy.target_points(state.round))
+	phase = Phase.BILL_HAND
+	_checkpoint()
+	events.append(GameEvent.make(&"bill_hand_started", {"missing": _bill_missing}))
+	return events
+
+
+func _bill_settled() -> void:
+	state.fiado = 0
+	state.debt = 0
+	phase = Phase.FREE
+	_checkpoint()
+
+
+## Llamar cuando terminó la mano contra el Gualicho. Gana quien sumó más puntos
+## en esa mano; el empate es del Gualicho.
+func finish_bill_hand() -> Array[GameEvent]:
+	if phase != Phase.BILL_HAND:
+		return [_illegal()]
+	var m := table().truco_match
+	if m.hand == null or (not m.hand.is_over() and m.winner() == -1):
+		return [_illegal()]
+	if m.scores[PLAYER] > m.scores[DEALER]:
+		_bill_settled()
+		return [GameEvent.make(&"bill_hand_won", {"missing": _bill_missing})]
+	var events: Array[GameEvent] = [GameEvent.make(&"bill_hand_lost", {"missing": _bill_missing})]
+	events.append_array(die())
+	return events
+
+
+## Solo después de saldar la cuenta: volver a la vida o seguir por avaricia.
 func can_retire() -> bool:
-	return phase == Phase.SHOP and state.money >= economy.goal
+	return phase == Phase.FREE
 
 
 func retire() -> Array[GameEvent]:
@@ -115,6 +183,17 @@ func retire() -> Array[GameEvent]:
 	meta.run_in_progress = false
 	_record_run()
 	return [GameEvent.make(&"run_retired", {"money": state.money, "round": state.round})]
+
+
+## La avaricia: en el MVP es el final malo. La cuenta ya se pagó, no queda deuda.
+func condemn() -> Array[GameEvent]:
+	if not can_retire():
+		return [_illegal()]
+	phase = Phase.CONDEMNED
+	meta.debt = 0
+	meta.run_in_progress = false
+	_record_run()
+	return [GameEvent.make(&"run_condemned", {"money": state.money, "round": state.round})]
 
 
 func next_round() -> Array[GameEvent]:
@@ -129,7 +208,7 @@ func next_round() -> Array[GameEvent]:
 
 ## La run termina. El legado se elige después con choose_legacy().
 func die() -> Array[GameEvent]:
-	if state == null or phase == Phase.DEAD or phase == Phase.RETIRED:
+	if state == null or phase in ENDED or phase == Phase.FREE:
 		return [_illegal()]
 	_legacy_snapshot = _equipped_ids()
 	shop.offers.clear()
