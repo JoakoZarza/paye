@@ -24,6 +24,8 @@ var _catalog_data: Dictionary
 var _catalog: RivalCatalog
 ## Lo que faltaba pagar al empezar la mano contra el Gualicho.
 var _bill_missing: int = 0
+## Te pescaron haciendo trampa en el último partido: el rival siguiente lo sabe.
+var _gossip := false
 var _defs: Dictionary
 var _decks: Dictionary
 var _legacy_snapshot: Array[StringName] = []
@@ -77,11 +79,26 @@ func enter_match() -> Array[GameEvent]:
 		return die()
 	var rival := rival_for(state.round)
 	_open_table(rival, economy.target_points(state.round))
+	var greed := _warn_the_sins(rival, entry)
 	phase = Phase.MATCH
 	return [GameEvent.make(&"entry_paid", {
-		"entry": entry, "rival": rival.id, "sin": rival.sin, "final": economy.is_final(state.round),
-		"target": economy.target_points(state.round), "round": state.round,
+		"entry": entry, "tip": state.last_tip, "rival": rival.id, "sin": rival.sin, "final": economy.is_final(state.round),
+		"target": economy.target_points(state.round), "round": state.round, "greed_cheats": greed,
 	})]
+
+
+## Los pecados se conocen (DISENO §5.4.1): el chisme sube la sospecha y la plata
+## que llevás les da trampas de más. Devuelve cuántas trampas extra tiene el rival.
+func _warn_the_sins(rival: RivalProfile, entry: int) -> int:
+	var brain := table().brain
+	if _gossip:
+		brain.mood.suspicion = clampf(brain.mood.suspicion + economy.gossip_suspicion, 0.0, 1.0)
+		_gossip = false
+	if rival.sin == RivalCatalog.ALMA or rival.sin == RivalCatalog.GUALICHO or entry <= 0:
+		return 0
+	var extra := mini(economy.greed_max_extra, state.money / (economy.greed_entries_per_cheat * entry))
+	brain.cheat_budget += extra
+	return extra
 
 
 func _open_table(rival: RivalProfile, target: int) -> void:
@@ -98,13 +115,16 @@ func finish_match() -> Array[GameEvent]:
 	var t := table()
 	if t.truco_match.winner() != PLAYER:
 		return die()
+	_gossip = t.player_cheats_caught > 0
 	var prize := Prize.compute(economy.base_prize(state.round), t.truco_match.scores[DEALER],
 		t.player_cheats_used, t.player_cheats_caught, t.player_called_envido,
 		state.loadout, state.deck, economy, economy.is_final(state.round))
-	state.collect_prize(prize["total"])
+	var final := economy.is_final(state.round)
+	var paid := state.collect_prize(prize["total"], economy, final)
 	var events: Array[GameEvent] = [GameEvent.make(&"prize_paid", {
-		"total": prize["total"], "multipliers": prize["multipliers"], "money": state.money})]
-	if economy.is_final(state.round):
+		"total": prize["total"], "multipliers": prize["multipliers"], "money": state.money,
+		"retained": paid["retained"]})]
+	if final:
 		events.append_array(_settle_bill())
 		return events
 	phase = Phase.SHOP
@@ -202,8 +222,13 @@ func next_round() -> Array[GameEvent]:
 	state.round += 1
 	shop.offers.clear()
 	phase = Phase.BAR
+	var events: Array[GameEvent] = []
+	var before := state.fiado
+	if state.apply_interest(economy) > 0:
+		events.append(GameEvent.make(&"fiado_interest", {"before": before, "after": state.fiado}))
 	_checkpoint()
-	return [GameEvent.make(&"round_started", {"round": state.round, "entry": economy.entry(state.round)})]
+	events.append(GameEvent.make(&"round_started", {"round": state.round, "entry": economy.entry(state.round)}))
+	return events
 
 
 ## La run termina. El legado se elige después con choose_legacy().

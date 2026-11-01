@@ -246,3 +246,75 @@ func test_sin_run_es_ilegal() -> void:
 	var rc := _controller()
 	assert_eq(rc.enter_match()[0].type, &"illegal_action")
 	assert_eq(rc.die()[0].type, &"illegal_action")
+
+
+func test_pasar_de_ronda_cobra_interes_del_fiado() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	_win_round(rc)
+	rc.state.fiado = 100
+	var events := rc.next_round()
+	assert_eq(events[0].type, &"fiado_interest")
+	assert_eq(events[0].data, {"before": 100, "after": 110})
+	assert_eq(rc.state.fiado, 110)
+
+
+func test_premio_retiene_parte_del_fiado() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.enter_match()
+	rc.state.fiado = 1000
+	_end_match(rc, 0)
+	var e := rc.finish_match()[0]
+	assert_eq(e.data["retained"], 112)
+	assert_eq(rc.state.fiado, 888)
+	assert_eq(rc.state.money, 35 + 450 - 112)
+
+
+func test_entrada_informa_la_propina() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.state.money = 1000
+	assert_eq(rc.enter_match()[0].data["tip"], 70)
+
+
+func test_el_chisme_dura_un_partido() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.state.money = 100000
+	rc.enter_match()
+	rc.table().player_cheats_caught = 1
+	_end_match(rc, 0)
+	rc.finish_match()
+	rc.next_round()
+	rc.enter_match()
+	assert_almost_eq(rc.table().brain.mood.suspicion, 0.3, 0.0001)
+	_end_match(rc, 0)
+	rc.finish_match()
+	rc.next_round()
+	rc.enter_match()
+	assert_almost_eq(rc.table().brain.mood.suspicion, 0.0, 0.0001)
+
+
+func test_la_plata_atrae_trampas_con_tope() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	var base := rc.rival_for(1).cheat_budget
+	rc.state.money = 100 + 30 + 999
+	var e := rc.enter_match()[0]
+	assert_eq(e.data["greed_cheats"], 1, "tras entrada y propina quedan 947: una vez 5 entradas")
+	assert_eq(rc.table().brain.cheat_budget, base + 1)
+	var rich := _controller()
+	rich.start_run(&"normal")
+	rich.state.money = 1000000
+	rich.enter_match()
+	assert_eq(rich.table().brain.cheat_budget, rich.rival_for(1).cheat_budget + 2)
+
+
+func test_las_almas_no_reciben_trampas_extra() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	rc.state.round = 2
+	rc.state.money = 1000000
+	assert_eq(rc.enter_match()[0].data["greed_cheats"], 0)
+	assert_eq(rc.table().brain.cheat_budget, 0)
