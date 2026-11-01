@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 
 const E := Card.Suit.ESPADA
 const B := Card.Suit.BASTO
@@ -34,7 +34,7 @@ func _envido_response_hand() -> TrucoHand:
 func test_confiabilidad_se_respeta() -> void:
 	var brain := _brain(0.8)
 	for i in 2000:
-		brain.choose(_envido_response_hand(), 1)
+		brain.choose(HandView.new(_envido_response_hand(), 1))
 	var rate: float = float(brain.stats[&"honest_tells"]) / brain.stats[&"tells"]
 	assert_between(rate, 0.75, 0.85)
 
@@ -42,7 +42,7 @@ func test_confiabilidad_se_respeta() -> void:
 func test_icono_angry_con_tilt() -> void:
 	var brain := _brain(0.5)
 	brain.mood.tilt = 0.6
-	brain.choose(_envido_response_hand(), 1)
+	brain.choose(HandView.new(_envido_response_hand(), 1))
 	assert_eq(brain.last_tell.icon, &"angry")
 
 
@@ -55,7 +55,7 @@ func test_decision_sin_pista() -> void:
 	h.apply(TrucoAction.make(T.VALE_CUATRO, 0))
 	h.apply(TrucoAction.make(T.QUIERO, 1))
 	h.apply(TrucoAction.make(T.PLAY_CARD, 0, 0))
-	var a := brain.choose(h, 1)
+	var a := brain.choose(HandView.new(h, 1))
 	assert_eq(a.type, T.PLAY_CARD)
 	assert_null(brain.last_tell)
 
@@ -63,7 +63,7 @@ func test_decision_sin_pista() -> void:
 func test_clave_de_texto_coincide_con_categoria() -> void:
 	var brain := _brain(0.5)
 	for i in 100:
-		brain.choose(_envido_response_hand(), 1)
+		brain.choose(HandView.new(_envido_response_hand(), 1))
 		var prefix := "TELL_STRONG_" if brain.last_tell.category == &"strong" else "TELL_WEAK_"
 		assert_true(String(brain.last_tell.text_key).begins_with(prefix))
 

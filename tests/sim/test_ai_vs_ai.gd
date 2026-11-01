@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 ## Partidos completos entre cerebros del dealer y contra un jugador al azar.
 
 const SEED := 7
@@ -46,7 +46,7 @@ func _play_match(brains: Array, target: int, s: int, log: Array = []) -> int:
 				var legal := m.hand.legal_actions()
 				a = legal[picker.randi_range(0, legal.size() - 1)]
 			else:
-				a = brains[p].choose(m.hand, p)
+				a = brains[p].choose(HandView.new(m.hand, p))
 				log.append("%d:%d:%d:%d" % [p, a.type, a.card_index, a.value])
 			var events := m.apply(a)
 			if events[0].type == &"illegal_action":

@@ -76,22 +76,23 @@ func _init(p_profile: RivalProfile, p_rng: RandomNumberGenerator) -> void:
 	_rng = p_rng
 
 
-func choose(hand: TrucoHand, me: int) -> TrucoAction:
-	var legal := hand.legal_actions()
+func choose(view: HandView) -> TrucoAction:
+	var me := view.me
+	var legal := view.legal_actions()
 	stats[&"decisions"] += 1
 	last_tell = null
 	var action: TrucoAction
-	match hand.phase:
+	match view.phase():
 		TrucoHand.Phase.PLAYING:
-			action = _decide_playing(hand, me, legal)
+			action = _decide_playing(view, me, legal)
 		TrucoHand.Phase.ENVIDO_RESPONSE:
-			action = _decide_envido_response(hand, me, legal)
+			action = _decide_envido_response(view, me, legal)
 		TrucoHand.Phase.TANTO_DECLARATION:
-			action = _decide_declaration(hand, me, legal)
+			action = _decide_declaration(view, me, legal)
 		TrucoHand.Phase.TRUCO_RESPONSE:
-			action = _decide_truco_response(hand, me, legal)
+			action = _decide_truco_response(view, me, legal)
 		TrucoHand.Phase.SHOW_DECISION:
-			action = _decide_show(hand, me)
+			action = _decide_show(view, me)
 	return _legalize(action, legal)
 
 
@@ -155,15 +156,16 @@ func observe(events: Array[GameEvent], me: int) -> void:
 
 ## Índice de la carta a jugar: la más baja que gana si responde, la más alta o
 ## la del medio si abre la baza.
-func pick_card(hand: TrucoHand, me: int) -> int:
-	var mine: Array = hand.cards[me]
+func pick_card(view: HandView) -> int:
+	var me := view.me
+	var mine: Array = view.my_cards()
 	var order: Array[int] = []
 	for i in mine.size():
 		order.append(i)
 	order.sort_custom(func(a: int, b: int) -> bool: return mine[a].truco_rank() < mine[b].truco_rank())
 	var opp := 1 - me
-	if hand.played[opp].size() > hand.played[me].size():
-		var to_beat: Card = hand.played[opp].back()
+	if view.played(opp).size() > view.played(me).size():
+		var to_beat: Card = view.played(opp).back()
 		for i in order:
 			if mine[i].truco_rank() > to_beat.truco_rank():
 				return i
@@ -175,11 +177,11 @@ func pick_card(hand: TrucoHand, me: int) -> int:
 
 # --- Decisiones por fase ---
 
-func _decide_playing(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
-	var envido_call := _maybe_call_envido(hand, me, legal)
+func _decide_playing(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
+	var envido_call := _maybe_call_envido(view, me, legal)
 	if envido_call != null:
 		return envido_call
-	var st := _truco_strength(hand, me)
+	var st := _truco_strength(view, me)
 	var pt := _perceived(st)
 	var truco_call := _find(legal, TRUCO_TYPES)
 	if truco_call != null:
@@ -188,14 +190,14 @@ func _decide_playing(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> Tru
 		stats[&"truco_calls"] += 1
 		_emit_tell(st)
 		return truco_call
-	var lost_a_baza := hand.baza_results.has(1 - me)
-	if pt < MAZO_STRENGTH and lost_a_baza and hand.truco_level() >= MAZO_MIN_LEVEL:
+	var lost_a_baza := view.baza_results().has(1 - me)
+	if pt < MAZO_STRENGTH and lost_a_baza and view.truco_level() >= MAZO_MIN_LEVEL:
 		return TrucoAction.make(T.MAZO, me)
-	return TrucoAction.make(T.PLAY_CARD, me, pick_card(hand, me))
+	return TrucoAction.make(T.PLAY_CARD, me, pick_card(view))
 
 
-func _decide_envido_response(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
-	var re := HandStrength.envido(hand.own_tanto(me))
+func _decide_envido_response(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
+	var re := HandStrength.envido(view.my_tanto())
 	var pe := _perceived(re)
 	_emit_tell(re)
 	if pe >= ENVIDO_RAISE:
@@ -207,15 +209,15 @@ func _decide_envido_response(hand: TrucoHand, me: int, legal: Array[TrucoAction]
 	return TrucoAction.make(T.QUIERO if pe >= accept_at else T.NO_QUIERO, me)
 
 
-func _decide_declaration(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
-	var real := hand.own_tanto(me)
+func _decide_declaration(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
+	var real := view.my_tanto()
 	_emit_tell(HandStrength.envido(real))
 	var value := real
-	if me == hand.mano:
+	if me == view.mano():
 		if _chance(_lie() * (1.0 - HandStrength.envido(real))):
 			value = mini(maxi(real + 1, _rng.randi_range(LIE_MIN, LIE_MAX)), TrucoHand.MAX_TANTO)
 	else:
-		var theirs := hand.declared_tanto(1 - me)
+		var theirs := view.declared_tanto(1 - me)
 		if theirs >= TrucoHand.MAX_TANTO:
 			return TrucoAction.make(T.SON_BUENAS, me)
 		if real <= theirs:
@@ -228,11 +230,11 @@ func _decide_declaration(hand: TrucoHand, me: int, legal: Array[TrucoAction]) ->
 	return TrucoAction.make(T.DECLARE_TANTO, me, -1, value)
 
 
-func _decide_truco_response(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
-	var envido_call := _maybe_call_envido(hand, me, legal)
+func _decide_truco_response(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
+	var envido_call := _maybe_call_envido(view, me, legal)
 	if envido_call != null:
 		return envido_call
-	var st := _truco_strength(hand, me)
+	var st := _truco_strength(view, me)
 	var pt := _perceived(st)
 	_emit_tell(st)
 	var raise := _find(legal, TRUCO_TYPES)
@@ -250,20 +252,20 @@ func _decide_truco_response(hand: TrucoHand, me: int, legal: Array[TrucoAction])
 	return TrucoAction.make(T.NO_QUIERO, me)
 
 
-func _decide_show(hand: TrucoHand, me: int) -> TrucoAction:
-	var claim := hand.declared_tanto(1 - me)
+func _decide_show(view: HandView, me: int) -> TrucoAction:
+	var claim := view.declared_tanto(1 - me)
 	var p := SHOW_BASE + model.lie_rate() * SHOW_LIES
 	if claim >= SHOW_HIGH_CLAIM:
 		p += SHOW_HIGH_BONUS
-	if claim - hand.own_tanto(me) >= SHOW_GAP:
+	if claim - view.my_tanto() >= SHOW_GAP:
 		p += SHOW_GAP_BONUS
 	return TrucoAction.make(T.DEMAND_SHOW if _chance(minf(p, SHOW_MAX)) else T.ACCEPT_TANTO, me)
 
 
-func _maybe_call_envido(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
+func _maybe_call_envido(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
 	if _find(legal, ENVIDO_TYPES) == null:
 		return null
-	var re := HandStrength.envido(hand.own_tanto(me))
+	var re := HandStrength.envido(view.my_tanto())
 	var pe := _perceived(re)
 	if pe < ENVIDO_CALL - _aggr() * ENVIDO_CALL_AGGR and not _chance(_lie() * ENVIDO_BLUFF * _bluff_damp(model.envido_accept_rate())):
 		return null
@@ -330,13 +332,13 @@ func _chance(p: float) -> bool:
 	return p >= 1.0 or _rng.randf() < p
 
 
-func _truco_strength(hand: TrucoHand, me: int) -> float:
+func _truco_strength(view: HandView, me: int) -> float:
 	var mine: Array[Card] = []
-	mine.assign(hand.cards[me])
+	mine.assign(view.my_cards())
 	# La carta propia tirada en la baza en curso todavía cuenta.
-	if hand.played[me].size() > hand.played[1 - me].size():
-		mine.append(hand.played[me].back())
-	return HandStrength.truco(mine, hand.baza_results, me)
+	if view.played(me).size() > view.played(1 - me).size():
+		mine.append(view.played(me).back())
+	return HandStrength.truco(mine, view.baza_results(), me)
 
 
 func _find(legal: Array[TrucoAction], types: Array) -> TrucoAction:

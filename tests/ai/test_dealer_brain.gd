@@ -1,4 +1,4 @@
-extends GutTest
+﻿extends GutTest
 
 const E := Card.Suit.ESPADA
 const B := Card.Suit.BASTO
@@ -52,7 +52,7 @@ func _lie_rate(lying: float) -> float:
 	var brain := _brain(_profile(0.5, lying))
 	for i in TRIALS:
 		var h := _declaration_hand([[O, 5], [C, 10], [B, 11]])
-		brain.choose(h, 1)
+		brain.choose(HandView.new(h, 1))
 	return float(brain.stats[&"lies"]) / brain.stats[&"declarations"]
 
 
@@ -67,7 +67,7 @@ func test_siempre_elige_accion_legal() -> void:
 		var steps := 0
 		while not h.is_over() and steps < 60:
 			var p := h.current_player()
-			var a: TrucoAction = brains[p].choose(h, p)
+			var a: TrucoAction = brains[p].choose(HandView.new(h, p))
 			assert_true(_is_legal(h, a), "acción ilegal en fase %d" % h.phase)
 			h.apply(a)
 			steps += 1
@@ -81,7 +81,7 @@ func test_mano_33_segundo_dice_son_buenas() -> void:
 		_apply(h, T.ENVIDO, 0)
 		_apply(h, T.QUIERO, 1)
 		_apply(h, T.DECLARE_TANTO, 0, 33)
-		assert_eq(brain.choose(h, 1).type, T.SON_BUENAS)
+		assert_eq(brain.choose(HandView.new(h, 1)).type, T.SON_BUENAS)
 
 
 func test_nunca_miente_con_mentira_0() -> void:
@@ -99,7 +99,7 @@ func test_agresivo_canta_truco_mas() -> void:
 		var count := 0
 		for i in TRIALS:
 			var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 3], [C, 6], [B, 11]])], 1, 15)
-			if brain.choose(h, 1).type == T.TRUCO:
+			if brain.choose(HandView.new(h, 1)).type == T.TRUCO:
 				count += 1
 		calls.append(count)
 	assert_gt(calls[0], calls[1])
@@ -109,7 +109,7 @@ func test_responde_baza_con_la_mas_baja_que_gana() -> void:
 	var h := TrucoHand.new([_cards([[O, 2], [B, 5], [C, 6]]), _cards([[C, 3], [E, 1], [B, 4]])], 0, 15)
 	h.apply(TrucoAction.make(T.PLAY_CARD, 0, 0))
 	var brain := _brain(_profile(0.5, 0.5))
-	assert_eq(brain.pick_card(h, 1), 0)
+	assert_eq(brain.pick_card(HandView.new(h, 1)), 0)
 
 
 func test_observe_pescado_mintiendo_sube_tilt() -> void:
@@ -128,7 +128,7 @@ func test_tilt_aumenta_faroles() -> void:
 		var count := 0
 		for i in TRIALS:
 			var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 4], [C, 10], [B, 11]])], 1, 15)
-			if brain.choose(h, 1).type in DealerBrain.ENVIDO_TYPES:
+			if brain.choose(HandView.new(h, 1)).type in DealerBrain.ENVIDO_TYPES:
 				count += 1
 		bluffs.append(count)
 	assert_gt(bluffs[1], bluffs[0])
@@ -146,7 +146,7 @@ func test_start_match_reinicia_humor_y_conserva_memoria() -> void:
 func test_cuenta_oportunidades_de_truco() -> void:
 	var brain := _brain(_profile(0.9, 0.0))
 	var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 3], [C, 6], [B, 11]])], 1, 15)
-	brain.choose(h, 1)
+	brain.choose(HandView.new(h, 1))
 	assert_eq(brain.stats[&"truco_chances"], 1)
 
 
@@ -158,7 +158,7 @@ func test_truco_cuenta_la_carta_propia_en_la_mesa() -> void:
 		for idx in [[1, 0], [0, 0], [0, 0], [1, 0], [1, 0]]:
 			h.apply(TrucoAction.make(T.PLAY_CARD, idx[0], idx[1]))
 		_apply(h, T.TRUCO, 0)
-		assert_true(brain.choose(h, 1).type in [T.QUIERO, T.RETRUCO])
+		assert_true(brain.choose(HandView.new(h, 1)).type in [T.QUIERO, T.RETRUCO])
 
 
 func test_sin_falta_envido_con_poca_agresividad() -> void:
@@ -166,7 +166,7 @@ func test_sin_falta_envido_con_poca_agresividad() -> void:
 	for i in 200:
 		var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 7], [O, 6], [C, 4]])], 0, 15)
 		_apply(h, T.REAL_ENVIDO, 0)
-		assert_ne(brain.choose(h, 1).type, T.FALTA_ENVIDO)
+		assert_ne(brain.choose(HandView.new(h, 1)).type, T.FALTA_ENVIDO)
 
 
 func test_pista_refleja_la_mano_real() -> void:
@@ -176,7 +176,7 @@ func test_pista_refleja_la_mano_real() -> void:
 	for i in 100:
 		var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 3], [B, 11], [C, 4]])], 0, 15)
 		_apply(h, T.TRUCO, 0)
-		brain.choose(h, 1)
+		brain.choose(HandView.new(h, 1))
 		assert_eq(brain.last_tell.category, &"weak")
 
 
