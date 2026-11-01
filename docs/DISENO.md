@@ -1,6 +1,6 @@
-﻿# Payé — Documento de diseño
+# Payé — Documento de diseño
 
-Versión 2 · 2026-11-01 (pecados capitales, 9 rondas, la cuenta final) · Fuente de verdad del diseño. Si el código y este documento no coinciden, se corrige uno de los dos a propósito, nunca en silencio.
+Versión 2.1 · 2026-11-01 (pecados capitales, 9 rondas, la cuenta final; 2.1: economía más dura y mejoras de amuletos) · Fuente de verdad del diseño. Si el código y este documento no coinciden, se corrige uno de los dos a propósito, nunca en silencio.
 
 Los números marcados con **(ajustable)** son valores iniciales. Se calibran con la simulación de economía (ver [ROADMAP.md](ROADMAP.md), Plan 5) y viven en archivos de datos, no en el código.
 
@@ -170,6 +170,11 @@ Los rivales son 6 de los 7 pecados capitales. El séptimo, la **avaricia, es el 
 
 **Curva en V:** arranca dura (rival exigente y plata justa), se afloja en el medio cuando el jugador ya se adaptó, y se pone brutal al final. Los rasgos exactos de cada pecado viven en `data/rivals.json`. Nombres y apariencia definitivos: Etapa 3.
 
+### 5.4.1 Los pecados se conocen
+
+- **El chisme:** si en un partido te pescan haciendo trampa, el rival siguiente arranca con **+0,3 de sospecha** (ajustable). Dura solo ese partido.
+- **La plata atrae pecados:** al empezar un partido contra un pecado, su presupuesto de trampas sube **+1 por cada 5 entradas** de plata que lleves, con tope de **+2** (ajustable). Las almas no hacen trampa, así que no les afecta.
+
 ### 5.5 Versiones de cada rival
 
 Para que la run no se pueda memorizar, cada pecado tiene **3 versiones** y hay **4 almas en pena**. La semilla de la run elige una versión por ronda. La versión **no se anuncia**: se descubre jugando. Además, en cada run los rasgos de la versión varían un poco (±0,05). ⚙️ = regla especial en el código.
@@ -192,6 +197,7 @@ Combinaciones de rivales por run: 3⁶ × 4³ = **46.656**, sin contar cartas, t
 - **9 rondas**, un partido por ronda. Todas a 15 puntos salvo la Soberbia, a 30.
 - Después de ganar cada partido: tienda. Después de cada pecado: tienda especial con amuletos raros y legendarios.
 - Si después de la tienda no te alcanza para la entrada siguiente, morís.
+- **Una mano más** (opcional, después de cobrar y antes de la tienda; no en la final): arriesgás una parte del premio que acabás de cobrar (25%, 50% o 100%) en una sola mano contra el mismo rival. Gana quien sume más puntos en esa mano; el empate es del rival. Si ganás, recuperás lo arriesgado por dos; si perdés, lo perdés, pero no morís.
 - **El premio de la Soberbia es el premio del torneo: $10.000.000.** Las rondas 1 a 8 dan premios chicos que sirven para pagar entradas y comprar amuletos.
 - **La deuda a pagar** es $10.000.000 (la deuda inicial del personaje) **+ el fiado acumulado + la deuda arrastrada de runs anteriores.**
 - **Al ganarle a la Soberbia** se salda la cuenta con toda tu plata:
@@ -218,15 +224,22 @@ Se multiplican entre sí. Fuentes:
 - Aparece después de cada victoria. Muestra 3 ofertas.
 - Cambiar las ofertas cuesta el 10% de la entrada siguiente, +5% por cada cambio en la misma tienda.
 - Vender un amuleto devuelve el 50% de lo que costó.
-- 4 espacios de amuletos.
-- Precio = porcentaje de la entrada siguiente: común 30%, raro 60%, legendario 120%.
+- **2 espacios de amuletos.**
+- Precio = porcentaje de la entrada siguiente: común 90%, raro 180%, legendario 360%.
 - **Cada amuleto comprado en la run encarece los siguientes un 25%** (ajustable).
 - Se paga con la misma plata de la run.
+- **Mejorar un amuleto** (§8.1): una mejora por tienda.
+
+### 7.3.1 La propina del bar
+
+Al pagar cada entrada, el bar cobra además **el 10% de la plata que tengas por encima de 3 entradas** (ajustable). Ejemplo: entrada de 2.000 y 20.000 en el bolsillo: pagás 2.000 + 10% de (20.000 − 6.000) = 3.400. Con menos de 3 entradas no hay propina, así que nunca te deja sin poder entrar. Castiga juntar plata sin usarla: es la avaricia.
 
 ### 7.4 Fiado y deuda
 
 - **Fiado:** si no te alcanza, podés comprar fiado hasta el doble de tu plata actual. El fiado siempre te deja reservada la entrada siguiente.
 - **El fiado no se descuenta de los premios: se suma a la cuenta final** que pagás al ganarle a la Soberbia (§6).
+- **Interés:** lo que debés de fiado crece un **10% por ronda** (ajustable), al pasar a la ronda siguiente.
+- **Retención:** mientras debas fiado, el bar se queda con **el 25% de cada premio** (ajustable) y lo aplica al fiado. El premio de la Soberbia no tiene retención: el fiado que quede se cobra en la cuenta final.
 - Vender un amuleto paga primero el fiado.
 - Si morís, el fiado pendiente se suma a la **deuda arrastrada**, que sube la cuenta final de la run siguiente.
 - Retirarse habiendo pagado la cuenta borra toda la deuda.
@@ -261,6 +274,26 @@ P = pasivo. A = activo con cargas por partido (entre paréntesis).
 
 El Anillo del meñique queda como amuleto desbloqueable futuro.
 
+### 8.1 Mejoras (niveles I a III)
+
+- En la tienda, **una mejora por visita**. Nivel II: **1,5 ×** el precio base; nivel III: **2,5 ×** (ajustable). El precio sigue a la entrada siguiente y la Cinta roja lo descuenta. Mejorar no sube el contador del +25% (solo las compras lo suben).
+- Vender devuelve el 50% de **todo** lo pagado (compra + mejoras). El legado vuelve a nivel I.
+
+| Amuleto | I | II | III |
+|---|---|---|---|
+| Marcador permanente | 1 carga | 2 cargas | 2 cargas y también cambia el palo |
+| Mazo aparte | 2 cargas | 3 cargas | 3 cargas y elegís entre 2 cartas de la reserva |
+| Cigarrillo | piden mostrar 50% | 35% | 20% |
+| Vaso de caña | 1 carga, sube la sospecha | 2 cargas | 2 cargas sin subir la sospecha |
+| Rosario | 1 carga | 2 cargas | 3 cargas |
+| Facón | 1 carga | 2 cargas | 2 cargas y también obliga a querer la subida |
+| Lentes | número de 1 carta | número de 2 cartas | número y palo de 1 carta |
+| Sombrero | 1 carga | 2 cargas | 2 cargas y además el palo de su carta más alta |
+| Espejo | 2 cargas | 2 cargas, riesgo −30% | 3 cargas, riesgo −30% |
+| Cartas marcadas | 3 cargas | 4 cargas, el riesgo sube más lento | 5 cargas |
+| Cinta roja | −20% | −30% | −40% |
+| Moneda aplastada | ×1,5 | ×1,75 | ×2 |
+
 ## 9. Mazos de condición
 
 Se eligen al empezar la run. Cada uno da un beneficio y un costo.
@@ -278,6 +311,7 @@ Se eligen al empezar la run. Cada uno da un beneficio y un costo.
 
 - **Logros** (por ejemplo, "le ganaste al Tramposo", "pescaste 3 trampas") agregan amuletos y mazos al pool.
 - **Fichas** según cuántas rondas aguantaste. Su uso concreto se define en la Etapa 4.
+- **Noches (niveles de dificultad, estilo Balatro):** retirarte desbloquea la noche siguiente, que suma una regla más dura a las anteriores. Dirección, con ejemplos ajustables: noche 2, propina del 15%; noche 3, las almas sin torpeza; noche 4, entradas +25%; noche 5, sin legado al morir; noche 6, interés del fiado al 20%; noche 7, la Soberbia a 30 con el doble de trampas; noche 8, la cuenta suma 10% de interés sobre la deuda arrastrada. Se implementa con la progresión entre runs (después del Plan 6).
 - Pasan a la run siguiente: deuda, legado (1 amuleto), desbloqueos.
 
 ## 11. Post-game (Etapa 4, solo dirección)
