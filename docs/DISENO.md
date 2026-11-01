@@ -170,6 +170,23 @@ Los rivales son 6 de los 7 pecados capitales. El séptimo, la **avaricia, es el 
 
 **Curva en V:** arranca dura (rival exigente y plata justa), se afloja en el medio cuando el jugador ya se adaptó, y se pone brutal al final. Los rasgos exactos de cada pecado viven en `data/rivals.json`. Nombres y apariencia definitivos: Etapa 3.
 
+### 5.5 Versiones de cada rival
+
+Para que la run no se pueda memorizar, cada pecado tiene **3 versiones** y hay **4 almas en pena**. La semilla de la run elige una versión por ronda. La versión **no se anuncia**: se descubre jugando. Además, en cada run los rasgos de la versión varían un poco (±0,05). ⚙️ = regla especial en el código.
+
+| Pecado | A | B | C |
+|---|---|---|---|
+| Ira | **Estallido**: el tilt le sube el doble; manga | **Rencor** ⚙️: el tilt no le baja en el partido; cuanto más pierde, más trampa | **Mecha corta**: agresividad máxima desde el arranque; pistas muy confiables |
+| Gula | **Glotón**: sube todo el envido | **Atracón**: sube todo el truco, hasta vale cuatro | **Insaciable** ⚙️: nunca le dice "no quiero" a un envido |
+| Pereza | **Dormido**: casi nunca canta, quiere todo | **Fiaca tramposa**: usa el cómplice seguido | **Siesta** ⚙️: juega mal al principio del partido y se despierta al final |
+| Envidia | **Copiona**: carta duplicada | **Mirona**: cómplice; quiere solo si sabe que gana | **Resentida** ⚙️: más agresiva cuando vos vas ganando |
+| Lujuria | **Seductora**: pistas falsas casi siempre | **Mentirosa**: miente el tanto al extremo | **Encantadora** ⚙️: pistas verdaderas al principio, te traiciona en el momento clave |
+| Soberbia | **Invicto**: nunca se va al mazo, quiere todo | **Desdén**: canta falta envido con cualquier mano | **Perfeccionista**: trampas sutiles con la duplicada; si lo pescás, se desmorona |
+
+**Almas en pena:** Novato (juega casi al azar), Miedoso (se va al mazo fácil), Cantor (canta sin cartas), Mudo (nunca canta). Más adelante se pueden sumar más.
+
+Combinaciones de rivales por run: 3⁶ × 4³ = **46.656**, sin contar cartas, tienda y trampas.
+
 ## 6. Estructura de la run
 
 - **9 rondas**, un partido por ronda. Todas a 15 puntos salvo la Soberbia, a 30.
@@ -265,7 +282,13 @@ Se eligen al empezar la run. Cada uno da un beneficio y un costo.
 
 ## 11. Post-game (Etapa 4, solo dirección)
 
-- **Seguir después de pagar (la avaricia):** en el MVP es solo un final escrito (la condena eterna). En la Etapa 4 se vuelve jugable: el Truco maldito, jugando como la avaricia contra versiones malditas de los 6 pecados.
+- **Seguir después de pagar (la avaricia):** en el MVP es solo un final escrito (la condena eterna). En la Etapa 4 se vuelve jugable como **los círculos** (dirección elegida; se pueden explorar otras):
+  - Un círculo son 7 rondas: los 6 pecados en **versión maldita**, en orden aleatorio, y al final **el Gualicho**, el dueño del bar.
+  - Cada círculo suma una **maldición permanente** del Truco maldito; se acumulan.
+  - Las almas en pena ya no son respiro: son las otras almas condenadas, sombras en las otras mesas.
+  - No hay retiro: se juega hasta perder. Puntaje = círculos aguantados y plata juntada.
+  - **Final verdadero escondido:** ganarle al Gualicho en el **séptimo círculo** rompe el hechizo del bar (la "segunda llave"). Qué pasa exactamente se define en la Etapa 3.
+- **El Gualicho:** nombre del dueño del bar. Cobra "La cuenta" al final de la run normal (§6) y cierra cada círculo del post-game.
 - **Truco maldito:** modo sin fin. Cartas que no existen (vuelven los 8 y 9, una carta sin palo), reglas que cambian en cada mano (por ejemplo, el envido se cuenta al revés), trampas sobrenaturales del dealer a plena vista.
 - **Descartado:** jugar como dealer.
 
