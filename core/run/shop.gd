@@ -1,4 +1,4 @@
-﻿class_name Shop
+class_name Shop
 extends RefCounted
 ## Tienda entre partidos: ofertas por rareza, compra con fiado, cambio de
 ## ofertas y venta. Ver DISENO §7.3 y §7.4.
@@ -26,7 +26,7 @@ func open(state: RunState, premium: bool = false) -> void:
 
 
 func price_of(def: AmuletDef, state: RunState) -> int:
-	return floori(_economy.price(def.rarity, state.round) * state.loadout.shop_price_multiplier())
+	return _economy.price(def.rarity, state.round, state.purchases, state.loadout.shop_price_multiplier())
 
 
 func buy(index: int, state: RunState) -> Dictionary:
@@ -46,6 +46,7 @@ func buy(index: int, state: RunState) -> Dictionary:
 	state.fiado += on_credit
 	state.loadout.equip(def)
 	state.paid_for[def.id] = price
+	state.purchases += 1
 	offers.remove_at(index)
 	return {"ok": true, "reason": &"", "paid": from_money, "fiado": on_credit}
 

@@ -26,29 +26,22 @@ func test_no_alcanza_la_entrada() -> void:
 	assert_eq(s.money, 99)
 
 
-func test_cobrar_premio_paga_acreedor_y_fiado() -> void:
-	var s := _state(0)
+func test_cobrar_premio_es_todo_tuyo() -> void:
+	var s := _state(10)
 	s.debt = 300
 	s.fiado = 100
-	var r := s.collect_prize(600, _economy)
-	assert_eq(r, {"creditor": 300, "fiado": 100, "kept": 200})
-	assert_eq(s.money, 200)
-	assert_eq(s.debt, 0)
-	assert_eq(s.fiado, 0)
+	s.collect_prize(600)
+	assert_eq(s.money, 610)
+	assert_eq(s.debt, 300)
+	assert_eq(s.fiado, 100)
 
 
-func test_premio_que_no_alcanza_no_deja_negativos() -> void:
+func test_cuenta_final() -> void:
 	var s := _state(0)
-	s.debt = 10000
-	s.fiado = 500
-	var r := s.collect_prize(600, _economy)
-	assert_eq(r["creditor"], 300)
-	assert_eq(r["fiado"], 300)
-	assert_eq(r["kept"], 0)
-	assert_eq(s.fiado, 200)
-	assert_eq(s.debt, 9700)
-	assert_eq(s.money, 0)
-
+	assert_eq(s.bill(_economy), 10000000)
+	s.debt = 300
+	s.fiado = 100
+	assert_eq(s.bill(_economy), 10000400)
 
 func test_credito_disponible() -> void:
 	var s := _state(100)

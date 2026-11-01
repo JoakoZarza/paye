@@ -5,8 +5,12 @@ extends RefCounted
 
 
 static func compute(base: int, dealer_score: int, cheats_used: int, cheats_caught: int,
-		player_called_envido: bool, loadout: Loadout, deck: RunDeck, economy: Economy) -> Dictionary:
+		player_called_envido: bool, loadout: Loadout, deck: RunDeck, economy: Economy,
+		is_final: bool = false) -> Dictionary:
 	var multipliers: Array[Dictionary] = []
+	# El premio del torneo es fijo: sin multiplicadores (Plan 5b, decisión 3).
+	if is_final:
+		return {"total": base, "multipliers": multipliers}
 	if dealer_score == 0:
 		multipliers.append({"source": &"flawless", "value": economy.flawless_multiplier})
 	if cheats_used > 0 and cheats_caught == 0:

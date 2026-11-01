@@ -1,4 +1,4 @@
-﻿extends GutTest
+extends GutTest
 
 var _economy: Economy
 var _defs: Dictionary
@@ -48,8 +48,8 @@ func test_comprar_con_plata() -> void:
 	_offer(shop, &"rosary")
 	var r := shop.buy(0, st)
 	assert_true(r["ok"])
-	assert_eq(r["paid"], 180)
-	assert_eq(st.money, 820)
+	assert_eq(r["paid"], 90)
+	assert_eq(st.money, 910)
 	assert_true(st.loadout.has(&"rosary"))
 	assert_eq(shop.offers.size(), 0)
 
@@ -61,9 +61,9 @@ func test_comprar_fiado_dentro_del_limite() -> void:
 	var r := shop.buy(0, st)
 	assert_true(r["ok"])
 	assert_eq(r["paid"], 0, "la plata queda reservada para la entrada siguiente")
-	assert_eq(r["fiado"], 180)
+	assert_eq(r["fiado"], 90)
 	assert_eq(st.money, 100)
-	assert_eq(st.fiado, 180)
+	assert_eq(st.fiado, 90)
 
 
 func test_fiado_fuera_del_limite_falla_sin_cambiar_nada() -> void:
@@ -88,19 +88,19 @@ func test_sin_espacio_falla() -> void:
 
 func test_cinta_roja_descuenta() -> void:
 	var shop := _shop()
-	assert_eq(shop.price_of(_defs[&"rosary"], _state(0, ["red_ribbon"])), 144)
+	assert_eq(shop.price_of(_defs[&"rosary"], _state(0, ["red_ribbon"])), 72)
 
 
 func test_cambio_de_ofertas_cuesta_cada_vez_mas() -> void:
 	var shop := _shop()
-	var st := _state(100)
+	var st := _state(40)
 	shop.open(st)
 	assert_true(shop.reroll(st))
-	assert_eq(st.money, 70)
+	assert_eq(st.money, 25)
 	assert_true(shop.reroll(st))
-	assert_eq(st.money, 25)
+	assert_eq(st.money, 3)
 	assert_false(shop.reroll(st))
-	assert_eq(st.money, 25)
+	assert_eq(st.money, 3)
 
 
 func test_vender_devuelve_la_mitad_de_lo_pagado() -> void:
@@ -108,8 +108,8 @@ func test_vender_devuelve_la_mitad_de_lo_pagado() -> void:
 	var st := _state(1000)
 	_offer(shop, &"rosary")
 	shop.buy(0, st)
-	assert_eq(shop.sell(&"rosary", st), 90)
-	assert_eq(st.money, 910)
+	assert_eq(shop.sell(&"rosary", st), 45)
+	assert_eq(st.money, 955)
 	assert_false(st.loadout.has(&"rosary"))
 	assert_eq(shop.sell(&"rosary", st), 0)
 
@@ -128,12 +128,12 @@ func test_rarezas_respetan_los_pesos() -> void:
 
 func test_fiado_reserva_la_entrada_siguiente() -> void:
 	var shop := _shop()
-	var st := _state(635)
+	var st := _state(300)
 	_offer(shop, &"hat")
 	var r := shop.buy(0, st)
 	assert_true(r["ok"])
-	assert_eq(r["paid"], 335)
-	assert_eq(r["fiado"], 25)
+	assert_eq(r["paid"], 150)
+	assert_eq(r["fiado"], 30)
 	assert_eq(st.money, _economy.entry(2))
 	st.round = 2
 	assert_true(st.can_pay_entry(_economy), "comprar fiado no puede condenarte a no pagar la entrada")
@@ -144,9 +144,9 @@ func test_vender_paga_primero_el_fiado() -> void:
 	var st := _state(100)
 	_offer(shop, &"rosary")
 	shop.buy(0, st)
-	assert_eq(st.fiado, 180)
-	assert_eq(shop.sell(&"rosary", st), 90)
 	assert_eq(st.fiado, 90)
+	assert_eq(shop.sell(&"rosary", st), 45)
+	assert_eq(st.fiado, 45)
 	assert_eq(st.money, 100, "vender no convierte fiado en plata")
 
 
@@ -156,3 +156,24 @@ func test_tienda_especial_sin_comunes() -> void:
 		shop.open(_state(0), true)
 		for d in shop.offers:
 			assert_ne(d.rarity, AmuletDef.Rarity.COMMON)
+
+
+func test_precio_crece_con_cada_compra() -> void:
+	var shop := _shop()
+	var st := _state(10000)
+	for expected in [90, 112, 135]:
+		_offer(shop, &"rosary")
+		assert_eq(shop.price_of(_defs[&"rosary"], st), expected)
+		assert_true(shop.buy(0, st)["ok"])
+		shop.sell(&"rosary", st)
+	assert_eq(st.purchases, 3)
+
+
+func test_vender_no_baja_el_contador() -> void:
+	var shop := _shop()
+	var st := _state(10000)
+	_offer(shop, &"rosary")
+	shop.buy(0, st)
+	shop.sell(&"rosary", st)
+	assert_eq(st.purchases, 1)
+	assert_eq(shop.price_of(_defs[&"rosary"], st), 112)

@@ -1,43 +1,55 @@
 extends GutTest
 
 const EconomyScript = preload("res://core/run/economy.gd")
+const PRIZES: Array[int] = [600, 600, 2400, 4200, 2500, 10000, 16000, 9000, 10000000]
 
 
-func test_escalera_de_entradas() -> void:
+func test_tabla_de_rondas() -> void:
 	var economy: Economy = EconomyScript.load_from()
+	assert_eq(economy.rounds_total(), 9)
 	assert_eq(economy.entry(1), 100)
-	assert_eq(economy.entry(4), 2700)
-	assert_eq(economy.entry(12), 17714700)
+	assert_eq(economy.entry(5), 500, "la V: la ronda del alma es más barata")
+	assert_eq(economy.entry(9), 8000)
+	for r in range(1, 10):
+		assert_eq(economy.base_prize(r), PRIZES[r - 1])
 
 
-func test_premios_base() -> void:
+func test_puntos_y_final() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	assert_eq(economy.base_prize(1), 600)
-	assert_eq(economy.base_prize(2), 1650)
-	assert_eq(economy.base_prize(9), 2296350)
+	for r in range(1, 9):
+		assert_eq(economy.target_points(r), 15)
+		assert_false(economy.is_final(r))
+	assert_eq(economy.target_points(9), 30)
+	assert_true(economy.is_final(9))
 
 
-func test_jefes_y_puntos() -> void:
+func test_fuera_de_la_tabla_usa_la_ronda_mas_cercana() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	for round: int in [4, 8, 12]:
-		assert_true(economy.is_boss(round))
-		assert_eq(economy.target_points(round), 30)
-	assert_false(economy.is_boss(5))
-	assert_eq(economy.target_points(5), 15)
+	assert_eq(economy.entry(0), 100)
+	assert_eq(economy.entry(12), 8000)
 
 
 func test_precio_y_cambio() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1), 180)
-	assert_eq(economy.reroll_cost(1, 0), 30)
-	assert_eq(economy.reroll_cost(1, 1), 45)
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1), 90, "60% de la entrada de la ronda 2")
+	assert_eq(economy.price(AmuletDef.Rarity.LEGENDARY, 9), 9600, "en la final toma su propia entrada")
+	assert_eq(economy.reroll_cost(1, 0), 15)
+	assert_eq(economy.reroll_cost(1, 1), 22)
 
 
-func test_ronda_13_repite_factor() -> void:
+func test_precio_crece_con_cada_compra() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	assert_eq(economy.base_prize(13), floori(float(economy.entry(13)) * 3.5))
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 0), 90)
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 1), 112)
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 2), 135)
+
+
+func test_un_solo_redondeo_con_descuento() -> void:
+	var economy: Economy = EconomyScript.load_from()
+	# 90 × 1,25 × 0,8 = 90 exacto; redondeando en el medio daría 89.
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 1, 0.8), 90)
 
 
 func test_cambio_de_ofertas_sin_error_de_redondeo() -> void:
 	var e := Economy.load_from()
-	assert_eq(e.reroll_cost(3, 5), 945)
+	assert_eq(e.reroll_cost(3, 5), 210)

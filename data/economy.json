@@ -1,20 +1,25 @@
 {
   "start_money": 135,
-  "base_entry": 100,
-  "entry_multiplier": 3,
-  "prize_factors": [6, 5.5, 5, 5, 4.5, 4, 4, 4, 3.5, 3.5, 3.5, 3.5],
-  "boss_rounds": [4, 8, 12],
-  "points_normal": 15,
-  "points_boss": 30,
-  "goal": 10000000,
+  "rounds": [
+    {"entry": 100,  "prize": 600,      "points": 15},
+    {"entry": 150,  "prize": 600,      "points": 15},
+    {"entry": 400,  "prize": 2400,     "points": 15},
+    {"entry": 600,  "prize": 4200,     "points": 15},
+    {"entry": 500,  "prize": 2500,     "points": 15},
+    {"entry": 2000, "prize": 10000,    "points": 15},
+    {"entry": 4000, "prize": 16000,    "points": 15},
+    {"entry": 3000, "prize": 9000,     "points": 15},
+    {"entry": 8000, "prize": 10000000, "points": 30}
+  ],
+  "debt_base": 10000000,
   "shop_offers": 3,
+  "shop_growth": 0.25,
   "reroll_base": 0.10,
   "reroll_step": 0.05,
   "sell_ratio": 0.5,
   "rarity_price": {"COMMON": 0.3, "RARE": 0.6, "LEGENDARY": 1.2},
   "rarity_weight": {"COMMON": 0.6, "RARE": 0.3, "LEGENDARY": 0.1},
   "fiado_limit": 2.0,
-  "creditor_cut": 0.5,
   "flawless_multiplier": 2.0,
   "undetected_cheat_multiplier": 1.5
 }

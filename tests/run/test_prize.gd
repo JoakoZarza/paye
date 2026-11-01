@@ -53,6 +53,12 @@ func test_se_multiplican_entre_si() -> void:
 	assert_eq(_sources(r), [&"flawless", &"train_coin", &"deck"])
 
 
+func test_premio_final_sin_multiplicadores() -> void:
+	var r := Prize.compute(10000000, 0, 2, 0, false, _loadout(["train_coin"]), _decks[&"widow"], _economy, true)
+	assert_eq(r["total"], 10000000)
+	assert_eq(r["multipliers"].size(), 0)
+
+
 func test_mesa_cuenta_trampas_del_jugador() -> void:
 	var t := H.table(H.profile(0.0, 0))
 	t.start_hand(-1, [H.cards([[H.E, 4], [H.B, 5], [H.C, 6]]), H.cards([[H.O, 7], [H.E, 1], [H.C, 4]])], 0)
