@@ -1,4 +1,4 @@
-﻿class_name CheatTable
+class_name CheatTable
 extends RefCounted
 ## La mesa: envuelve un partido y al dealer. Reparte, aplica las trampas del
 ## dealer, lo hace jugar y recibe las acciones, acusaciones y trampas del
@@ -86,11 +86,17 @@ func start_hand(forced_kind: int = NO_FORCED, p_cards: Array = [], p_mano: int =
 	_duplicate_from_brain = forced_kind == NO_FORCED
 	_known = []
 	var available := available_cheats()
+	_sync_context()
 	var kind := brain.decide_cheat(available) if forced_kind == NO_FORCED else forced_kind
 	if kind != -1 and kind in available:
 		events.append_array(_start_cheat(kind))
 	brain.observe(events, dealer)
 	return events
+
+
+## El cerebro necesita el marcador para las reglas especiales que dependen de él.
+func _sync_context() -> void:
+	brain.set_match_context(truco_match.scores[dealer], truco_match.scores[1 - dealer], truco_match.target)
 
 
 func available_cheats() -> Array[Cheat.Kind]:
@@ -109,6 +115,7 @@ func dealer_step() -> Array[GameEvent]:
 		return [_illegal(dealer)]
 	var view := HandView.new(truco_match.hand, dealer)
 	view.known_opponent_cards = _known.duplicate()
+	_sync_context()
 	var a := _apply_rules(brain.choose(view))
 	var events: Array[GameEvent]
 	if a.type == TrucoAction.Type.PLAY_CARD and _duplicate_ready():

@@ -10,7 +10,6 @@ const TRUCO_TYPES: Array[TrucoAction.Type] = [T.TRUCO, T.RETRUCO, T.VALE_CUATRO]
 const TILT_AGGRESSION := 0.3
 const TILT_LYING := 0.2
 const CONFIDENCE_BIAS := 0.4
-const NOISE := 0.15
 
 const ENVIDO_CALL := 0.75
 const ENVIDO_CALL_AGGR := 0.25
@@ -63,6 +62,18 @@ const TELL_ANGRY_TILT := 0.5
 const TELL_SMUG_CONFIDENCE := 0.7
 const TELL_VARIANTS := 4
 
+# Reglas especiales de algunas versiones (DISENO §5.5).
+const RENCOR: StringName = &"rencor"
+const INSACIABLE: StringName = &"insaciable"
+const SIESTA: StringName = &"siesta"
+const RESENTIDA: StringName = &"resentida"
+const ENCANTADORA: StringName = &"encantadora"
+const SIESTA_WAKE := 0.6
+const SIESTA_PENALTY := 0.3
+const RESENTIDA_BONUS := 0.3
+const ENCANTADORA_TURN := 0.5
+const ENCANTADORA_BETRAYAL := 0.1
+
 var profile: RivalProfile
 var mood := DealerMood.new()
 var model := PlayerModel.new()
@@ -75,11 +86,22 @@ var stats := {
 
 var _rng: RandomNumberGenerator
 var _last_call_kind: StringName = &""
+var _my_score: int = 0
+var _their_score: int = 0
+var _target: int = 0
 
 
 func _init(p_profile: RivalProfile, p_rng: RandomNumberGenerator) -> void:
 	profile = p_profile
 	_rng = p_rng
+	mood = _new_mood()
+
+
+## La mesa lo llama antes de cada decisión: algunas reglas especiales miran el marcador.
+func set_match_context(my_score: int, their_score: int, target: int) -> void:
+	_my_score = my_score
+	_their_score = their_score
+	_target = target
 
 
 func choose(view: HandView) -> TrucoAction:
@@ -93,6 +115,9 @@ func choose(view: HandView) -> TrucoAction:
 			action = _decide_playing(view, me, legal)
 		TrucoHand.Phase.ENVIDO_RESPONSE:
 			action = _decide_envido_response(view, me, legal)
+			# Insaciable: nunca rechaza un envido; si no sube, quiere.
+			if profile.special == INSACIABLE and action.type == T.NO_QUIERO:
+				action = TrucoAction.make(T.QUIERO, me)
 		TrucoHand.Phase.TANTO_DECLARATION:
 			action = _decide_declaration(view, me, legal)
 		TrucoHand.Phase.TRUCO_RESPONSE:
@@ -104,19 +129,44 @@ func choose(view: HandView) -> TrucoAction:
 
 ## Llamar al empezar cada partido: el humor arranca de cero, la memoria del jugador sigue.
 func start_match() -> void:
-	mood = DealerMood.new()
+	mood = _new_mood()
 	cheat_budget = profile.cheat_budget
+	_my_score = 0
+	_their_score = 0
+	_target = 0
+
+
+func _new_mood() -> DealerMood:
+	var m := DealerMood.new()
+	m.tilt_multiplier = profile.tilt_multiplier
+	m.tilt_never_decays = profile.special == RENCOR
+	return m
 
 
 ## Devuelve un Cheat.Kind de available, o -1 si no hace trampa en esta mano.
+## Elige según profile.cheat_weights; un perfil sin pesos elige parejo entre todas.
 func decide_cheat(available: Array[Cheat.Kind]) -> int:
 	if cheat_budget <= 0 or available.is_empty():
 		return -1
+	var weighted: Array[Cheat.Kind] = []
+	var weights: Array[float] = []
+	for kind in available:
+		var w: float = 1.0 if profile.cheat_weights.is_empty() \
+			else float(profile.cheat_weights.get(Cheat.Kind.keys()[kind], 0.0))
+		if w > 0.0:
+			weighted.append(kind)
+			weights.append(w)
+	if weighted.is_empty():
+		return -1
 	var p := profile.cheating * CHEAT_RATE * (1.0 - mood.suspicion * SUSPICION_DETER)
+	if profile.special == RENCOR:
+		p *= 1.0 + mood.tilt
 	if not _chance(p):
 		return -1
 	cheat_budget -= 1
-	return available[_rng.randi_range(0, available.size() - 1)]
+	if profile.cheat_weights.is_empty():
+		return weighted[_rng.randi_range(0, weighted.size() - 1)]
+	return weighted[_rng.rand_weighted(PackedFloat32Array(weights))]
 
 
 ## Con el cómplice: ¿su tanto le gana al del rival? En empate gana el mano.
@@ -323,7 +373,7 @@ func _envido_raise(legal: Array[TrucoAction], pe: float) -> TrucoAction:
 func _emit_tell(real_strength: float) -> void:
 	var truth := &"strong" if real_strength >= TELL_STRONG else &"weak"
 	var t := Tell.new()
-	t.honest = _chance(profile.tell_reliability)
+	t.honest = _chance(_tell_reliability())
 	if t.honest:
 		t.category = truth
 	else:
@@ -347,7 +397,23 @@ func _emit_tell(real_strength: float) -> void:
 # --- Utilidades ---
 
 func _aggr() -> float:
-	return clampf(profile.aggression + mood.tilt * TILT_AGGRESSION, 0.0, 1.0)
+	var base := profile.aggression
+	if profile.special == RESENTIDA and _their_score > _my_score:
+		base += RESENTIDA_BONUS
+	return clampf(base + mood.tilt * TILT_AGGRESSION, 0.0, 1.0)
+
+
+## Encantadora: pistas confiables hasta la mitad del partido, después traiciona.
+func _tell_reliability() -> float:
+	if profile.special == ENCANTADORA and _target > 0 \
+			and maxi(_my_score, _their_score) >= _target * ENCANTADORA_TURN:
+		return ENCANTADORA_BETRAYAL
+	return profile.tell_reliability
+
+
+## Siesta: juega dormido hasta que alguien se acerca al objetivo.
+func _asleep() -> bool:
+	return profile.special == SIESTA and maxi(_my_score, _their_score) < _target * SIESTA_WAKE
 
 
 func _lie() -> float:
@@ -356,7 +422,9 @@ func _lie() -> float:
 
 func _perceived(real: float) -> float:
 	var bias := (mood.confidence - 0.5) * CONFIDENCE_BIAS
-	return clampf(real + bias + _rng.randf_range(-NOISE, NOISE), 0.0, 1.0)
+	if _asleep():
+		bias -= SIESTA_PENALTY
+	return clampf(real + bias + _rng.randf_range(-profile.noise, profile.noise), 0.0, 1.0)
 
 
 func _chance(p: float) -> bool:
