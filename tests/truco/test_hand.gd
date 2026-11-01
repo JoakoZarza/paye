@@ -108,13 +108,15 @@ func test_mentira_pescada() -> void:
 	_do(h, T.QUIERO, 1)
 	_do(h, T.DECLARE_TANTO, 0, -1, 33)
 	_do(h, T.SON_BUENAS, 1)
-	_do(h, T.MAZO, 0)
+	# Se va el que perdió el envido: el ganador todavía tiene que mostrar.
+	_do(h, T.PLAY_CARD, 0, 0)
+	_do(h, T.MAZO, 1)
 	assert_eq(h.phase, TrucoHand.Phase.SHOW_DECISION)
 	assert_eq(h.current_player(), 1)
 	_do(h, T.DEMAND_SHOW, 1)
 	assert_true(h.is_over())
 	assert_eq(h.envido_points, [0, 2 + TrucoHand.LIE_PENALTY])
-	assert_eq(h.truco_points, [0, 1])
+	assert_eq(h.truco_points, [1, 0])
 
 
 func test_pedir_mostrar_y_era_verdad() -> void:
@@ -123,7 +125,9 @@ func test_pedir_mostrar_y_era_verdad() -> void:
 	_do(h, T.QUIERO, 1)
 	_do(h, T.DECLARE_TANTO, 0, -1, 33)
 	_do(h, T.SON_BUENAS, 1)
-	_do(h, T.MAZO, 0)
+	# Se va el que perdió el envido: el ganador todavía tiene que mostrar.
+	_do(h, T.PLAY_CARD, 0, 0)
+	_do(h, T.MAZO, 1)
 	_do(h, T.DEMAND_SHOW, 1)
 	assert_eq(h.envido_points, [2 + TrucoHand.WRONG_SHOW_PENALTY, 0])
 
@@ -134,7 +138,9 @@ func test_aceptar_tanto_sin_pedir() -> void:
 	_do(h, T.QUIERO, 1)
 	_do(h, T.DECLARE_TANTO, 0, -1, 33)
 	_do(h, T.SON_BUENAS, 1)
-	_do(h, T.MAZO, 0)
+	# Se va el que perdió el envido: el ganador todavía tiene que mostrar.
+	_do(h, T.PLAY_CARD, 0, 0)
+	_do(h, T.MAZO, 1)
 	_do(h, T.ACCEPT_TANTO, 1)
 	assert_eq(h.envido_points, [2, 0])
 
@@ -146,6 +152,7 @@ func test_empate_de_tanto_gana_el_mano() -> void:
 	_do(h, T.QUIERO, 1)
 	_do(h, T.DECLARE_TANTO, 0, -1, 25)
 	_do(h, T.DECLARE_TANTO, 1, -1, 26)
+	# Se va el que perdió el envido: el ganador todavía tiene que mostrar.
 	_do(h, T.MAZO, 0)
 	assert_eq(h.current_player(), 0)
 	_do(h, T.DEMAND_SHOW, 0)
@@ -344,3 +351,17 @@ func test_rosario_prohibe_repetir_el_canto_anulado() -> void:
 	assert_false(_has(h, T.TRUCO), "el dealer no puede volver a cantar truco en esta mano")
 	_do(h, T.PLAY_CARD, 1, 0)
 	assert_true(_has(h, T.TRUCO), "el jugador sí puede cantar truco")
+
+
+func test_irse_al_mazo_con_el_envido_ganado_lo_pierde() -> void:
+	var h := TrucoHand.new([_cards([[Card.Suit.ORO, 7], [Card.Suit.ORO, 6], [Card.Suit.COPA, 4]]),
+		_cards([[Card.Suit.ESPADA, 4], [Card.Suit.BASTO, 5], [Card.Suit.COPA, 6]])], 0, 15)
+	h.apply(TrucoAction.make(TrucoAction.Type.ENVIDO, 0))
+	h.apply(TrucoAction.make(TrucoAction.Type.QUIERO, 1))
+	h.apply(TrucoAction.make(TrucoAction.Type.DECLARE_TANTO, 0, -1, 33))
+	h.apply(TrucoAction.make(TrucoAction.Type.SON_BUENAS, 1))
+	var events := h.apply(TrucoAction.make(TrucoAction.Type.MAZO, 0))
+	assert_true(events.any(func(e: GameEvent) -> bool: return e.type == &"envido_forfeit"))
+	assert_true(h.is_over(), "sin mostrar no hay verificación")
+	assert_eq(h.envido_points, [0, 2] as Array[int])
+	assert_eq(h.truco_points, [0, 1] as Array[int])

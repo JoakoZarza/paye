@@ -455,9 +455,13 @@ func _who(p: Variant) -> String:
 func _describe(e: GameEvent) -> String:
 	var d := e.data
 	match e.type:
+		&"coin_toss":
+			return "Se tiró una moneda: " + ("sos mano." if int(d["mano"]) == PLAYER else "es mano el rival.")
 		&"hand_started":
 			_known.clear()
-			return "— Mano nueva —"
+			return "— Mano nueva: " + ("sos mano" if int(d["mano"]) == PLAYER else "es mano el rival") + " —"
+		&"envido_forfeit":
+			return "%s se fue al mazo sin mostrar: el envido es del otro." % _who(d["player"])
 		&"card_played":
 			return "%s: %s" % [_who(d["player"]), card_text(d["card"])]
 		&"call_made":

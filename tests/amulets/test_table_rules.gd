@@ -17,7 +17,8 @@ func _show_flow(t: CheatTable) -> Variant:
 	H.advance(t, func() -> bool: return t.truco_match.hand.phase == TrucoHand.Phase.PLAYING)
 	if t.truco_match.hand.envido_winner() != 0 or t.truco_match.hand.is_over():
 		return null
-	t.player_action(TrucoAction.make(H.T.MAZO, 0))
+		# Se juega la mano hasta que el dealer decide si pide mostrar.
+	H.advance(t, func() -> bool: return t.truco_match.hand.phase == TrucoHand.Phase.SHOW_DECISION)
 	if t.truco_match.hand.phase != TrucoHand.Phase.SHOW_DECISION:
 		return null
 	var events := t.dealer_step()

@@ -86,7 +86,8 @@ func test_envido_suma_antes_que_truco() -> void:
 	_do(m, T.QUIERO, 1)
 	_do(m, T.DECLARE_TANTO, 0, 33)
 	_do(m, T.SON_BUENAS, 1)
-	_do(m, T.MAZO, 0)
+	m.apply(TrucoAction.make(T.PLAY_CARD, 0, 0))
+	_do(m, T.MAZO, 1)
 	_do(m, T.ACCEPT_TANTO, 1)
 	assert_eq(m.winner(), 0)
 	assert_eq(m.scores, [15, 13])
@@ -100,7 +101,8 @@ func test_puntaje_no_supera_al_terminar() -> void:
 	_do(m, T.QUIERO, 1)
 	_do(m, T.DECLARE_TANTO, 0, 33)
 	_do(m, T.SON_BUENAS, 1)
-	_do(m, T.MAZO, 0)
+	m.apply(TrucoAction.make(T.PLAY_CARD, 0, 0))
+	_do(m, T.MAZO, 1)
 	_do(m, T.ACCEPT_TANTO, 1)
 	assert_eq(m.scores, [15, 0])
 
@@ -143,3 +145,15 @@ func test_el_mazo_queda_accesible() -> void:
 	var m := _match(15, 1)
 	m.start_hand()
 	assert_eq(m.deck.remaining(), 34)
+
+
+func test_el_primer_mano_sale_de_una_moneda() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var m := TrucoMatch.new(15, rng)
+	var first := m.start_hand()
+	assert_eq(first[0].type, &"coin_toss")
+	assert_eq(first[0].data["mano"], m.mano)
+	m.apply(TrucoAction.make(TrucoAction.Type.MAZO, m.hand.current_player()))
+	var second := m.start_hand()
+	assert_ne(second[0].type, &"coin_toss")

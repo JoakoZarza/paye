@@ -287,6 +287,11 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 			var points := _truco.rejected_value() if _truco.pending else _truco.accepted_value()
 			truco_points[1 - p] = points
 			events.append(GameEvent.make(&"mazo", {"player": p}))
+			# Irse al mazo sin mostrar el tanto ganado: el envido lo cobra el rival.
+			if _envido_accepted and _envido_winner == p:
+				envido_points[1 - p] += _envido_value
+				_envido_winner = -1
+				events.append(GameEvent.make(&"envido_forfeit", {"player": p, "points": _envido_value}))
 			_finish(events)
 		T.DEMAND_SHOW, T.ACCEPT_TANTO:
 			_resolve_show(p, a.type == T.DEMAND_SHOW, events)

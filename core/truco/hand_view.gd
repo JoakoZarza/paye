@@ -62,3 +62,8 @@ func my_tanto() -> int:
 
 func opponent_card_count() -> int:
 	return _hand.cards[1 - me].size()
+
+
+## Quién ganó el envido (provisorio, antes de mostrar); -1 si nadie.
+func envido_winner() -> int:
+	return _hand.envido_winner()

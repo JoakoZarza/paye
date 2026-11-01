@@ -35,7 +35,12 @@ func start_hand() -> Array[GameEvent]:
 	deck = Deck.new(_rng)
 	deck.shuffle()
 	var dealt := [deck.draw(CARDS_PER_PLAYER), deck.draw(CARDS_PER_PLAYER)]
-	return start_hand_with(dealt, _next_mano())
+	var first := mano == -1
+	var events := start_hand_with(dealt, _next_mano())
+	# El primer mano del partido sale de tirar una moneda.
+	if first:
+		events.push_front(GameEvent.make(&"coin_toss", {"mano": mano}))
+	return events
 
 
 ## Arranca una mano con cartas y mano elegidos. La usan start_hand y los tests.

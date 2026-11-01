@@ -1,4 +1,4 @@
-﻿extends GutTest
+extends GutTest
 
 const H := preload("res://tests/cheats/cheat_test_helpers.gd")
 const K := Cheat.Kind
@@ -87,7 +87,7 @@ func test_acusar_durante_la_declaracion() -> void:
 
 
 func test_acusar_durante_la_decision_de_mostrar() -> void:
-	# El jugador (mano, 33 reales) gana el envido y se va al mazo; acusa mientras el dealer decide si pide mostrar.
+	# El jugador (mano, 33 reales) gana el envido; acusa mientras el dealer decide si pide mostrar.
 	for s in 60:
 		var t := H.table(H.profile(0.0, 0, 0.9), s)
 		var cards := [H.cards([[H.O, 7], [H.O, 6], [H.C, 4]]), H.cards([[H.E, 5], [H.E, 10], [H.B, 4]])]
@@ -100,7 +100,8 @@ func test_acusar_durante_la_decision_de_mostrar() -> void:
 		H.advance(t, func() -> bool: return t.truco_match.hand.phase == TrucoHand.Phase.PLAYING)
 		if t.truco_match.hand.envido_winner() != 0 or t.truco_match.hand.is_over():
 			continue
-		t.player_action(TrucoAction.make(H.T.MAZO, 0))
+		# Se juega la mano hasta que el dealer decide si pide mostrar.
+		H.advance(t, func() -> bool: return t.truco_match.hand.phase == TrucoHand.Phase.SHOW_DECISION)
 		if t.truco_match.hand.phase != TrucoHand.Phase.SHOW_DECISION:
 			continue
 		assert_has(_types(t.accuse(Accusation.make(A.DEALER_HAND))), &"accusation_right")

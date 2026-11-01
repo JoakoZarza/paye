@@ -156,8 +156,10 @@ func _shows_demanded(level: int) -> int:
 		m.apply(TrucoAction.make(T.QUIERO, 1))
 		m.apply(TrucoAction.make(T.DECLARE_TANTO, 0, -1, 33))
 		m.apply(TrucoAction.make(T.SON_BUENAS, 1))
-		# La verificación del tanto llega al terminar la mano.
-		m.apply(TrucoAction.make(T.MAZO, m.hand.current_player()))
+		# La verificación llega al terminar la mano. Se va el rival: si se fuera
+		# quien ganó el envido, lo perdería sin mostrar.
+		m.apply(TrucoAction.make(T.PLAY_CARD, 0, 0))
+		m.apply(TrucoAction.make(T.MAZO, 1))
 		assert_eq(m.hand.phase, TrucoHand.Phase.SHOW_DECISION)
 		if t._apply_rules(TrucoAction.make(T.DEMAND_SHOW, 1)).type == T.DEMAND_SHOW:
 			shows += 1
