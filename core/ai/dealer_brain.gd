@@ -25,7 +25,7 @@ const ENVIDO_ACCEPT_LIES := 0.2
 
 const LIE_MIN := 26
 const LIE_MAX := 32
-const SECOND_LIE := 0.6
+const SECOND_LIE := 0.8
 const SECOND_LIE_SPREAD := 4
 
 const SHOW_BASE := 0.15
@@ -51,6 +51,8 @@ const LEAD_HIGH_AGGR := 0.6
 const MAZO_STRENGTH := 0.05
 const MAZO_MIN_LEVEL := 2
 
+const MEMORY_BLUFF_DAMP := 0.5
+
 const TELL_STRONG := 0.6
 const TELL_ANGRY_TILT := 0.5
 const TELL_SMUG_CONFIDENCE := 0.7
@@ -66,6 +68,7 @@ var stats := {
 }
 
 var _rng: RandomNumberGenerator
+var _last_call_kind: StringName = &""
 
 
 func _init(p_profile: RivalProfile, p_rng: RandomNumberGenerator) -> void:
@@ -97,6 +100,32 @@ func start_match() -> void:
 	mood = DealerMood.new()
 
 
+func _observe_call(player: int, call: int, me: int) -> void:
+	var kind := &"truco" if call in TRUCO_TYPES else &"envido"
+	if player == me:
+		_last_call_kind = kind
+		if kind == &"truco":
+			model.truco_offers += 1
+		else:
+			model.envido_offers += 1
+	elif call == T.TRUCO:
+		# Solo el primer canto: los retrucos no inflan la tasa por mano.
+		model.truco_calls += 1
+
+
+func _observe_answer(accepted: bool) -> void:
+	if accepted and _last_call_kind == &"truco":
+		model.truco_accepts += 1
+	elif accepted and _last_call_kind == &"envido":
+		model.envido_accepts += 1
+	_last_call_kind = &""
+
+
+## Si el jugador suele querer, farolear rinde menos.
+func _bluff_damp(accept_rate: float) -> float:
+	return 1.0 - accept_rate * MEMORY_BLUFF_DAMP
+
+
 func observe(events: Array[GameEvent], me: int) -> void:
 	for e in events:
 		match e.type:
@@ -115,11 +144,13 @@ func observe(events: Array[GameEvent], me: int) -> void:
 				if e.data["player"] == me:
 					model.shows_seen += 1
 			&"show_wrong":
-				if e.data["player"] == me:
-					mood.on_wrong_show()
+				# Pidió mostrar en falso el dealer, o lo acusaron en falso a él: tilt en los dos casos.
+				mood.on_wrong_show()
 			&"call_made":
-				if e.data["player"] != me and e.data["call"] in TRUCO_TYPES:
-					model.truco_calls += 1
+				_observe_call(e.data["player"], e.data["call"], me)
+			&"call_accepted", &"call_rejected":
+				if e.data["player"] != me:
+					_observe_answer(e.type == &"call_accepted")
 
 
 ## Índice de la carta a jugar: la más baja que gana si responde, la más alta o
@@ -148,13 +179,14 @@ func _decide_playing(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> Tru
 	var envido_call := _maybe_call_envido(hand, me, legal)
 	if envido_call != null:
 		return envido_call
-	var pt := _perceived(_truco_strength(hand, me))
+	var st := _truco_strength(hand, me)
+	var pt := _perceived(st)
 	var truco_call := _find(legal, TRUCO_TYPES)
 	if truco_call != null:
 		stats[&"truco_chances"] += 1
-	if truco_call != null and (pt >= TRUCO_CALL - _aggr() * TRUCO_CALL_AGGR or _chance(_lie() * TRUCO_BLUFF)):
+	if truco_call != null and (pt >= TRUCO_CALL - _aggr() * TRUCO_CALL_AGGR or _chance(_lie() * TRUCO_BLUFF * _bluff_damp(model.truco_accept_rate()))):
 		stats[&"truco_calls"] += 1
-		_emit_tell(pt)
+		_emit_tell(st)
 		return truco_call
 	var lost_a_baza := hand.baza_results.has(1 - me)
 	if pt < MAZO_STRENGTH and lost_a_baza and hand.truco_level() >= MAZO_MIN_LEVEL:
@@ -163,8 +195,9 @@ func _decide_playing(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> Tru
 
 
 func _decide_envido_response(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
-	var pe := _perceived(HandStrength.envido(hand.own_tanto(me)))
-	_emit_tell(pe)
+	var re := HandStrength.envido(hand.own_tanto(me))
+	var pe := _perceived(re)
+	_emit_tell(re)
 	if pe >= ENVIDO_RAISE:
 		var raise := _envido_raise(legal, pe)
 		if raise != null:
@@ -176,7 +209,7 @@ func _decide_envido_response(hand: TrucoHand, me: int, legal: Array[TrucoAction]
 
 func _decide_declaration(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
 	var real := hand.own_tanto(me)
-	_emit_tell(_perceived(HandStrength.envido(real)))
+	_emit_tell(HandStrength.envido(real))
 	var value := real
 	if me == hand.mano:
 		if _chance(_lie() * (1.0 - HandStrength.envido(real))):
@@ -199,8 +232,9 @@ func _decide_truco_response(hand: TrucoHand, me: int, legal: Array[TrucoAction])
 	var envido_call := _maybe_call_envido(hand, me, legal)
 	if envido_call != null:
 		return envido_call
-	var pt := _perceived(_truco_strength(hand, me))
-	_emit_tell(pt)
+	var st := _truco_strength(hand, me)
+	var pt := _perceived(st)
+	_emit_tell(st)
 	var raise := _find(legal, TRUCO_TYPES)
 	if raise != null:
 		stats[&"truco_chances"] += 1
@@ -229,11 +263,12 @@ func _decide_show(hand: TrucoHand, me: int) -> TrucoAction:
 func _maybe_call_envido(hand: TrucoHand, me: int, legal: Array[TrucoAction]) -> TrucoAction:
 	if _find(legal, ENVIDO_TYPES) == null:
 		return null
-	var pe := _perceived(HandStrength.envido(hand.own_tanto(me)))
-	if pe < ENVIDO_CALL - _aggr() * ENVIDO_CALL_AGGR and not _chance(_lie() * ENVIDO_BLUFF):
+	var re := HandStrength.envido(hand.own_tanto(me))
+	var pe := _perceived(re)
+	if pe < ENVIDO_CALL - _aggr() * ENVIDO_CALL_AGGR and not _chance(_lie() * ENVIDO_BLUFF * _bluff_damp(model.envido_accept_rate())):
 		return null
 	stats[&"envido_calls"] += 1
-	_emit_tell(pe)
+	_emit_tell(re)
 	if pe >= FALTA_STRENGTH and _aggr() >= FALTA_AGGR:
 		return TrucoAction.make(T.FALTA_ENVIDO, me)
 	if pe >= REAL_STRENGTH:
@@ -246,13 +281,14 @@ func _envido_raise(legal: Array[TrucoAction], pe: float) -> TrucoAction:
 		var falta := _find(legal, [T.FALTA_ENVIDO])
 		if falta != null:
 			return falta
-	return _find(legal, [T.REAL_ENVIDO, T.ENVIDO, T.FALTA_ENVIDO])
+	return _find(legal, [T.REAL_ENVIDO, T.ENVIDO])
 
 
 # --- Pistas ---
 
-func _emit_tell(perceived: float) -> void:
-	var truth := &"strong" if perceived >= TELL_STRONG else &"weak"
+## La categoría verdadera sale de la fuerza real, no de la percibida (DISENO §5.3).
+func _emit_tell(real_strength: float) -> void:
+	var truth := &"strong" if real_strength >= TELL_STRONG else &"weak"
 	var t := Tell.new()
 	t.honest = _chance(profile.tell_reliability)
 	if t.honest:
@@ -291,12 +327,15 @@ func _perceived(real: float) -> float:
 
 
 func _chance(p: float) -> bool:
-	return _rng.randf() < p
+	return p >= 1.0 or _rng.randf() < p
 
 
 func _truco_strength(hand: TrucoHand, me: int) -> float:
 	var mine: Array[Card] = []
 	mine.assign(hand.cards[me])
+	# La carta propia tirada en la baza en curso todavía cuenta.
+	if hand.played[me].size() > hand.played[1 - me].size():
+		mine.append(hand.played[me].back())
 	return HandStrength.truco(mine, hand.baza_results, me)
 
 

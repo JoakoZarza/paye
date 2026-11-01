@@ -148,3 +148,53 @@ func test_cuenta_oportunidades_de_truco() -> void:
 	var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 3], [C, 6], [B, 11]])], 1, 15)
 	brain.choose(h, 1)
 	assert_eq(brain.stats[&"truco_chances"], 1)
+
+
+func test_truco_cuenta_la_carta_propia_en_la_mesa() -> void:
+	# Tercera baza 1 a 1: el dealer ya tiró el ancho de espada y el rival canta truco.
+	var brain := _brain(_profile(0.5, 0.0, 0.0))
+	for i in 100:
+		var h := TrucoHand.new([_cards([[O, 3], [B, 4], [B, 6]]), _cards([[C, 4], [O, 5], [E, 1]])], 1, 15)
+		for idx in [[1, 0], [0, 0], [0, 0], [1, 0], [1, 0]]:
+			h.apply(TrucoAction.make(T.PLAY_CARD, idx[0], idx[1]))
+		_apply(h, T.TRUCO, 0)
+		assert_true(brain.choose(h, 1).type in [T.QUIERO, T.RETRUCO])
+
+
+func test_sin_falta_envido_con_poca_agresividad() -> void:
+	var brain := _brain(_profile(0.1, 0.0))
+	for i in 200:
+		var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 7], [O, 6], [C, 4]])], 0, 15)
+		_apply(h, T.REAL_ENVIDO, 0)
+		assert_ne(brain.choose(h, 1).type, T.FALTA_ENVIDO)
+
+
+func test_pista_refleja_la_mano_real() -> void:
+	# Fuerza real 0.57 (débil), pero la confianza alta la hace parecer fuerte.
+	var brain := _brain(_profile(0.5, 0.0, 0.5, 1.0))
+	brain.mood.confidence = 0.9
+	for i in 100:
+		var h := TrucoHand.new([_cards([[E, 4], [B, 5], [C, 6]]), _cards([[O, 3], [B, 11], [C, 4]])], 0, 15)
+		_apply(h, T.TRUCO, 0)
+		brain.choose(h, 1)
+		assert_eq(brain.last_tell.category, &"weak")
+
+
+func test_memoria_cuenta_los_quiero_del_jugador() -> void:
+	var brain := _brain(_profile(0.5, 0.5))
+	brain.observe([
+		GameEvent.make(&"call_made", {"player": 1, "call": T.TRUCO}),
+		GameEvent.make(&"call_accepted", {"player": 0}),
+		GameEvent.make(&"call_made", {"player": 1, "call": T.ENVIDO}),
+		GameEvent.make(&"call_rejected", {"player": 0}),
+	], 1)
+	assert_eq(brain.model.truco_offers, 1)
+	assert_eq(brain.model.truco_accepts, 1)
+	assert_eq(brain.model.envido_offers, 1)
+	assert_eq(brain.model.envido_accepts, 0)
+
+
+func test_acusacion_fallida_del_rival_sube_tilt() -> void:
+	var brain := _brain(_profile(0.5, 0.5))
+	brain.observe([GameEvent.make(&"show_wrong", {"player": 0})], 1)
+	assert_almost_eq(brain.mood.tilt, DealerMood.WRONG_SHOW_TILT, 0.0001)
