@@ -44,6 +44,9 @@ func can_use(id: StringName) -> bool:
 			return _hand().can_undo_last_call(table.player)
 		&"facon":
 			return not table.rules.force_accept_next_call
+		&"spare_deck":
+			# Sin cartas en la mano no hay nada que cambiar.
+			return not _hand().cards[table.player].is_empty()
 	return true
 
 

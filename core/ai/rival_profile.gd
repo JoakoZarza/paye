@@ -18,6 +18,8 @@ var cheat_weights: Dictionary = {}
 var special: StringName = &""
 var tilt_multiplier: float = 1.0
 var noise: float = 0.15
+## Probabilidad de tirar una carta cualquiera en vez de la que convenía (almas torpes).
+var blunder: float = 0.0
 
 
 static func from_dict(d: Dictionary) -> RivalProfile:
@@ -38,6 +40,7 @@ static func from_dict(d: Dictionary) -> RivalProfile:
 	profile.special = StringName(String(d.get("special", "")))
 	profile.tilt_multiplier = float(d.get("tilt_multiplier", 1.0))
 	profile.noise = float(d.get("noise", 0.15))
+	profile.blunder = float(d.get("blunder", 0.0))
 	return profile
 
 
@@ -104,6 +107,7 @@ func duplicate_profile() -> RivalProfile:
 	copy.special = special
 	copy.tilt_multiplier = tilt_multiplier
 	copy.noise = noise
+	copy.blunder = blunder
 	return copy
 
 

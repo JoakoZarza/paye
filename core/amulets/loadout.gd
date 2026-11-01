@@ -2,7 +2,7 @@ class_name Loadout
 extends RefCounted
 ## Administra los amuletos equipados y sus cargas por partido.
 
-const SLOTS := 4
+const SLOTS := 2
 const RED_RIBBON_DISCOUNT := 0.2
 const TRAIN_COIN_MULTIPLIER := 1.5
 

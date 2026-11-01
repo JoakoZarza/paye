@@ -1,4 +1,4 @@
-﻿class_name DealerBrain
+class_name DealerBrain
 extends RefCounted
 ## Decide las jugadas del dealer con convicción, no con cálculo: la fuerza
 ## percibida mezcla la real con el humor y el azar. Ver DISENO §5.
@@ -234,6 +234,9 @@ func observe(events: Array[GameEvent], me: int) -> void:
 func pick_card(view: HandView) -> int:
 	var me := view.me
 	var mine: Array = view.my_cards()
+	# Sin torpeza no se tira el dado: los perfiles viejos juegan igual que antes.
+	if profile.blunder > 0.0 and _chance(profile.blunder):
+		return _rng.randi_range(0, mine.size() - 1)
 	var order: Array[int] = []
 	for i in mine.size():
 		order.append(i)

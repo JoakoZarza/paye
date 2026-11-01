@@ -9,12 +9,12 @@ func before_each() -> void:
 	amulets = AmuletDef.load_all()
 
 
-func test_cuatro_espacios() -> void:
+func test_dos_espacios() -> void:
 	var loadout := Loadout.new()
-	for amulet_id: StringName in [&"marker", &"spare_deck", &"rosary", &"facon"]:
+	for amulet_id: StringName in [&"marker", &"spare_deck"]:
 		assert_true(loadout.equip(amulets[amulet_id]))
 	assert_false(loadout.equip(amulets[&"hat"]))
-	assert_eq(loadout.equipped().size(), 4)
+	assert_eq(loadout.equipped().size(), 2)
 
 
 func test_no_repite() -> void:

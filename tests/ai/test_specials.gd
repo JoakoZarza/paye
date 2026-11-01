@@ -229,3 +229,14 @@ func test_la_mesa_le_pasa_el_marcador() -> void:
 	assert_eq(brain._my_score, 9)
 	assert_eq(brain._their_score, 4)
 	assert_eq(brain._target, 15)
+
+
+func test_torpeza_tira_cartas_que_no_convenian() -> void:
+	var clumsy := _brain(_profile({"aggression": 0.4, "blunder": 0.4}))
+	var plain := _brain(_profile({"aggression": 0.4}))
+	var clumsy_highest := 0
+	for i in TRIALS:
+		if _leads_highest(clumsy):
+			clumsy_highest += 1
+		assert_false(_leads_highest(plain), "sin torpeza siempre abre con la del medio")
+	assert_between(clumsy_highest, int(TRIALS * 0.05), int(TRIALS * 0.25))

@@ -10,7 +10,7 @@ enum Outcome { FREE_PAID, FREE_SOLD, FREE_HAND, DIED_HAND, DIED_MATCH, DIED_BROK
 const SEED := 99
 const RUNS := 4000
 ## Victoria por ronda medida en test_full_run_sim (jugador IA medio, sin acusar).
-const WIN_CURVE: Array[float] = [0.44, 0.60, 0.53, 0.53, 0.51, 0.43, 0.42, 0.50, 0.39]
+const WIN_CURVE: Array[float] = [0.44, 0.61, 0.53, 0.53, 0.57, 0.43, 0.42, 0.53, 0.39]
 ## Ventaja de un humano que lee pistas y acusa trampas, sumada a cada ronda.
 const SKILL_EDGES: Array[float] = [0.15, 0.25]
 const GUALICHO_WIN := 0.45

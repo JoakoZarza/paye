@@ -1,7 +1,7 @@
 extends GutTest
 
 const EconomyScript = preload("res://core/run/economy.gd")
-const PRIZES: Array[int] = [600, 600, 2400, 4200, 2500, 10000, 16000, 9000, 10000000]
+const PRIZES: Array[int] = [450, 450, 1200, 1800, 1500, 6000, 11000, 8000, 10000000]
 
 
 func test_tabla_de_rondas() -> void:
@@ -31,23 +31,23 @@ func test_fuera_de_la_tabla_usa_la_ronda_mas_cercana() -> void:
 
 func test_precio_y_cambio() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1), 90, "60% de la entrada de la ronda 2")
-	assert_eq(economy.price(AmuletDef.Rarity.LEGENDARY, 9), 9600, "en la final toma su propia entrada")
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1), 270, "180% de la entrada de la ronda 2")
+	assert_eq(economy.price(AmuletDef.Rarity.LEGENDARY, 9), 28800, "en la final toma su propia entrada")
 	assert_eq(economy.reroll_cost(1, 0), 15)
 	assert_eq(economy.reroll_cost(1, 1), 22)
 
 
 func test_precio_crece_con_cada_compra() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 0), 90)
-	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 1), 112)
-	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 2), 135)
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 0), 270)
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 1), 337)
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 2), 405)
 
 
 func test_un_solo_redondeo_con_descuento() -> void:
 	var economy: Economy = EconomyScript.load_from()
-	# 90 × 1,25 × 0,8 = 90 exacto; redondeando en el medio daría 89.
-	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 1, 0.8), 90)
+	# 270 × 1,25 × 0,8 = 270 exacto; redondeando en el medio daría 269.
+	assert_eq(economy.price(AmuletDef.Rarity.RARE, 1, 1, 0.8), 270)
 
 
 func test_cambio_de_ofertas_sin_error_de_redondeo() -> void:

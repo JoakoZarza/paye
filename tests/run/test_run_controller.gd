@@ -80,8 +80,8 @@ func test_ganar_cobra_y_abre_la_tienda() -> void:
 	_end_match(rc, 0)
 	var events := rc.finish_match()
 	assert_eq(events[0].type, &"prize_paid")
-	assert_eq(events[0].data["total"], 600)
-	assert_eq(rc.state.money, 635)
+	assert_eq(events[0].data["total"], 450)
+	assert_eq(rc.state.money, 485)
 	assert_eq(rc.phase, RunController.Phase.SHOP)
 	assert_eq(rc.shop.offers.size(), 3)
 	rc.next_round()
@@ -94,7 +94,7 @@ func test_partido_perfecto_paga_el_doble() -> void:
 	rc.start_run(&"normal")
 	rc.enter_match()
 	_end_match(rc, 0, 0)
-	assert_eq(rc.finish_match()[0].data["total"], 1200)
+	assert_eq(rc.finish_match()[0].data["total"], 900)
 
 
 func test_perder_es_muerte() -> void:
@@ -146,7 +146,7 @@ func test_viuda_duplica_premio_y_presupuesto() -> void:
 	rc.enter_match()
 	assert_eq(rc.table().brain.cheat_budget, rc.rival_for(1).cheat_budget * 2)
 	_end_match(rc, 0)
-	assert_eq(rc.finish_match()[0].data["total"], 1200)
+	assert_eq(rc.finish_match()[0].data["total"], 900)
 
 
 func test_fuera_de_fase_es_ilegal() -> void:
@@ -200,7 +200,7 @@ func test_abandonar_la_run_conserva_el_fiado_como_deuda() -> void:
 	_win_round(rc)
 	rc.shop.offers.clear()
 	rc.shop.offers.append(AmuletDef.load_all()[&"hat"])
-	rc.state.money = 200
+	rc.state.money = 300
 	rc.buy(0)
 	var fiado := rc.state.fiado
 	assert_gt(fiado, 0)

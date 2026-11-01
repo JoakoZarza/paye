@@ -294,7 +294,8 @@
       "cheat_weights": {},
       "special": "",
       "tilt_multiplier": 1,
-      "noise": 0.45
+      "noise": 0.45,
+      "blunder": 0.4
     },
     {
       "variant": "miedoso",
@@ -306,7 +307,8 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
-      "noise": 0.15
+      "noise": 0.3,
+      "blunder": 0.3
     },
     {
       "variant": "cantor",
@@ -318,7 +320,8 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
-      "noise": 0.15
+      "noise": 0.3,
+      "blunder": 0.3
     },
     {
       "variant": "mudo",
@@ -330,7 +333,8 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
-      "noise": 0.15
+      "noise": 0.3,
+      "blunder": 0.3
     }
   ],
   "gualicho": [

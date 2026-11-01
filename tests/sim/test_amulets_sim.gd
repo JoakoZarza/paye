@@ -1,4 +1,4 @@
-﻿extends GutTest
+extends GutTest
 ## Partidos completos con amuletos: un jugador al azar que usa amuletos al azar
 ## (invariantes) y un jugador con reglas simples, con y sin amuletos (efecto).
 
