@@ -35,5 +35,10 @@ func draw(n: int) -> Array[Card]:
 	return out
 
 
+## Saca del mazo las cartas con estas claves (cartas repartidas a mano en los tests).
+func remove_keys(keys: Array) -> void:
+	_cards = _cards.filter(func(c: Card) -> bool: return not (c.key() in keys))
+
+
 func remaining() -> int:
 	return _cards.size()
