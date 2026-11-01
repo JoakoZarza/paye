@@ -39,9 +39,7 @@ func can_use(id: StringName) -> bool:
 		return false
 	match id:
 		&"rosary":
-			var phase := _hand().phase
-			var responding := phase == TrucoHand.Phase.ENVIDO_RESPONSE or phase == TrucoHand.Phase.TRUCO_RESPONSE
-			return responding and _hand().current_player() == table.player
+			return _hand().can_undo_last_call(table.player)
 		&"facon":
 			return not table.rules.force_accept_next_call
 	return true

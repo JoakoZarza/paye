@@ -58,14 +58,9 @@ func is_over() -> bool:
 ## Rosario: si el último canto lo hizo el rival de y y espera su respuesta,
 ## la mano vuelve al estado de antes de ese canto.
 func undo_last_call(by: int) -> bool:
-	if phase != Phase.ENVIDO_RESPONSE and phase != Phase.TRUCO_RESPONSE:
+	if not can_undo_last_call(by):
 		return false
-	if _call_snapshots.is_empty() or current_player() != by:
-		return false
-	var snap: Dictionary = _call_snapshots.back()
-	if snap["caller"] != 1 - by:
-		return false
-	_call_snapshots.pop_back()
+	var snap: Dictionary = _call_snapshots.pop_back()
 	phase = snap["phase"]
 	_turn = snap["turn"]
 	_truco.level = snap["truco_level"]
@@ -76,6 +71,16 @@ func undo_last_call(by: int) -> bool:
 	_envido_caller = snap["envido_caller"]
 	_resume_phase = snap["resume_phase"]
 	return true
+
+
+## Si el envido se resolvió en medio de la cadena de truco, la foto ya no sirve:
+## el truco del rival queda sin poder anularse.
+func can_undo_last_call(by: int) -> bool:
+	if phase != Phase.ENVIDO_RESPONSE and phase != Phase.TRUCO_RESPONSE:
+		return false
+	if _call_snapshots.is_empty() or current_player() != by:
+		return false
+	return _call_snapshots.back()["caller"] == 1 - by
 
 
 ## Marcador: el número es válido y la carta no queda igual a otra de la mano.

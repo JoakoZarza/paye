@@ -304,3 +304,13 @@ func test_marcar_no_duplica_una_carta() -> void:
 	assert_true(h.can_mark(0, 1, 5))
 	assert_false(h.can_mark(0, 1, 8))
 	assert_false(h.can_mark(0, 5, 5))
+
+
+func test_rosario_no_anula_truco_despues_de_un_envido_resuelto() -> void:
+	var h := _hand([[O, 7], [O, 6], [C, 4]], [[E, 4], [E, 5], [B, 6]], 1)
+	_do(h, T.TRUCO, 1)
+	_do(h, T.ENVIDO, 0)
+	_do(h, T.NO_QUIERO, 1)
+	assert_eq(h.phase, TrucoHand.Phase.TRUCO_RESPONSE)
+	assert_false(h.can_undo_last_call(0))
+	assert_false(h.undo_last_call(0))
