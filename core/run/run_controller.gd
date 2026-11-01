@@ -31,7 +31,8 @@ func _init(p_economy: Economy, p_meta: MetaState, p_seed: int, p_meta_path: Stri
 	_meta_path = p_meta_path
 	_rng = RandomNumberGenerator.new()
 	_rng.seed = p_seed
-	_profiles = RivalProfile.load_all()
+	# Provisorio hasta la Tarea 5 del Plan 5b (RivalCatalog).
+	_profiles = RivalProfile.load_all("res://tests/fixtures/legacy_rivals.json")
 	_defs = AmuletDef.load_all()
 	_decks = RunDeck.load_all()
 	shop = Shop.new(economy, _defs, _child_rng())
