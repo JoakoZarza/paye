@@ -1,4 +1,4 @@
-﻿class_name TrucoHand
+class_name TrucoHand
 extends RefCounted
 ## Máquina de estados de una mano de truco 1 contra 1, sin flor. Recibe
 ## acciones, devuelve eventos. Ver DISENO §3 y Plan 1, Tarea 6.
@@ -88,12 +88,19 @@ func can_undo_last_call(by: int) -> bool:
 
 
 ## Marcador: el número es válido y la carta no queda igual a otra de la mano.
-func can_mark(p: int, idx: int, new_number: int) -> bool:
+## new_suit -1 deja el palo. Si cambia el palo, tampoco puede copiar una carta que el
+## rival ya jugó; las de su mano no se miran, para que el Marcador no las delate.
+func can_mark(p: int, idx: int, new_number: int, new_suit: int = -1) -> bool:
 	if idx < 0 or idx >= cards[p].size() or not Card.is_valid_number(new_number):
 		return false
+	if new_suit != -1 and (new_suit < 0 or new_suit >= Card.Suit.size()):
+		return false
 	var target: Card = cards[p][idx]
-	var suit: Card.Suit = target.effective_suit()
-	for other in cards[p] + played[p]:
+	var suit: int = target.effective_suit() if new_suit == -1 else new_suit
+	var others: Array = cards[p] + played[p]
+	if new_suit != -1:
+		others += played[1 - p]
+	for other in others:
 		if other != target and other.effective_number() == new_number and other.effective_suit() == suit:
 			return false
 	return true

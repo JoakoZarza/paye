@@ -1,4 +1,4 @@
-﻿class_name CheatTable
+class_name CheatTable
 extends RefCounted
 ## La mesa: envuelve un partido y al dealer. Reparte, aplica las trampas del
 ## dealer, lo hace jugar y recibe las acciones, acusaciones y trampas del
@@ -14,7 +14,6 @@ const MIRROR_RISK := 0.25
 const MARKED_RISK := 0.10
 const MARKED_RISK_PER_USE := 0.10
 const MAX_RISK := 0.95
-const CIGARETTE_CHANCE := 0.5
 const ENVIDO_CALL_TYPES: Array[TrucoAction.Type] = [TrucoAction.Type.ENVIDO, TrucoAction.Type.REAL_ENVIDO, TrucoAction.Type.FALTA_ENVIDO]
 
 var truco_match: TrucoMatch
@@ -31,6 +30,9 @@ var rules := TableRules.new()
 var player_called_envido := false
 ## El Vaso de caña se aplicó a la declaración del jugador en esta mano.
 var _declaration_protected := false
+## Trampas del jugador en este partido (premio por trampa no detectada).
+var player_cheats_used := 0
+var player_cheats_caught := 0
 
 var _rng: RandomNumberGenerator
 var _accused := false
@@ -54,6 +56,8 @@ func start_match() -> void:
 	_marked_uses = 0
 	cheats_applied = 0
 	player_called_envido = false
+	player_cheats_used = 0
+	player_cheats_caught = 0
 
 
 ## forced_kind: NO_FORCED deja decidir al dealer; -1 o un Cheat.Kind fuerzan
@@ -81,11 +85,17 @@ func start_hand(forced_kind: int = NO_FORCED, p_cards: Array = [], p_mano: int =
 	_duplicate_from_brain = forced_kind == NO_FORCED
 	_known = []
 	var available := available_cheats()
+	_sync_context()
 	var kind := brain.decide_cheat(available) if forced_kind == NO_FORCED else forced_kind
 	if kind != -1 and kind in available:
 		events.append_array(_start_cheat(kind))
 	brain.observe(events, dealer)
 	return events
+
+
+## El cerebro necesita el marcador para las reglas especiales que dependen de él.
+func _sync_context() -> void:
+	brain.set_match_context(truco_match.scores[dealer], truco_match.scores[1 - dealer], truco_match.target)
 
 
 func available_cheats() -> Array[Cheat.Kind]:
@@ -104,6 +114,7 @@ func dealer_step() -> Array[GameEvent]:
 		return [_illegal(dealer)]
 	var view := HandView.new(truco_match.hand, dealer)
 	view.known_opponent_cards = _known.duplicate()
+	_sync_context()
 	var a := _apply_rules(brain.choose(view))
 	var events: Array[GameEvent]
 	if a.type == TrucoAction.Type.PLAY_CARD and _duplicate_ready():
@@ -133,13 +144,18 @@ func _apply_rules(a: TrucoAction) -> TrucoAction:
 	var hand := truco_match.hand
 	var responding := hand.phase == TrucoHand.Phase.ENVIDO_RESPONSE or hand.phase == TrucoHand.Phase.TRUCO_RESPONSE
 	if responding and rules.force_accept_next_call:
-		rules.force_accept_next_call = false
+		if rules.force_accept_extra > 0:
+			rules.force_accept_extra -= 1
+			rules.force_accept_raise_pending = true
+		else:
+			rules.force_accept_next_call = false
+			rules.force_accept_raise_pending = false
 		return TrucoAction.make(TrucoAction.Type.QUIERO, dealer)
 	if a.type != TrucoAction.Type.DEMAND_SHOW:
 		return a
 	if _declaration_protected:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
-	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() < CIGARETTE_CHANCE:
+	if rules.cigarette and hand.declaration_is_lie(player) and _rng.randf() >= rules.cigarette_chance:
 		return TrucoAction.make(TrucoAction.Type.ACCEPT_TANTO, dealer)
 	return a
 
@@ -188,12 +204,14 @@ func accuse(acc: Accusation) -> Array[GameEvent]:
 func use_player_cheat(kind: PlayerCheat) -> Array[GameEvent]:
 	if not _hand_running():
 		return [_illegal(player)]
-	var risk := MIRROR_RISK
+	var risk := MIRROR_RISK * rules.mirror_risk_multiplier
 	if kind == PlayerCheat.MARKED:
-		risk = MARKED_RISK + MARKED_RISK_PER_USE * _marked_uses
+		risk = MARKED_RISK + MARKED_RISK_PER_USE * rules.marked_step_multiplier * _marked_uses
 		_marked_uses += 1
 	risk = minf(risk * (1.0 + brain.mood.suspicion), MAX_RISK)
+	player_cheats_used += 1
 	if _rng.randf() < risk:
+		player_cheats_caught += 1
 		var events: Array[GameEvent] = [GameEvent.make(&"player_caught", {"kind": kind})]
 		events.append_array(truco_match.hand.force_end(dealer, player))
 		events.append_array(truco_match.finish_forced_hand())

@@ -15,7 +15,7 @@ var _budget_failures := 0
 
 
 func before_all() -> void:
-	_profiles = RivalProfile.load_all()
+	_profiles = RivalProfile.load_all("res://tests/fixtures/legacy_rivals.json")
 
 
 func _rng(s: int) -> RandomNumberGenerator:

@@ -1,4 +1,4 @@
-﻿class_name DealerMood
+class_name DealerMood
 extends RefCounted
 ## Mantiene el humor y la confianza del dealer.
 
@@ -19,20 +19,24 @@ const CAUGHT_CHEATING_CONFIDENCE: float = 0.15
 var confidence: float = 0.5
 var tilt: float = 0.0
 var suspicion: float = 0.0
+## Multiplica toda suba de tilt (versiones que se calientan rápido).
+var tilt_multiplier: float = 1.0
+## Regla "rencor": el tilt nunca baja dentro del partido.
+var tilt_never_decays: bool = false
 
 
 func on_hand_result(won: bool) -> void:
 	if won:
 		confidence += HAND_WON_CONFIDENCE
-		tilt -= HAND_WON_TILT_DECAY
+		_add_tilt(-HAND_WON_TILT_DECAY)
 	else:
 		confidence -= HAND_LOST_CONFIDENCE
-		tilt += HAND_LOST_TILT
+		_add_tilt(HAND_LOST_TILT)
 	_clamp_values()
 
 
 func on_caught_lying() -> void:
-	tilt += CAUGHT_LYING_TILT
+	_add_tilt(CAUGHT_LYING_TILT)
 	confidence -= CAUGHT_LYING_CONFIDENCE
 	_clamp_values()
 
@@ -43,8 +47,15 @@ func on_caught_player_lying() -> void:
 
 
 func on_wrong_show() -> void:
-	tilt += WRONG_SHOW_TILT
+	_add_tilt(WRONG_SHOW_TILT)
 	_clamp_values()
+
+
+func _add_tilt(amount: float) -> void:
+	if amount > 0.0:
+		tilt += amount * tilt_multiplier
+	elif not tilt_never_decays:
+		tilt += amount
 
 
 func _clamp_values() -> void:
@@ -61,11 +72,11 @@ func on_accused() -> void:
 
 func on_caught_player_cheating() -> void:
 	suspicion += CAUGHT_PLAYER_SUSPICION
-	tilt += CAUGHT_PLAYER_TILT
+	_add_tilt(CAUGHT_PLAYER_TILT)
 	_clamp_values()
 
 
 func on_caught_cheating() -> void:
-	tilt += CAUGHT_CHEATING_TILT
+	_add_tilt(CAUGHT_CHEATING_TILT)
 	confidence -= CAUGHT_CHEATING_CONFIDENCE
 	_clamp_values()

@@ -1,5 +1,354 @@
 {
-  "agresivo":  {"aggression": 0.85, "lying": 0.30, "cheating": 0.15, "stubbornness": 0.60, "tell_reliability": 0.80, "cheat_budget": 1},
-  "mentiroso": {"aggression": 0.50, "lying": 0.85, "cheating": 0.25, "stubbornness": 0.40, "tell_reliability": 0.40, "cheat_budget": 1},
-  "tramposo":  {"aggression": 0.45, "lying": 0.40, "cheating": 0.85, "stubbornness": 0.50, "tell_reliability": 0.65, "cheat_budget": 3}
+  "ira": [
+    {
+      "variant": "estallido",
+      "aggression": 0.8,
+      "lying": 0.3,
+      "cheating": 0.5,
+      "stubbornness": 0.6,
+      "tell_reliability": 0.75,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "SLEEVE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 2,
+      "noise": 0.15
+    },
+    {
+      "variant": "rencor",
+      "aggression": 0.7,
+      "lying": 0.3,
+      "cheating": 0.4,
+      "stubbornness": 0.7,
+      "tell_reliability": 0.7,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "SLEEVE": 1
+      },
+      "special": "rencor",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "mecha_corta",
+      "aggression": 0.95,
+      "lying": 0.2,
+      "cheating": 0.3,
+      "stubbornness": 0.5,
+      "tell_reliability": 0.9,
+      "cheat_budget": 1,
+      "cheat_weights": {
+        "SLEEVE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    }
+  ],
+  "gula": [
+    {
+      "variant": "gloton",
+      "aggression": 0.75,
+      "lying": 0.4,
+      "cheating": 0.25,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.7,
+      "cheat_budget": 1,
+      "cheat_weights": {
+        "SLEEVE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "atracon",
+      "aggression": 0.85,
+      "lying": 0.3,
+      "cheating": 0.25,
+      "stubbornness": 0.5,
+      "tell_reliability": 0.7,
+      "cheat_budget": 1,
+      "cheat_weights": {
+        "SLEEVE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "insaciable",
+      "aggression": 0.7,
+      "lying": 0.4,
+      "cheating": 0.25,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.7,
+      "cheat_budget": 1,
+      "cheat_weights": {
+        "SLEEVE": 1
+      },
+      "special": "insaciable",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    }
+  ],
+  "pereza": [
+    {
+      "variant": "dormido",
+      "aggression": 0.15,
+      "lying": 0.2,
+      "cheating": 0.15,
+      "stubbornness": 0.3,
+      "tell_reliability": 0.7,
+      "cheat_budget": 1,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "fiaca_tramposa",
+      "aggression": 0.25,
+      "lying": 0.2,
+      "cheating": 0.6,
+      "stubbornness": 0.3,
+      "tell_reliability": 0.65,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "siesta",
+      "aggression": 0.4,
+      "lying": 0.3,
+      "cheating": 0.3,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.65,
+      "cheat_budget": 1,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "siesta",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    }
+  ],
+  "envidia": [
+    {
+      "variant": "copiona",
+      "aggression": 0.5,
+      "lying": 0.4,
+      "cheating": 0.75,
+      "stubbornness": 0.5,
+      "tell_reliability": 0.6,
+      "cheat_budget": 3,
+      "cheat_weights": {
+        "DUPLICATE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "mirona",
+      "aggression": 0.45,
+      "lying": 0.4,
+      "cheating": 0.75,
+      "stubbornness": 0.5,
+      "tell_reliability": 0.6,
+      "cheat_budget": 3,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "resentida",
+      "aggression": 0.55,
+      "lying": 0.4,
+      "cheating": 0.6,
+      "stubbornness": 0.5,
+      "tell_reliability": 0.6,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "DUPLICATE": 0.5,
+        "ACCOMPLICE": 0.5
+      },
+      "special": "resentida",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    }
+  ],
+  "lujuria": [
+    {
+      "variant": "seductora",
+      "aggression": 0.55,
+      "lying": 0.7,
+      "cheating": 0.4,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.15,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "mentirosa",
+      "aggression": 0.5,
+      "lying": 0.95,
+      "cheating": 0.35,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.4,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "encantadora",
+      "aggression": 0.55,
+      "lying": 0.7,
+      "cheating": 0.4,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.9,
+      "cheat_budget": 2,
+      "cheat_weights": {
+        "ACCOMPLICE": 1
+      },
+      "special": "encantadora",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    }
+  ],
+  "soberbia": [
+    {
+      "variant": "invicto",
+      "aggression": 0.8,
+      "lying": 0.5,
+      "cheating": 0.5,
+      "stubbornness": 1,
+      "tell_reliability": 0.6,
+      "cheat_budget": 3,
+      "cheat_weights": {
+        "DUPLICATE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "desden",
+      "aggression": 0.9,
+      "lying": 0.6,
+      "cheating": 0.45,
+      "stubbornness": 0.9,
+      "tell_reliability": 0.55,
+      "cheat_budget": 3,
+      "cheat_weights": {
+        "DUPLICATE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    },
+    {
+      "variant": "perfeccionista",
+      "aggression": 0.7,
+      "lying": 0.5,
+      "cheating": 0.7,
+      "stubbornness": 0.9,
+      "tell_reliability": 0.6,
+      "cheat_budget": 3,
+      "cheat_weights": {
+        "DUPLICATE": 1
+      },
+      "special": "",
+      "tilt_multiplier": 2,
+      "noise": 0.15
+    }
+  ],
+  "alma": [
+    {
+      "variant": "novato",
+      "aggression": 0.4,
+      "lying": 0.3,
+      "cheating": 0,
+      "stubbornness": 0.4,
+      "tell_reliability": 0.5,
+      "cheat_budget": 0,
+      "cheat_weights": {},
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.45,
+      "blunder": 0.4
+    },
+    {
+      "variant": "miedoso",
+      "aggression": 0.2,
+      "lying": 0.2,
+      "cheating": 0,
+      "stubbornness": 0,
+      "tell_reliability": 0.8,
+      "cheat_budget": 0,
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.3,
+      "blunder": 0.3
+    },
+    {
+      "variant": "cantor",
+      "aggression": 0.9,
+      "lying": 0.9,
+      "cheating": 0,
+      "stubbornness": 0.3,
+      "tell_reliability": 0.3,
+      "cheat_budget": 0,
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.3,
+      "blunder": 0.3
+    },
+    {
+      "variant": "mudo",
+      "aggression": 0,
+      "lying": 0.1,
+      "cheating": 0,
+      "stubbornness": 0.5,
+      "tell_reliability": 0.7,
+      "cheat_budget": 0,
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.3,
+      "blunder": 0.3
+    }
+  ],
+  "gualicho": [
+    {
+      "variant": "gualicho",
+      "aggression": 0.8,
+      "lying": 0.6,
+      "cheating": 0,
+      "stubbornness": 0.8,
+      "tell_reliability": 0.5,
+      "cheat_budget": 0,
+      "special": "",
+      "tilt_multiplier": 1,
+      "noise": 0.15
+    }
+  ]
 }

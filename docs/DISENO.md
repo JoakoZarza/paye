@@ -1,6 +1,6 @@
 # Payé — Documento de diseño
 
-Versión 1 · 2026-10-29 · Fuente de verdad del diseño. Si el código y este documento no coinciden, se corrige uno de los dos a propósito, nunca en silencio.
+Versión 2.1 · 2026-11-01 (pecados capitales, 9 rondas, la cuenta final; 2.1: economía más dura y mejoras de amuletos) · Fuente de verdad del diseño. Si el código y este documento no coinciden, se corrige uno de los dos a propósito, nunca en silencio.
 
 Los números marcados con **(ajustable)** son valores iniciales. Se calibran con la simulación de economía (ver [ROADMAP.md](ROADMAP.md), Plan 5) y viven en archivos de datos, no en el código.
 
@@ -18,7 +18,7 @@ Roguelike de Truco argentino 1 contra 1. Estética y tensión de Buckshot Roulet
 - **Verdad oculta:** el personaje está muerto. El bar es un purgatorio de la avaricia. No hay a quién pagarle. Los dealers son almas que en su momento eligieron el doble o nada. El acreedor es el dueño del bar. Morir y reiniciar es el loop del purgatorio; la deuda que pasa de una run a otra son los pecados acumulados.
 - **Revelación gradual:** pistas a lo largo de las runs (el colectivo nunca para, los dealers repiten frases de antiguos jugadores, la deuda muestra cifras imposibles).
 - **Final bueno:** llegás a $10M y te retirás → salís del bar, parada, subís al colectivo, el bar se desvanece por la ventana → créditos. Renunciar a la avaricia te libera.
-- **Final malo / segunda llave:** elegís doble o nada → quedás atrapado → se abre el **Truco maldito** (modo sin fin, ver §11).
+- **Final malo / segunda llave:** pagás la cuenta y, en vez de retirarte, elegís **seguir** → firmás la condena: te convertís en la **avaricia**, el séptimo pecado → se abre el **Truco maldito** (modo sin fin, ver §11).
 
 ## 3. Reglas del Truco
 
@@ -152,45 +152,65 @@ La fuerza percibida es la fuerza real distorsionada por la confianza y el tilt. 
 
 En cada decisión importante el dealer emite una pista: una línea de texto y un ícono de humor en el MVP. Cada rival tiene una **confiabilidad**: la probabilidad de que la pista refleje su mano real. Los jefes pueden dar pistas falsas a propósito.
 
-### 5.4 Rivales del MVP (ajustable)
+### 5.4 Rivales: los pecados capitales (ajustable)
 
-| Rival | Agresividad | Mentira | Trampa | Terquedad | Confiabilidad de pistas | Presupuesto de trampas |
-|---|---|---|---|---|---|---|
-| Agresivo | 0,85 | 0,30 | 0,15 | 0,60 | 0,80 | 1 |
-| Mentiroso | 0,50 | 0,85 | 0,25 | 0,40 | 0,40 | 1 |
-| Tramposo | 0,45 | 0,40 | 0,85 | 0,50 | 0,65 | 3 |
+Los rivales son 6 de los 7 pecados capitales. El séptimo, la **avaricia, es el jugador**. Entre ellos aparecen **almas en pena**: IA simple, sin trampas ni trucos, que funcionan como respiro.
 
-Los rivales escalan con la ronda subiendo sus rasgos y sus presupuestos. Nombres y apariencia quedan para la Etapa 3 ("Pichado" es candidato a nombre de un rival que entra en tilt).
+| Ronda | Rival | Cómo juega | Trampa preferida | Dificultad |
+|---|---|---|---|---|
+| 1 | Ira | Agresiva, canta todo; entra en tilt rápido ("Pichado") y, enojada, hace trampa a lo bruto | Manga | Alta |
+| 2 | Alma en pena | Juega simple, casi al azar | — | Baja |
+| 3 | Gula | Sube todo (envido-envido-real, retruco); se atraganta y se la puede explotar | Manga | Media |
+| 4 | Pereza | Casi no canta, quiere todo por no pensar | Cómplice | Baja (piso de la V) |
+| 5 | Alma en pena | Respiro | — | Baja |
+| 6 | Envidia | Quiere lo tuyo: copia tus cartas | Duplicada, cómplice | Media-alta |
+| 7 | Lujuria | Seduce y engaña: pistas casi siempre falsas, miente mucho el tanto | Cómplice | Alta |
+| 8 | Alma en pena | Último respiro antes del final | — | Media |
+| 9 | Soberbia | Jefe final a 30 puntos: terquedad máxima, nunca se va al mazo, confianza altísima, trampas sutiles; si lo humillás, se desmorona | Duplicada | Máxima |
+
+**Curva en V:** arranca dura (rival exigente y plata justa), se afloja en el medio cuando el jugador ya se adaptó, y se pone brutal al final. Los rasgos exactos de cada pecado viven en `data/rivals.json`. Nombres y apariencia definitivos: Etapa 3.
+
+### 5.4.1 Los pecados se conocen
+
+- **El chisme:** si en un partido te pescan haciendo trampa, el rival siguiente arranca con **+0,3 de sospecha** (ajustable). Dura solo ese partido.
+- **La plata atrae pecados:** al empezar un partido contra un pecado, su presupuesto de trampas sube **+1 por cada 5 entradas** de plata que lleves, con tope de **+2** (ajustable). Las almas no hacen trampa, así que no les afecta.
+
+### 5.5 Versiones de cada rival
+
+Para que la run no se pueda memorizar, cada pecado tiene **3 versiones** y hay **4 almas en pena**. La semilla de la run elige una versión por ronda. La versión **no se anuncia**: se descubre jugando. Además, en cada run los rasgos de la versión varían un poco (±0,05). ⚙️ = regla especial en el código.
+
+| Pecado | A | B | C |
+|---|---|---|---|
+| Ira | **Estallido**: el tilt le sube el doble; manga | **Rencor** ⚙️: el tilt no le baja en el partido; cuanto más pierde, más trampa | **Mecha corta**: agresividad máxima desde el arranque; pistas muy confiables |
+| Gula | **Glotón**: sube todo el envido | **Atracón**: sube todo el truco, hasta vale cuatro | **Insaciable** ⚙️: nunca le dice "no quiero" a un envido |
+| Pereza | **Dormido**: casi nunca canta, quiere todo | **Fiaca tramposa**: usa el cómplice seguido | **Siesta** ⚙️: juega mal al principio del partido y se despierta al final |
+| Envidia | **Copiona**: carta duplicada | **Mirona**: cómplice; quiere solo si sabe que gana | **Resentida** ⚙️: más agresiva cuando vos vas ganando |
+| Lujuria | **Seductora**: pistas falsas casi siempre | **Mentirosa**: miente el tanto al extremo | **Encantadora** ⚙️: pistas verdaderas al principio, te traiciona en el momento clave |
+| Soberbia | **Invicto**: nunca se va al mazo, quiere todo | **Desdén**: canta falta envido con cualquier mano | **Perfeccionista**: trampas sutiles con la duplicada; si lo pescás, se desmorona |
+
+**Almas en pena:** Novato (juega casi al azar), Miedoso (se va al mazo fácil), Cantor (canta sin cartas), Mudo (nunca canta). Más adelante se pueden sumar más.
+
+Combinaciones de rivales por run: 3⁶ × 4³ = **46.656**, sin contar cartas, tienda y trampas.
 
 ## 6. Estructura de la run
 
-- Rondas 1 a 12. Cada ronda es un partido contra un rival. Jefes en las rondas 4, 8 y 12, a 30 puntos; el resto, a 15.
-- Después de ganar cada partido: tienda. Después de cada jefe: tienda especial con amuletos raros y legendarios.
+- **9 rondas**, un partido por ronda. Todas a 15 puntos salvo la Soberbia, a 30.
+- Después de ganar cada partido: tienda. Después de cada pecado: tienda especial con amuletos raros y legendarios.
 - Si después de la tienda no te alcanza para la entrada siguiente, morís.
-- Al terminar un partido con $10.000.000 o más, aparece la opción de retirarse (final bueno) o doble o nada (Etapa 4).
+- **Una mano más** (opcional, después de cobrar y antes de la tienda; no en la final): arriesgás una parte del premio que acabás de cobrar (25%, 50% o 100%) en una sola mano contra el mismo rival. Gana quien sume más puntos en esa mano; el empate es del rival. Si ganás, recuperás lo arriesgado por dos; si perdés, lo perdés, pero no morís.
+- **El premio de la Soberbia es el premio del torneo: $10.000.000.** Las rondas 1 a 8 dan premios chicos que sirven para pagar entradas y comprar amuletos.
+- **La deuda a pagar** es $10.000.000 (la deuda inicial del personaje) **+ el fiado acumulado + la deuda arrastrada de runs anteriores.**
+- **Al ganarle a la Soberbia** se salda la cuenta con toda tu plata:
+  - Si alcanza: volvés a la vida. Si sobra plata, aparece la tentación: **retirarte** (final bueno) o **seguir** (la avaricia, ver §11).
+  - Si no alcanza: evento **"La cuenta"** con el dueño del bar. Primero vende tus amuletos a mitad de precio. Si todavía falta, te juega **una sola mano** por la diferencia: si ganás, quedás pagado; si perdés, morís y la diferencia pasa como deuda a la run siguiente.
 
 ## 7. Economía (ajustable)
 
 ### 7.1 Escalera base
 
-Entrada inicial $100, multiplicada ×3 por ronda. El premio es la entrada por un factor que baja con las rondas.
+Las entradas y los premios de las rondas 1 a 8 crecen de a poco (del orden de miles a cientos de miles) y siguen la curva en V: las almas en pena cuestan y pagan menos. Los números exactos se calibran con la simulación de economía y viven en `data/economy.json`.
 
-| Ronda | Entrada | Factor de premio | Premio base |
-|---|---|---|---|
-| 1 | 100 | 6 | 600 |
-| 2 | 300 | 5,5 | 1.650 |
-| 3 | 900 | 5 | 4.500 |
-| 4 (jefe) | 2.700 | 5 | 13.500 |
-| 5 | 8.100 | 4,5 | 36.450 |
-| 6 | 24.300 | 4 | 97.200 |
-| 7 | 72.900 | 4 | 291.600 |
-| 8 (jefe) | 218.700 | 4 | 874.800 |
-| 9 | 656.100 | 3,5 | 2.296.350 |
-| 10 | 1.968.300 | 3,5 | 6.889.050 |
-| 11 | 5.904.900 | 3,5 | 20.667.150 |
-| 12 (jefe) | 17.714.700 | 3,5 | 62.001.450 |
-
-Plata inicial: $135. Objetivo de diseño: la escalera base sola, gastando lo mínimo en la tienda, no alcanza los $10M de forma confiable. Los multiplicadores de premio hacen la diferencia.
+Plata inicial: $135. Entrada de la ronda 1: $100.
 
 ### 7.2 Multiplicadores de premio
 
@@ -204,17 +224,26 @@ Se multiplican entre sí. Fuentes:
 - Aparece después de cada victoria. Muestra 3 ofertas.
 - Cambiar las ofertas cuesta el 10% de la entrada siguiente, +5% por cada cambio en la misma tienda.
 - Vender un amuleto devuelve el 50% de lo que costó.
-- 4 espacios de amuletos.
-- Precio = porcentaje de la entrada siguiente: común 30%, raro 60%, legendario 120%.
+- **2 espacios de amuletos.**
+- Precio = porcentaje de la entrada siguiente: común 90%, raro 180%, legendario 360%.
+- **Cada amuleto comprado en la run encarece los siguientes un 25%** (ajustable).
 - Se paga con la misma plata de la run.
+- **Mejorar un amuleto** (§8.1): una mejora por tienda.
+
+### 7.3.1 La propina del bar
+
+Al pagar cada entrada, el bar cobra además **el 10% de la plata que tengas por encima de 3 entradas** (ajustable). Ejemplo: entrada de 2.000 y 20.000 en el bolsillo: pagás 2.000 + 10% de (20.000 − 6.000) = 3.400. Con menos de 3 entradas no hay propina, así que nunca te deja sin poder entrar. Castiga juntar plata sin usarla: es la avaricia.
 
 ### 7.4 Fiado y deuda
 
-- **Fiado:** si no te alcanza, podés comprar fiado hasta el doble de tu plata actual.
-- Si sobrevivís, el fiado se descuenta de tu premio antes de entrar al partido siguiente.
-- Si morís, el fiado pendiente se suma a la **deuda**, que pasa a la run siguiente.
-- **Cobro en la run siguiente:** el acreedor descuenta el 50% de cada premio hasta cubrir la deuda.
-- **Sin tope de deuda**, pero si supera **$50.000** (ajustable) aparece **el acreedor** como rival especial antes de la ronda 1. Si le ganás, se borra la deuda; si perdés, la run termina.
+- **Fiado:** si no te alcanza, podés comprar fiado hasta el doble de tu plata actual. El fiado siempre te deja reservada la entrada siguiente.
+- **El fiado no se descuenta de los premios: se suma a la cuenta final** que pagás al ganarle a la Soberbia (§6).
+- **Interés:** lo que debés de fiado crece un **10% por ronda** (ajustable), al pasar a la ronda siguiente.
+- **Retención:** mientras debas fiado, el bar se queda con **el 25% de cada premio** (ajustable) y lo aplica al fiado. El premio de la Soberbia no tiene retención: el fiado que quede se cobra en la cuenta final.
+- Vender un amuleto paga primero el fiado.
+- Si morís, el fiado pendiente se suma a la **deuda arrastrada**, que sube la cuenta final de la run siguiente.
+- Retirarse habiendo pagado la cuenta borra toda la deuda.
+- **El dueño del bar** es quien cobra la cuenta. Como rival especial cuando la deuda arrastrada es enorme: Etapa 4.
 
 ### 7.5 Legado
 
@@ -245,6 +274,26 @@ P = pasivo. A = activo con cargas por partido (entre paréntesis).
 
 El Anillo del meñique queda como amuleto desbloqueable futuro.
 
+### 8.1 Mejoras (niveles I a III)
+
+- En la tienda, **una mejora por visita**. Nivel II: **1,5 ×** el precio base; nivel III: **2,5 ×** (ajustable). El precio sigue a la entrada siguiente y la Cinta roja lo descuenta. Mejorar no sube el contador del +25% (solo las compras lo suben).
+- Vender devuelve el 50% de **todo** lo pagado (compra + mejoras). El legado vuelve a nivel I.
+
+| Amuleto | I | II | III |
+|---|---|---|---|
+| Marcador permanente | 1 carga | 2 cargas | 2 cargas y también cambia el palo |
+| Mazo aparte | 2 cargas | 3 cargas | 3 cargas y elegís entre 2 cartas de la reserva |
+| Cigarrillo | piden mostrar 50% | 35% | 20% |
+| Vaso de caña | 1 carga, sube la sospecha | 2 cargas | 2 cargas sin subir la sospecha |
+| Rosario | 1 carga | 2 cargas | 3 cargas |
+| Facón | 1 carga | 2 cargas | 2 cargas y también obliga a querer la subida |
+| Lentes | número de 1 carta | número de 2 cartas | número y palo de 1 carta |
+| Sombrero | 1 carga | 2 cargas | 2 cargas y además el palo de su carta más alta |
+| Espejo | 2 cargas | 2 cargas, riesgo −30% | 3 cargas, riesgo −30% |
+| Cartas marcadas | 3 cargas | 4 cargas, el riesgo sube más lento | 5 cargas |
+| Cinta roja | −20% | −30% | −40% |
+| Moneda aplastada | ×1,5 | ×1,75 | ×2 |
+
 ## 9. Mazos de condición
 
 Se eligen al empezar la run. Cada uno da un beneficio y un costo.
@@ -262,11 +311,18 @@ Se eligen al empezar la run. Cada uno da un beneficio y un costo.
 
 - **Logros** (por ejemplo, "le ganaste al Tramposo", "pescaste 3 trampas") agregan amuletos y mazos al pool.
 - **Fichas** según cuántas rondas aguantaste. Su uso concreto se define en la Etapa 4.
+- **Noches (niveles de dificultad, estilo Balatro):** retirarte desbloquea la noche siguiente, que suma una regla más dura a las anteriores. Dirección, con ejemplos ajustables: noche 2, propina del 15%; noche 3, las almas sin torpeza; noche 4, entradas +25%; noche 5, sin legado al morir; noche 6, interés del fiado al 20%; noche 7, la Soberbia a 30 con el doble de trampas; noche 8, la cuenta suma 10% de interés sobre la deuda arrastrada. Se implementa con la progresión entre runs (después del Plan 6).
 - Pasan a la run siguiente: deuda, legado (1 amuleto), desbloqueos.
 
 ## 11. Post-game (Etapa 4, solo dirección)
 
-- **Doble o nada:** se ofrece al llegar a $10M. Sus reglas exactas se definen en la Etapa 4.
+- **Seguir después de pagar (la avaricia):** en el MVP es solo un final escrito (la condena eterna). En la Etapa 4 se vuelve jugable como **los círculos** (dirección elegida; se pueden explorar otras):
+  - Un círculo son 7 rondas: los 6 pecados en **versión maldita**, en orden aleatorio, y al final **el Gualicho**, el dueño del bar.
+  - Cada círculo suma una **maldición permanente** del Truco maldito; se acumulan.
+  - Las almas en pena ya no son respiro: son las otras almas condenadas, sombras en las otras mesas.
+  - No hay retiro: se juega hasta perder. Puntaje = círculos aguantados y plata juntada.
+  - **Final verdadero escondido:** ganarle al Gualicho en el **séptimo círculo** rompe el hechizo del bar (la "segunda llave"). Qué pasa exactamente se define en la Etapa 3.
+- **El Gualicho:** nombre del dueño del bar. Cobra "La cuenta" al final de la run normal (§6) y cierra cada círculo del post-game.
 - **Truco maldito:** modo sin fin. Cartas que no existen (vuelven los 8 y 9, una carta sin palo), reglas que cambian en cada mano (por ejemplo, el envido se cuenta al revés), trampas sobrenaturales del dealer a plena vista.
 - **Descartado:** jugar como dealer.
 
