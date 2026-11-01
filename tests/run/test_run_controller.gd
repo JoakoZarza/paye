@@ -79,6 +79,9 @@ func test_ganar_cobra_y_abre_la_tienda() -> void:
 	assert_eq(rc.state.money, 35)
 	_end_match(rc, 0)
 	var events := rc.finish_match()
+	assert_eq(rc.phase, RunController.Phase.ONE_MORE)
+	assert_eq(events[-1].type, &"one_more_offered")
+	rc.skip_one_more()
 	assert_eq(events[0].type, &"prize_paid")
 	assert_eq(events[0].data["total"], 450)
 	assert_eq(rc.state.money, 485)
@@ -167,6 +170,7 @@ func _win_round(rc: RunController) -> void:
 	rc.enter_match()
 	_end_match(rc, 0)
 	rc.finish_match()
+	rc.skip_one_more()
 
 
 func test_tienda_solo_en_su_fase() -> void:
@@ -286,11 +290,13 @@ func test_el_chisme_dura_un_partido() -> void:
 	rc.table().player_cheats_caught = 1
 	_end_match(rc, 0)
 	rc.finish_match()
+	rc.skip_one_more()
 	rc.next_round()
 	rc.enter_match()
 	assert_almost_eq(rc.table().brain.mood.suspicion, 0.3, 0.0001)
 	_end_match(rc, 0)
 	rc.finish_match()
+	rc.skip_one_more()
 	rc.next_round()
 	rc.enter_match()
 	assert_almost_eq(rc.table().brain.mood.suspicion, 0.0, 0.0001)

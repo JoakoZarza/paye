@@ -1,4 +1,4 @@
-﻿extends GutTest
+extends GutTest
 ## Runs completas por RunController jugando Truco de verdad. El jugador es un
 ## DealerBrain con rasgos promedio y sin trampas: un jugador "medio" que no acusa.
 ## También mide cuánto gana ese jugador contra cada ronda, para calibrar la V.
@@ -9,7 +9,7 @@ const MATCHES_PER_ROUND := 120
 const MAX_ACTIONS := 4000
 const MAX_STEPS_PER_HAND := 80
 const P := RunController.Phase
-const VALID_PHASES: Array[RunController.Phase] = [P.BAR, P.MATCH, P.SHOP, P.BILL_HAND, P.FREE,
+const VALID_PHASES: Array[RunController.Phase] = [P.BAR, P.MATCH, P.ONE_MORE, P.SHOP, P.BILL_HAND, P.FREE,
 	P.DEAD, P.RETIRED, P.CONDEMNED]
 const PLAYER_TRAITS := {
 	"id": "jugador", "aggression": 0.5, "lying": 0.3, "cheating": 0.0,
@@ -78,6 +78,8 @@ func _play_run(rc: RunController, player: DealerBrain) -> int:
 				if not _play_match(rc, player):
 					return -1
 				rc.finish_match()
+			P.ONE_MORE:
+				rc.skip_one_more()
 			P.SHOP:
 				_buy_safe(rc)
 				rc.next_round()

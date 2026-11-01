@@ -4,7 +4,7 @@ extends RefCounted
 ## la cuenta final y el después. Emite eventos como el resto del núcleo.
 ## Ver DISENO §6 y §7.
 
-enum Phase { BAR, MATCH, SHOP, BILL_HAND, FREE, DEAD, RETIRED, CONDEMNED }
+enum Phase { BAR, MATCH, ONE_MORE, SHOP, BILL_HAND, FREE, DEAD, RETIRED, CONDEMNED }
 
 const ENDED: Array[Phase] = [Phase.DEAD, Phase.RETIRED, Phase.CONDEMNED]
 const PLAYER := 0
@@ -26,6 +26,9 @@ var _catalog: RivalCatalog
 var _bill_missing: int = 0
 ## Te pescaron haciendo trampa en el último partido: el rival siguiente lo sabe.
 var _gossip := false
+## Una mano más: premio neto que se puede arriesgar y lo que está en juego.
+var _one_more_net := 0
+var _one_more_stake := 0
 var _defs: Dictionary
 var _decks: Dictionary
 var _legacy_snapshot: Array[StringName] = []
@@ -127,11 +130,76 @@ func finish_match() -> Array[GameEvent]:
 	if final:
 		events.append_array(_settle_bill())
 		return events
+	_one_more_net = paid["kept"]
+	_one_more_stake = 0
+	if _one_more_net <= 0:
+		_open_shop()
+		return events
+	phase = Phase.ONE_MORE
+	_checkpoint()
+	events.append(GameEvent.make(&"one_more_offered", {"stake_options": one_more_options()}))
+	return events
+
+
+func _open_shop() -> void:
 	phase = Phase.SHOP
 	# Después de cada pecado, tienda especial (DISENO §6).
 	shop.open(state, rival_for(state.round).sin != RivalCatalog.ALMA)
 	_checkpoint()
-	return events
+
+
+# --- Una mano más (DISENO §6, Plan 5c decisión 7) ---
+
+## Cuánto se puede arriesgar con cada fracción permitida.
+func one_more_options() -> Array[int]:
+	var out: Array[int] = []
+	for f in economy.one_more_fractions:
+		out.append(floori(float(_one_more_net) * f))
+	return out
+
+
+## Arriesga una parte del premio en una mano contra el mismo rival. Después
+## jugá la mano con systems.start_hand() y llamá a finish_one_more().
+func one_more(fraction: float) -> Array[GameEvent]:
+	if phase != Phase.ONE_MORE or _one_more_stake > 0:
+		return [_illegal()]
+	var allowed := false
+	for f in economy.one_more_fractions:
+		allowed = allowed or is_equal_approx(f, fraction)
+	var stake := floori(float(_one_more_net) * fraction)
+	if not allowed or stake <= 0 or stake > state.money:
+		return [_illegal()]
+	state.money -= stake
+	_one_more_stake = stake
+	_open_table(rival_for(state.round), economy.target_points(state.round))
+	_checkpoint()
+	return [GameEvent.make(&"one_more_started", {"stake": stake})]
+
+
+func skip_one_more() -> Array[GameEvent]:
+	if phase != Phase.ONE_MORE or _one_more_stake > 0:
+		return [_illegal()]
+	_open_shop()
+	return [GameEvent.make(&"one_more_skipped", {})]
+
+
+## Gana quien sumó más puntos en esa mano; el empate es del rival. No se muere.
+func finish_one_more() -> Array[GameEvent]:
+	if phase != Phase.ONE_MORE or _one_more_stake <= 0:
+		return [_illegal()]
+	var m := table().truco_match
+	if m.hand == null or (not m.hand.is_over() and m.winner() == -1):
+		return [_illegal()]
+	var stake := _one_more_stake
+	_one_more_stake = 0
+	var event: GameEvent
+	if m.scores[PLAYER] > m.scores[DEALER]:
+		state.money += stake * 2
+		event = GameEvent.make(&"one_more_won", {"amount": stake, "money": state.money})
+	else:
+		event = GameEvent.make(&"one_more_lost", {"amount": stake, "money": state.money})
+	_open_shop()
+	return [event]
 
 
 ## La cuenta del bar: con plata, después vendiendo amuletos y si no alcanza,
