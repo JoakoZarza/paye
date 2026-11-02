@@ -269,7 +269,8 @@ func _decide_playing(view: HandView, me: int, legal: Array[TrucoAction]) -> Truc
 		_emit_tell(st)
 		return truco_call
 	var lost_a_baza := view.baza_results().has(1 - me)
-	if pt < MAZO_STRENGTH and lost_a_baza and view.truco_level() >= MAZO_MIN_LEVEL:
+	# Con el envido ganado no se va al mazo: perdería esos puntos sin mostrar.
+	if pt < MAZO_STRENGTH and lost_a_baza and view.truco_level() >= MAZO_MIN_LEVEL and view.envido_winner() != me:
 		return TrucoAction.make(T.MAZO, me)
 	return TrucoAction.make(T.PLAY_CARD, me, pick_card(view))
 
@@ -327,7 +328,7 @@ func _decide_truco_response(view: HandView, me: int, legal: Array[TrucoAction]) 
 		- profile.stubbornness * TRUCO_ACCEPT_STUBBORN - model.truco_call_rate() * TRUCO_ACCEPT_CALLS
 	if pt >= accept_at:
 		return TrucoAction.make(T.QUIERO, me)
-	if pt < TRUCO_FOLD and profile.stubbornness < FOLD_MAX_STUBBORN:
+	if pt < TRUCO_FOLD and profile.stubbornness < FOLD_MAX_STUBBORN and view.envido_winner() != me:
 		return TrucoAction.make(T.MAZO, me)
 	return TrucoAction.make(T.NO_QUIERO, me)
 

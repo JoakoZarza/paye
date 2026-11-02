@@ -99,10 +99,12 @@ Mejor de 3 bazas. Empate de rango = parda.
 
 El rival suma lo que vale el truco en ese momento (1 si no se cantó; si hay un canto de truco pendiente, lo de "no querido").
 
+Si te vas al mazo **habiendo ganado el envido**, no mostraste tu tanto: **el envido lo cobra el rival**.
+
 ### 3.8 Partido
 
 - Objetivo: **15 puntos** para rivales comunes, **30 puntos** para jefes.
-- El mano se alterna en cada mano. En la primera mano del partido el mano se sortea con la semilla de la run.
+- El mano se alterna en cada mano. En la primera mano del partido **se tira una moneda** (con la semilla de la run) y el juego lo muestra.
 - Gana el primero en llegar al objetivo. Los puntos de envido se suman antes que los del truco.
 
 ## 4. Trampas y acusación
@@ -325,6 +327,11 @@ Se eligen al empezar la run. Cada uno da un beneficio y un costo.
 - **El Gualicho:** nombre del dueño del bar. Cobra "La cuenta" al final de la run normal (§6) y cierra cada círculo del post-game.
 - **Truco maldito:** modo sin fin. Cartas que no existen (vuelven los 8 y 9, una carta sin palo), reglas que cambian en cada mano (por ejemplo, el envido se cuenta al revés), trampas sobrenaturales del dealer a plena vista.
 - **Descartado:** jugar como dealer.
+
+## 11.1 Ideas para más adelante (sin decidir)
+
+- **Monedas en la mesa:** tirar una o dos monedas (o apuestas del folclore, sin salir de la mesa) para sumar puntos, anular un canto, ganar o perder plata. Por ejemplo, un amuleto o una regla de un pecado.
+- **Un ayudante IA** que juegue por vos contrarrestando la IA del rival: como modo de práctica, o como amuleto que da consejos.
 
 ## 12. Alcance del MVP 2D (Etapa 1)
 

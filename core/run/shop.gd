@@ -83,13 +83,21 @@ func upgrade(id: StringName, state: RunState) -> Dictionary:
 ## Paga con plata o fiado. Comprar fiado nunca te deja sin la entrada siguiente
 ## (DISENO §7.4: "si sobrevivís").
 func _pay(price: int, state: RunState) -> Dictionary:
+	var result := quote(price, state)
+	if not result["ok"]:
+		return result
+	state.money -= int(result["paid"])
+	state.fiado += int(result["fiado"])
+	return result
+
+
+## Read-only preview of the exact payment split used by purchases.
+func quote(price: int, state: RunState) -> Dictionary:
 	var reserve := _economy.entry(state.round + 1)
 	var from_money := clampi(state.money - reserve, 0, price)
 	var on_credit := price - from_money
 	if on_credit > state.credit_available(_economy):
-		return _result(false, &"no_credit")
-	state.money -= from_money
-	state.fiado += on_credit
+		return {"ok": false, "reason": &"no_credit", "paid": from_money, "fiado": on_credit}
 	return {"ok": true, "reason": &"", "paid": from_money, "fiado": on_credit}
 
 

@@ -1,0 +1,77 @@
+keys,es
+UI_START_TITLE,Inicio
+UI_BAR_TITLE,Bar
+UI_TABLE_TITLE,La mesa
+UI_ONE_MORE_TITLE,Una mano más
+UI_SHOP_TITLE,Tienda
+UI_FREE_TITLE,Libre
+UI_DEATH_TITLE,Muerte
+UI_ENDING_TITLE,Final
+UI_SIN_IRA,La Ira
+UI_SIN_GULA,La Gula
+UI_SIN_PEREZA,La Pereza
+UI_SIN_ENVIDIA,La Envidia
+UI_SIN_LUJURIA,La Lujuria
+UI_SIN_SOBERBIA,La Soberbia
+UI_SIN_ALMA,Un alma en pena
+UI_SIN_GUALICHO,El Gualicho
+UI_SUIT_ESPADA,espada
+UI_SUIT_BASTO,basto
+UI_SUIT_ORO,oro
+UI_SUIT_COPA,copa
+UI_AMULET_MARKER,Marcador permanente
+UI_AMULET_MARKER_DESC,Cambia el número de una carta tuya durante el partido.
+UI_AMULET_SPARE_DECK,Mazo aparte
+UI_AMULET_SPARE_DECK_DESC,Cambia una carta tuya por otra de la reserva.
+UI_AMULET_CIGARETTE,Cigarrillo
+UI_AMULET_CIGARETTE_DESC,Reduce las veces que el dealer pide mostrar el tanto.
+UI_AMULET_CANA_GLASS,Vaso de caña
+UI_AMULET_CANA_GLASS_DESC,Permite declarar el tanto sin levantar sospechas.
+UI_AMULET_ROSARY,Rosario
+UI_AMULET_ROSARY_DESC,Anula el último canto del rival.
+UI_AMULET_FACON,Facón
+UI_AMULET_FACON_DESC,Obliga al rival a querer tu próximo canto.
+UI_AMULET_GLASSES,Lentes
+UI_AMULET_GLASSES_DESC,Revela el número de cartas del rival.
+UI_AMULET_HAT,Sombrero
+UI_AMULET_HAT_DESC,Revela los números de las cartas del rival.
+UI_AMULET_MIRROR,Espejo
+UI_AMULET_MIRROR_DESC,Revela la mano completa del rival con riesgo de que te pesque.
+UI_AMULET_MARKED_CARDS,Cartas marcadas
+UI_AMULET_MARKED_CARDS_DESC,Revela la carta más alta del rival.
+UI_AMULET_RED_RIBBON,Cinta roja
+UI_AMULET_RED_RIBBON_DESC,Reduce los precios de la tienda.
+UI_AMULET_TRAIN_COIN,Moneda aplastada por el tren
+UI_AMULET_TRAIN_COIN_DESC,Aumenta el premio si ganás sin cantar envido.
+UI_START_META,"Deuda: $%d · Legado: %s · Runs: %d · Mejor ronda: %d"
+UI_START_NONE,Ninguno
+UI_START_LOST,"La run anterior se perdió y su fiado pasó a deuda."
+UI_DECK_NORMAL_NAME,Normal
+UI_DECK_NORMAL_DESC,Partida equilibrada sin modificadores.
+UI_DECK_WIDOW_NAME,Viuda
+UI_DECK_WIDOW_DESC,Doble premio y doble presupuesto de trampas.
+UI_BAR_INFO,"Ronda %d · %s · Entrada $%d · Propina $%d · Objetivo %d · Plata $%d · Fiado $%d · Deuda $%d"
+UI_BAR_SIT,Sentarse
+UI_BAR_CANT_PAY,No te alcanza: morís
+UI_DEATH_INFO,"Llegaste a la ronda %d · Deuda que pasa: $%d"
+UI_ONE_MORE_PRIZE,"Premio: $%d · Fiado: $%d"
+UI_ONE_MORE_STAKE,Arriesgar $%d
+UI_ONE_MORE_SKIP,Seguir sin arriesgar
+UI_SHOP_INFO,"Ronda %d · Plata $%d · Fiado $%d · Próxima entrada $%d"
+UI_SHOP_PREMIUM,Tienda especial
+UI_SHOP_CREDIT," (parte fiado)"
+UI_SHOP_BUY,Comprar
+UI_SHOP_UPGRADE,Mejorar ($%d)
+UI_SHOP_SELL,Vender ($%d)
+UI_SHOP_REROLL,Cambiar ofertas ($%d)
+UI_SHOP_NEXT,Seguir
+UI_FREE_PAID,Cuenta pagada
+UI_FREE_LEFT,Plata que te quedó: $%d
+UI_FREE_RETIRE,Tomarte el colectivo
+UI_FREE_CONDEMN,Pedir otra vuelta
+UI_ENDING_GOOD,"El bar del purgatorio se desvanece mientras subís al colectivo. La noche queda atrás y por fin podés descansar."
+UI_ENDING_GREED,"Te quedás para siempre en el bar. El Gualicho sonríe mientras pedís otra vuelta."
+UI_RARITY_COMMON,Común
+UI_RARITY_RARE,Raro
+UI_RARITY_LEGENDARY,Legendario
+UI_LEVEL,nivel
