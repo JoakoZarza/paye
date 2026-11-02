@@ -5,6 +5,8 @@ extends Node3D
 @export var asset_name: String = ""
 @export var placeholder_size: Vector3 = Vector3.ONE
 @export var placeholder_color: Color = Color(0.45, 0.45, 0.45)
+## Cubo que se ve desde adentro (la habitación).
+@export var placeholder_inside: bool = false
 var models_dir: String = "res://assets/models/"
 var model_ext: String = ".glb"
 
@@ -42,6 +44,8 @@ func _make_placeholder() -> void:
 	_placeholder.position.y = placeholder_size.y * 0.5
 	var material := StandardMaterial3D.new()
 	material.albedo_color = placeholder_color
+	if placeholder_inside:
+		material.cull_mode = BaseMaterial3D.CULL_FRONT
 	_placeholder.material_override = material
 	add_child(_placeholder)
 

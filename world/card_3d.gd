@@ -10,7 +10,10 @@ var card_index: int = -1
 var _card: Card
 var _revealed: bool = false
 var _hover_tween: Tween
-var _rest_y: float = 0.0
+## Altura de reposo; la mesa la actualiza cuando mueve la carta.
+var rest_y: float = 0.0
+## Solo las cartas de tu mano se levantan al pasar el mouse.
+var hoverable: bool = true
 
 @onready var _face: MeshInstance3D = $Face
 @onready var _back: MeshInstance3D = $Back
@@ -19,7 +22,7 @@ var _rest_y: float = 0.0
 
 
 func _ready() -> void:
-	_rest_y = position.y
+	rest_y = position.y
 	var quad := QuadMesh.new()
 	quad.size = CARD_SIZE
 	_face.mesh = quad
@@ -27,8 +30,11 @@ func _ready() -> void:
 	_face.position.z = 0.0005
 	_back.position.z = -0.0005
 	_back.rotation.y = PI
+	_face_label.position.z = 0.001
 	var back_material := StandardMaterial3D.new()
 	back_material.albedo_texture = CardTextures.back()
+	if back_material.albedo_texture == null:
+		back_material.albedo_color = Color("#6E1A1A")
 	back_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	_back.material_override = back_material
 	_face.visible = false
@@ -68,7 +74,7 @@ func set_hover(on: bool) -> void:
 	if _hover_tween != null and _hover_tween.is_running():
 		_hover_tween.kill()
 	_hover_tween = create_tween()
-	_hover_tween.tween_property(self, "position:y", _rest_y + (0.02 if on else 0.0), 0.15)
+	_hover_tween.tween_property(self, "position:y", rest_y + (0.02 if on and hoverable else 0.0), 0.15)
 
 
 func _show_face() -> void:

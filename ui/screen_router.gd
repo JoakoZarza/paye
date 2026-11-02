@@ -13,9 +13,16 @@ const SCREENS := {
 	&"ending": "res://ui/screens/ending_screen.tscn",
 }
 
+## Fondo oscuro para leer las pantallas que no son la mesa sobre el bar 3D.
+const BACKDROP := Color(0.03, 0.03, 0.03, 0.78)
+
 var rc: RunController
+## El bar 3D de fondo; null en la vista 2D.
+var world: Bar3D
+var ps1 := false
 var _screen: BaseScreen
 var _screen_name: StringName = &""
+var _backdrop: ColorRect
 
 
 func setup(p_rc: RunController) -> void:
@@ -59,8 +66,23 @@ func refresh() -> void:
 			placeholder.configure(next_name)
 			_screen = placeholder
 		_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_screen.world = world
+		_screen.ps1 = ps1
+		_update_backdrop(next_name)
 		add_child(_screen)
 		_screen.acted.connect(refresh)
 		_screen.setup(rc)
 	else:
 		_screen.refresh()
+
+
+func _update_backdrop(screen_name: StringName) -> void:
+	if world == null:
+		return
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _backdrop == null:
+		_backdrop = ColorRect.new()
+		_backdrop.color = BACKDROP
+		_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(_backdrop)
+	_backdrop.visible = screen_name != &"table"

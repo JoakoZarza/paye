@@ -23,6 +23,10 @@ var _actions: HFlowContainer
 var _amulets: HFlowContainer
 var _popup_box: VBoxContainer
 var _log: Label
+var _main: VBoxContainer
+var _dealer_title: Label
+var _table_title: Label
+var _player_title: Label
 var _built := false
 
 
@@ -36,7 +40,32 @@ func setup(p_rc: RunController) -> void:
 	presenter.changed.connect(_after_action)
 	presenter.left_table.connect(func() -> void: acted.emit())
 	_timer.wait_time = presenter.dealer_seconds()
+	if world != null:
+		_use_world()
 	super.setup(p_rc)
+
+
+## Vista 3D: las cartas las pone el bar; acá quedan los botones abajo, sin tapar
+## los clics sobre las cartas.
+func _use_world() -> void:
+	for n in [_dealer_row, _table_row, _player_row, _dealer_title, _table_title, _player_title]:
+		n.visible = false
+	# Título y puntaje arriba, botones abajo, el medio libre para ver la mesa.
+	var gap := Control.new()
+	gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_main.add_child(gap)
+	_main.move_child(gap, _phase_label.get_index() + 1)
+	# Botones a la izquierda y registro a la derecha; el centro, libre para el rival y tu mano.
+	_main.size_flags_stretch_ratio = 0.9
+	var middle := Control.new()
+	middle.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	middle.size_flags_stretch_ratio = 1.1
+	var split := _main.get_parent()
+	split.add_child(middle)
+	split.move_child(middle, _main.get_index() + 1)
+	(split.get_child(split.get_child_count() - 1) as Control).size_flags_stretch_ratio = 0.7
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(Table3D.new(world, presenter, ps1))
 
 
 func refresh() -> void:
@@ -68,14 +97,18 @@ func _build() -> void:
 	side.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.add_child(side)
 
+	_main = main
 	_title = _label(main, 26)
 	_score = _label(main)
 	_phase_label = _label(main)
-	_label(main).text = "Cartas del rival"
+	_dealer_title = _label(main)
+	_dealer_title.text = "Cartas del rival"
 	_dealer_row = _row(main)
-	_label(main).text = "En la mesa (rival arriba, vos abajo)"
+	_table_title = _label(main)
+	_table_title.text = "En la mesa (rival arriba, vos abajo)"
 	_table_row = _row(main)
-	_label(main).text = "Tus cartas"
+	_player_title = _label(main)
+	_player_title.text = "Tus cartas"
 	_player_row = _row(main)
 	_actions = HFlowContainer.new()
 	main.add_child(_actions)
@@ -135,6 +168,8 @@ func _clear(node: Node) -> void:
 func _after_action() -> void:
 	_popup_close()
 	_redraw()
+	if world != null:
+		_let_clicks_through(self)
 	_schedule_dealer()
 
 
@@ -156,21 +191,8 @@ func _redraw() -> void:
 	var hand := p.hand()
 	if hand == null:
 		return
-	for c in hand.cards[DEALER]:
-		var l := Label.new()
-		l.text = HIDDEN_CARD
-		_dealer_row.add_child(l)
-	for who in [DEALER, PLAYER]:
-		var played: Array = hand.played[who]
-		for c: Card in played:
-			var l := Label.new()
-			l.text = ("%s: " % ("Rival" if who == DEALER else "Vos")) + card_text(c)
-			_table_row.add_child(l)
-
-	for i in hand.cards[PLAYER].size():
-		var play := p.card_action(i)
-		var b := _button(_player_row, card_text(hand.cards[PLAYER][i]), p.act.bind(play), play != null)
-		b.name = "Card%d" % i
+	if world == null:
+		_draw_cards(hand)
 	if p.hand_finished():
 		_button(_actions, "Seguir", _on_continue).name = "Continue"
 		return
@@ -184,6 +206,36 @@ func _redraw() -> void:
 	if p.can_accuse():
 		_button(_actions, "Acusar…", _show_accuse).name = "Accuse"
 	_draw_amulets()
+
+
+func _draw_cards(hand: TrucoHand) -> void:
+	for c in hand.cards[DEALER]:
+		var l := Label.new()
+		l.text = HIDDEN_CARD
+		_dealer_row.add_child(l)
+	for who in [DEALER, PLAYER]:
+		var played: Array = hand.played[who]
+		for c: Card in played:
+			var l := Label.new()
+			l.text = ("%s: " % ("Rival" if who == DEALER else "Vos")) + card_text(c)
+			_table_row.add_child(l)
+
+	for i in hand.cards[PLAYER].size():
+		var play := presenter.card_action(i)
+		var b := _button(_player_row, card_text(hand.cards[PLAYER][i]), presenter.act.bind(play), play != null)
+		b.name = "Card%d" % i
+
+
+## Solo los botones y selectores atajan el mouse; el resto deja pasar el clic al
+## 3D. Los textos llevan borde para leerse sobre la escena.
+func _let_clicks_through(node: Node) -> void:
+	for c in node.get_children():
+		if c is Control and not (c is BaseButton):
+			(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if c is Label:
+			(c as Label).add_theme_constant_override("outline_size", 6)
+			(c as Label).add_theme_color_override("font_outline_color", Color.BLACK)
+		_let_clicks_through(c)
 
 
 func _draw_tanto_picker() -> void:

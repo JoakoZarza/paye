@@ -5,13 +5,17 @@ extends Node3D
 const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
 const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard"]
 const MARKER_POSITIONS: Dictionary = {
-	"CamSeat": Vector3(0, 1.15, 0.55), "CamBar": Vector3(0, 1.6, 2.2), "CamShop": Vector3(0, 1.6, 2.2),
-	"PlayerHand": Vector3(0, 0.82, 0.35), "DealerHand": Vector3(0, 0.82, -0.35),
-	"Baza1_Player": Vector3(-0.2, 0.76, 0), "Baza1_Dealer": Vector3(-0.2, 0.76, -0.1),
-	"Baza2_Player": Vector3(0, 0.76, 0), "Baza2_Dealer": Vector3(0, 0.76, -0.1),
-	"Baza3_Player": Vector3(0.2, 0.76, 0), "Baza3_Dealer": Vector3(0.2, 0.76, -0.1),
-	"Deck": Vector3(0.38, 0.77, 0), "AmuletTray": Vector3(-0.42, 0.77, 0.25),
-	"Scoreboard": Vector3(0, 2.2, -3.8), "TellAnchor": Vector3(0, 2.0, -0.65)
+	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.55, -2.3),
+	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.76, -0.3),
+	"Baza1_Player": Vector3(-0.12, 0.755, 0.08), "Baza1_Dealer": Vector3(-0.12, 0.755, -0.08),
+	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
+	"Baza3_Player": Vector3(0.12, 0.757, 0.08), "Baza3_Dealer": Vector3(0.12, 0.757, -0.08),
+	"Deck": Vector3(0.33, 0.76, 0), "AmuletTray": Vector3(-0.33, 0.76, 0.25),
+	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7)
+}
+## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
+const MARKER_ROTATIONS: Dictionary = {
+	"CamSeat": Vector2(-20, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
 }
 
 var _slots: Dictionary = {}
@@ -50,6 +54,7 @@ func _build() -> void:
 		asset_slot.placeholder_color = Color.from_string(str(data["color"]), Color.GRAY)
 		asset_slot.position = _vector3(data["position"])
 		asset_slot.rotation.y = deg_to_rad(float(data["rotation_y"]))
+		asset_slot.placeholder_inside = bool(data.get("inside", false))
 		add_child(asset_slot)
 		_slots[asset_key] = asset_slot
 	_add_floor()
@@ -59,6 +64,8 @@ func _build() -> void:
 		var point := Marker3D.new()
 		point.name = marker_name
 		point.position = MARKER_POSITIONS[marker_name]
+		var turn: Vector2 = MARKER_ROTATIONS.get(marker_name, Vector2.ZERO)
+		point.rotation = Vector3(deg_to_rad(turn.x), deg_to_rad(turn.y), 0)
 		add_child(point)
 
 

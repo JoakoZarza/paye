@@ -27,6 +27,8 @@ const ACTION_NAMES := {
 	T.QUIERO: "Quiero", T.NO_QUIERO: "No quiero", T.SON_BUENAS: "Son buenas",
 	T.DEMAND_SHOW: "Mostrame", T.ACCEPT_TANTO: "Está bien", T.MAZO: "Me voy al mazo", T.SHOW_TANTO: "Mostrar el tanto",
 }
+const EVIDENCE_NAMES := {Cheat.Kind.SLEEVE: "tiene una carta de más",
+	Cheat.Kind.DUPLICATE: "una carta repetida", Cheat.Kind.ACCOMPLICE: "alguien mira tus cartas"}
 const TELLS_PATH := "res://data/i18n/tells.csv"
 const UI_JSON := "res://data/ui.json"
 
@@ -292,7 +294,7 @@ func known_text() -> String:
 func evidence_text() -> String:
 	var ev := rc.table().evidence()
 	return "" if ev.is_empty() else "Algo raro en la mesa: %s" % ", ".join(ev.map(
-		func(c: Cheat) -> String: return Cheat.Kind.keys()[c.kind]))
+		func(c: Cheat) -> String: return EVIDENCE_NAMES.get(c.kind, Cheat.Kind.keys()[c.kind])))
 
 
 static func card_text(c: Card) -> String:

@@ -1,0 +1,165 @@
+class_name Table3D
+extends Node
+## Pone en el bar 3D lo que dice el TablePresenter: tus cartas en abanico, las del
+## rival boca abajo, las jugadas en su baza, la pista sobre el rival, la luz según
+## su humor y la pizarra. Los clics en tus cartas vuelven al presentador (Plan 7, Tarea 4).
+
+const CARD_SCENE := preload("res://world/card_3d.tscn")
+const MOVE_SECONDS := 0.25
+const FAN_STEP := 0.07
+## Tu mano, inclinada hacia la cámara; la mesa, boca arriba; el rival, boca abajo.
+const HAND_TILT := deg_to_rad(-45.0)
+const FACE_UP := deg_to_rad(-90.0)
+const FACE_DOWN := deg_to_rad(90.0)
+const LAMP_COLORS := {&"calm": Color("#ffc77a"), &"nervous": Color("#e8d08a"),
+	&"smug": Color("#ffb45a"), &"angry": Color("#ff7a52")}
+const LAMP_DEFAULT := Color("#ffc77a")
+const PLAYER := TablePresenter.PLAYER
+const DEALER := TablePresenter.DEALER
+
+var bar: Bar3D
+var presenter: TablePresenter
+var ps1 := false
+
+var _root: Node3D
+## Card -> Card3D. Es la única referencia a las cartas del rival: el árbol de nodos
+## no sabe nada de ellas hasta que se revelan.
+var _cards: Dictionary = {}
+var _revealed: Dictionary = {}
+var _tell: Label3D
+var _score: Label3D
+
+
+func _init(p_bar: Bar3D, p_presenter: TablePresenter, p_ps1 := false) -> void:
+	bar = p_bar
+	presenter = p_presenter
+	ps1 = p_ps1
+
+
+func _ready() -> void:
+	_root = Node3D.new()
+	_root.name = "TableCards"
+	bar.add_child(_root)
+	_tell = _label3d(bar.marker("TellAnchor"), 48)
+	_tell.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_score = _label3d(bar.marker("Scoreboard"), 96)
+	_score.modulate = Color("#D8C9A3")
+	presenter.changed.connect(sync)
+	sync()
+
+
+func _exit_tree() -> void:
+	if is_instance_valid(_root):
+		_root.queue_free()
+	if is_instance_valid(_tell):
+		_tell.queue_free()
+	if is_instance_valid(_score):
+		_score.queue_free()
+	if not is_instance_valid(bar):
+		return
+	var light := bar.get_node_or_null("LampLight") as Light3D
+	if light != null:
+		light.light_color = LAMP_DEFAULT
+
+
+func _label3d(parent: Node3D, size: int) -> Label3D:
+	var l := Label3D.new()
+	l.font_size = size
+	l.pixel_size = 0.002
+	l.outline_size = 8
+	parent.add_child(l)
+	return l
+
+
+func card_nodes() -> Array[Card3D]:
+	var out: Array[Card3D] = []
+	for c in _cards.values():
+		out.append(c)
+	return out
+
+
+## Nodo de tu carta i en la mano, o null.
+func player_card(i: int) -> Card3D:
+	var h := presenter.hand()
+	if h == null or i >= h.cards[PLAYER].size():
+		return null
+	return _cards.get(h.cards[PLAYER][i])
+
+
+func sync() -> void:
+	var h := presenter.hand()
+	var wanted := {}
+	if h != null:
+		var mine: Array = h.cards[PLAYER]
+		for i in mine.size():
+			var pos := bar.marker("PlayerHand").position + Vector3((i - (mine.size() - 1) * 0.5) * FAN_STEP, 0.0, 0.0)
+			_place(mine[i], i, false, pos, Vector3(HAND_TILT, 0, 0), true)
+			wanted[mine[i]] = true
+		var theirs: Array = h.cards[DEALER]
+		for i in theirs.size():
+			var pos := bar.marker("DealerHand").position + Vector3((i - (theirs.size() - 1) * 0.5) * FAN_STEP, 0.0, 0.0)
+			_place(theirs[i], i, true, pos, Vector3(FACE_DOWN, PI, 0), false)
+			wanted[theirs[i]] = true
+		for who in [PLAYER, DEALER]:
+			var played: Array = h.played[who]
+			for b in played.size():
+				# Con la manga el rival puede jugar una cuarta carta: va encima de la tercera.
+				var marker := bar.marker("Baza%d_%s" % [mini(b + 1, 3), "Player" if who == PLAYER else "Dealer"])
+				var pos := marker.position + Vector3(0, 0.001 * maxi(b - 2, 0), 0)
+				_place(played[b], -1, who == DEALER, pos, Vector3(FACE_UP, 0, 0), false, true)
+				wanted[played[b]] = true
+	for card in _cards.keys():
+		if not wanted.has(card):
+			(_cards[card] as Node).queue_free()
+			_cards.erase(card)
+			_revealed.erase(card)
+	_sync_tell()
+	var m := presenter.rc.table().truco_match
+	_score.text = "VOS  %d\n%s  %d" % [m.scores[PLAYER], presenter.sin_name().to_upper(), m.scores[DEALER]]
+
+
+func _place(card: Card, index: int, dealer: bool, pos: Vector3, rot: Vector3, hoverable: bool,
+		reveal := false) -> void:
+	var node: Card3D = _cards.get(card)
+	if node == null:
+		node = CARD_SCENE.instantiate()
+		node.position = bar.marker("Deck").position
+		node.rotation = Vector3(FACE_DOWN, 0, 0)
+		_root.add_child(node)
+		node.setup_card(card, index, dealer, not dealer)
+		if not dealer:
+			_revealed[card] = true
+		node.clicked.connect(_on_card_clicked)
+		_cards[card] = node
+		if ps1:
+			Ps1Material.apply(node)
+	node.card_index = index
+	node.hoverable = hoverable
+	if reveal and not _revealed.has(card):
+		node.reveal(card)
+		_revealed[card] = true
+		if ps1:
+			Ps1Material.apply(node)
+	node.rest_y = pos.y
+	if node.position.distance_to(pos) < 0.001 and node.rotation.distance_to(rot) < 0.001:
+		return
+	if not node.is_inside_tree():
+		node.position = pos
+		node.rotation = rot
+		return
+	var tw := node.create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(node, "position", pos, MOVE_SECONDS)
+	tw.tween_property(node, "rotation", rot, MOVE_SECONDS)
+
+
+func _on_card_clicked(index: int) -> void:
+	if index >= 0:
+		presenter.act(presenter.card_action(index))
+
+
+func _sync_tell() -> void:
+	var t := presenter.tell()
+	_tell.text = "" if t.is_empty() else "«%s»\n%s" % [t["text"], t["icon"]]
+	var light := bar.get_node_or_null("LampLight") as Light3D
+	if light != null:
+		light.light_color = LAMP_COLORS.get(t.get("kind", &""), LAMP_DEFAULT)
