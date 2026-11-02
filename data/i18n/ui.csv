@@ -57,14 +57,7 @@ UI_DEATH_INFO,"Llegaste a la ronda %d · Deuda que pasa: $%d"
 UI_ONE_MORE_PRIZE,"Premio: $%d · Fiado: $%d"
 UI_ONE_MORE_STAKE,Arriesgar $%d
 UI_ONE_MORE_SKIP,Seguir sin arriesgar
-UI_SHOP_INFO,"Ronda %d · Plata $%d · Fiado $%d · Próxima entrada $%d"
-UI_SHOP_PREMIUM,Tienda especial
-UI_SHOP_CREDIT," (parte fiado)"
 UI_SHOP_BUY,Comprar
-UI_SHOP_UPGRADE,Mejorar ($%d)
-UI_SHOP_SELL,Vender ($%d)
-UI_SHOP_REROLL,Cambiar ofertas ($%d)
-UI_SHOP_NEXT,Seguir
 UI_FREE_PAID,Cuenta pagada
 UI_FREE_LEFT,Plata que te quedó: $%d
 UI_FREE_RETIRE,Tomarte el colectivo
@@ -75,3 +68,27 @@ UI_RARITY_COMMON,Común
 UI_RARITY_RARE,Raro
 UI_RARITY_LEGENDARY,Legendario
 UI_LEVEL,nivel
+UI_SHOP_PREMIUM,"especial: solo raros y legendarios"
+UI_SHOP_MONEY,"Tenés $%d · Debés $%d de fiado · Próxima entrada $%d, ya guardada"
+UI_SHOP_HELP,"Comprás con lo que te sobra después de guardar la próxima entrada. Si no alcanza, lo que falta va fiado: crece 10% por ronda y, mientras debas, te retienen el 25% de cada premio."
+UI_SHOP_OFFERS,Ofertas
+UI_SHOP_YOURS,"Tus amuletos (%d de %d lugares)"
+UI_SHOP_EMPTY_SLOT,Lugar vacío
+UI_SHOP_SOLD_OUT,No quedan ofertas. Podés cambiarlas.
+UI_SHOP_PRICE,$%d
+UI_SHOP_SPLIT,"Pagás $%d y $%d va fiado."
+UI_SHOP_WHY_FULL,"Tus 2 lugares están ocupados: vendé uno para comprar."
+UI_SHOP_WHY_MONEY,"No te alcanza, ni fiado."
+UI_SHOP_WHY_UPGRADED,Solo una mejora por visita.
+UI_SHOP_MAX_LEVEL,Nivel máximo.
+UI_SHOP_UPGRADE,"Mejorar a nivel %s ($%d)"
+UI_SHOP_SELL,Vender ($%d)
+UI_SHOP_REROLL,Cambiar las ofertas ($%d)
+UI_SHOP_NEXT,Seguir al bar
+UI_SHOP_BOUGHT,Compraste %s.
+UI_SHOP_BOUGHT_FIADO,"Quedaron $%d fiados."
+UI_SHOP_UPGRADED,Mejoraste %s.
+UI_SHOP_SOLD,"Vendiste %s por $%d."
+UI_SHOP_REROLLED,Ofertas nuevas.
+UI_SHOP_FAILED,No se pudo.
+UI_LEVEL_N,Nivel %s

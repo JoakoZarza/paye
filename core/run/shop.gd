@@ -49,6 +49,14 @@ func buy(index: int, state: RunState) -> Dictionary:
 	return pay
 
 
+func is_premium() -> bool:
+	return _premium
+
+
+func can_upgrade_now() -> bool:
+	return not _upgraded
+
+
 ## Precio para subir un nivel; -1 si no está equipado o ya está al máximo.
 ## Usa el precio base de la rareza, sin el +25% por compra.
 func upgrade_price(id: StringName, state: RunState) -> int:
