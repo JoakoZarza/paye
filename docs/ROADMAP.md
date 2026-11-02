@@ -39,7 +39,13 @@ Cada tarea de cada plan dice quién la ejecuta. Ninguna entrega se da por buena 
 
 ## Etapa 2 — Port 3D con modelos básicos
 
-Reemplazar `ui/` por escenas 3D simples (mesa, lámpara, rival, cartas) que consumen los mismos eventos del núcleo. `core/` no cambia. Se planifica al terminar la Etapa 1.
+Reemplazar `ui/` por escenas 3D simples (mesa, lámpara, rival, cartas) que consumen los mismos eventos del núcleo. `core/` no cambia.
+
+| Plan | Contenido | Ejecuta | Se prueba con |
+|---|---|---|---|
+| 7. Mesa 3D | Presentador de la mesa, bar con huecos y cubos, cartas 3D, mesa jugable, cámara por fase, filtro PS1, control de assets | Claude + Codex | Run completa en 3D; Joako juega |
+
+**Joako, en paralelo:** modelos, texturas y concept art según [ASSETS.md](ASSETS.md). Cada modelo reemplaza a su cubo sin tocar código.
 
 ## Etapa 3 — Estética y lore
 
