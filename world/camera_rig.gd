@@ -37,10 +37,10 @@ func go_to_phase(phase: RunController.Phase, instant := false) -> void:
 	var name := marker_for(phase)
 	if name == target_marker:
 		return
-	target_marker = name
 	var marker := bar.marker(String(name))
 	if marker == null:
 		return
+	target_marker = name
 	if _tween != null:
 		_tween.kill()
 	if instant or not is_inside_tree():
@@ -60,7 +60,7 @@ func _process(delta: float) -> void:
 	if mouse_look and target_marker == &"CamSeat" and get_viewport() != null:
 		var size := get_viewport().get_visible_rect().size
 		if size.x > 0.0 and size.y > 0.0:
-			var m := get_viewport().get_mouse_position() / size * 2.0 - Vector2.ONE
+			var m := (get_viewport().get_mouse_position() / size * 2.0 - Vector2.ONE).clamp(-Vector2.ONE, Vector2.ONE)
 			wanted = Vector2(-m.x * LOOK_YAW, -m.y * LOOK_PITCH)
 	_look = _look.lerp(wanted, clampf(delta * LOOK_SMOOTH, 0.0, 1.0))
 	# Girar sobre el eje vertical del mundo y cabecear sobre el propio, para que la

@@ -10,6 +10,9 @@ var card_index: int = -1
 var _card: Card
 var _revealed: bool = false
 var _hover_tween: Tween
+var _move_tween: Tween
+## Número y palo que muestra la cara.
+var _shown := Vector2i(-1, -1)
 ## Altura de reposo; la mesa la actualiza cuando mueve la carta.
 var rest_y: float = 0.0
 ## Solo las cartas de tu mano se levantan al pasar el mouse.
@@ -70,7 +73,30 @@ func press() -> void:
 		clicked.emit(card_index)
 
 
+## Mueve la carta a su lugar; un movimiento nuevo corta al anterior y al de hover.
+func move_to(pos: Vector3, rot: Vector3, seconds: float) -> void:
+	rest_y = pos.y
+	if _move_tween != null and _move_tween.is_running():
+		_move_tween.kill()
+	if _hover_tween != null and _hover_tween.is_running():
+		_hover_tween.kill()
+	if not is_inside_tree():
+		position = pos
+		rotation = rot
+		return
+	_move_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_move_tween.tween_property(self, "position", pos, seconds)
+	_move_tween.tween_property(self, "rotation", rot, seconds)
+
+
+## La cara mostrada ya no coincide con la carta (el Marcador la cambió).
+func face_is_stale(p_card: Card) -> bool:
+	return _revealed and _shown != Vector2i(p_card.effective_number(), p_card.effective_suit())
+
+
 func set_hover(on: bool) -> void:
+	if _move_tween != null and _move_tween.is_running():
+		return
 	if _hover_tween != null and _hover_tween.is_running():
 		_hover_tween.kill()
 	_hover_tween = create_tween()
@@ -80,6 +106,7 @@ func set_hover(on: bool) -> void:
 func _show_face() -> void:
 	if _card == null or not is_inside_tree():
 		return
+	_shown = Vector2i(_card.effective_number(), _card.effective_suit())
 	var texture: Texture2D = CardTextures.face(_card)
 	if texture != null:
 		var material := StandardMaterial3D.new()

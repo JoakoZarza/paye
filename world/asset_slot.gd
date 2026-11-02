@@ -9,6 +9,8 @@ extends Node3D
 @export var placeholder_inside: bool = false
 var models_dir: String = "res://assets/models/"
 var model_ext: String = ".glb"
+## Con el filtro PS1, el modelo (o el cubo) usa su material.
+var ps1 := false
 
 var _loaded_model: Node3D
 var _placeholder: MeshInstance3D
@@ -31,8 +33,10 @@ func _load_asset() -> void:
 			if _loaded_model != null:
 				add_child(_loaded_model)
 				_apply_nearest(_loaded_model)
-				return
-	_make_placeholder()
+	if _loaded_model == null:
+		_make_placeholder()
+	if ps1:
+		Ps1Material.apply(self)
 
 
 func _make_placeholder() -> void:

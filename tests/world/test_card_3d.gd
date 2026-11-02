@@ -33,3 +33,17 @@ func test_click_emite_indice_de_mano() -> void:
 	watch_signals(card_3d)
 	card_3d.press()
 	assert_signal_emitted_with_parameters(card_3d, "clicked", [1])
+
+func test_el_marcador_vuelve_vieja_la_cara() -> void:
+	var card := Card.new(Card.Suit.COPA, 7)
+	var card_3d := load("res://world/card_3d.tscn").instantiate() as Card3D
+	card_3d.setup_card(card, 0, false)
+	add_child_autofree(card_3d)
+	assert_false(card_3d.face_is_stale(card))
+	var modifier := CardModifier.new()
+	modifier.new_number = 4
+	card.add_modifier(modifier)
+	assert_true(card_3d.face_is_stale(card))
+	card_3d.reveal(card)
+	assert_false(card_3d.face_is_stale(card))
+	assert_eq((card_3d.get_node("FaceLabel") as Label3D).text, "4\ncopa")

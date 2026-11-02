@@ -91,13 +91,16 @@ func _check_model_bounds(root: Node3D, file_name: String, limit: Dictionary) -> 
 	assert_true(absf(bounds.position.y) <= 0.05, "%s no está apoyado en Y=0 (base en %.2f m)" % [file_name, bounds.position.y])
 
 
-## Transformación de node relativa a root (el modelo no está en el árbol de escena).
+## Transformación de node hasta el padre de root, incluida la escala de la raíz
+## (el modelo no está en el árbol de escena).
 func _transform_to(root: Node3D, node: Node3D) -> Transform3D:
 	var t := Transform3D.IDENTITY
 	var current: Node = node
-	while current != null and current != root:
+	while current != null:
 		if current is Node3D:
 			t = (current as Node3D).transform * t
+		if current == root:
+			break
 		current = current.get_parent()
 	return t
 

@@ -18,6 +18,8 @@ const MARKER_ROTATIONS: Dictionary = {
 	"CamSeat": Vector2(-20, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
 }
 
+## Se fija antes de entrar al árbol: los huecos aplican el filtro PS1 al cargar.
+var ps1 := false
 var _slots: Dictionary = {}
 
 
@@ -55,6 +57,7 @@ func _build() -> void:
 		asset_slot.position = _vector3(data["position"])
 		asset_slot.rotation.y = deg_to_rad(float(data["rotation_y"]))
 		asset_slot.placeholder_inside = bool(data.get("inside", false))
+		asset_slot.ps1 = ps1
 		add_child(asset_slot)
 		_slots[asset_key] = asset_slot
 	_add_floor()

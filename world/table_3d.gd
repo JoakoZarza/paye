@@ -135,21 +135,16 @@ func _place(card: Card, index: int, dealer: bool, pos: Vector3, rot: Vector3, ho
 			Ps1Material.apply(node)
 	node.card_index = index
 	node.hoverable = hoverable
-	if reveal and not _revealed.has(card):
+	if (reveal and not _revealed.has(card)) or node.face_is_stale(card):
 		node.reveal(card)
 		_revealed[card] = true
 		if ps1:
 			Ps1Material.apply(node)
-	node.rest_y = pos.y
-	if node.position.distance_to(pos) < 0.001 and node.rotation.distance_to(rot) < 0.001:
+	# Ya está en su lugar (sin contar lo que se levanta por el hover): no se toca.
+	var at_rest := Vector3(node.position.x, node.rest_y, node.position.z)
+	if is_equal_approx(node.rest_y, pos.y) and at_rest.distance_to(pos) < 0.001 and node.rotation.distance_to(rot) < 0.001:
 		return
-	if not node.is_inside_tree():
-		node.position = pos
-		node.rotation = rot
-		return
-	var tw := node.create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_property(node, "position", pos, MOVE_SECONDS)
-	tw.tween_property(node, "rotation", rot, MOVE_SECONDS)
+	node.move_to(pos, rot, MOVE_SECONDS)
 
 
 func _on_card_clicked(index: int) -> void:

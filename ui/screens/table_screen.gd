@@ -300,6 +300,7 @@ func _show_accuse() -> void:
 	for o in presenter.accuse_options():
 		_button(row, o["text"], _accuse.bind(o["accusation"])).name = o["name"]
 	_button(row, "Cancelar", _popup_close)
+	_popup_built()
 
 
 func _accuse(acc: Accusation) -> void:
@@ -353,6 +354,7 @@ func _show_marker() -> void:
 		_use_amulet(&"marker", {"card_index": card.get_selected_id(), "number": number.get_selected_id(),
 			"suit": suit.get_selected_id()}))
 	_button(row, "Cancelar", _popup_close)
+	_popup_built()
 
 
 func _show_spare() -> void:
@@ -373,6 +375,12 @@ func _show_spare() -> void:
 			args["choice"] = choice.get_selected_id()
 		_use_amulet(&"spare_deck", args))
 	_button(row, "Cancelar", _popup_close)
+	_popup_built()
+
+
+func _popup_built() -> void:
+	if world != null:
+		_let_clicks_through(_popup_box)
 
 
 func _popup_close() -> void:

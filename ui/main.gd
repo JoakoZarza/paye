@@ -29,6 +29,7 @@ func _build_world(ps1: bool) -> void:
 	view.configure(ps1)
 	add_child(view)
 	bar = (load(BAR_SCENE) as PackedScene).instantiate() as Bar3D
+	bar.ps1 = ps1
 	view.add_world(bar)
 	if ps1:
 		Ps1Material.apply(bar)

@@ -1,6 +1,9 @@
 shader_type spatial;
 // Material PS1: vértices que se pegan a una grilla de pantalla (tiemblan al
 // moverse), texturas sin filtro y deformación afín como en la PlayStation.
+// Dos caras: la habitación provisoria se ve desde adentro y los modelos de IA
+// a veces traen normales dadas vuelta.
+render_mode cull_disabled;
 
 uniform sampler2D albedo_texture : source_color, filter_nearest, repeat_enable;
 uniform vec4 albedo : source_color = vec4(1.0);
@@ -10,6 +13,7 @@ uniform vec2 snap_resolution = vec2(320.0, 180.0);
 // 0 = texturas correctas, 1 = deformación afín completa.
 uniform float affine_strength : hint_range(0.0, 1.0) = 0.6;
 
+// UV*w y w se interpolan con perspectiva; su cociente da la interpolación afín.
 varying vec3 affine_uv;
 
 void vertex() {
