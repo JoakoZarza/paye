@@ -97,7 +97,7 @@ Mejor de 3 bazas. Empate de rango = parda.
 
 ### 3.7 Irse al mazo
 
-El rival suma lo que vale el truco en ese momento (1 si no se cantó; si hay un canto de truco pendiente, lo de "no querido").
+El rival suma lo que vale el truco en ese momento (1 si no se cantó; si hay un canto de truco pendiente, lo de "no querido"). Irse en la primera baza sin que se haya cantado envido también da 1: algunos reglamentos dan 2 por el envido que se podía cantar, pero Joako eligió 1 (ver [TRUCO_REGLAS.md](TRUCO_REGLAS.md)).
 
 Si te vas al mazo **habiendo ganado el envido**, no mostraste tu tanto: **el envido lo cobra el rival**.
 
