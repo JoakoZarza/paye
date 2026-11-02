@@ -44,12 +44,12 @@ func test_catalogo_tiene_seis_pecados_almas_y_gualicho() -> void:
 
 func test_valores_de_estallido() -> void:
 	var profile: RivalProfile = RivalProfile.load_catalog()[&"ira"][0]
-	assert_almost_eq(profile.aggression, 0.8, 0.0001)
+	assert_almost_eq(profile.aggression, 0.7, 0.0001)
 	assert_almost_eq(profile.lying, 0.3, 0.0001)
 	assert_almost_eq(profile.cheating, 0.5, 0.0001)
-	assert_almost_eq(profile.stubbornness, 0.6, 0.0001)
+	assert_almost_eq(profile.stubbornness, 0.5, 0.0001)
 	assert_almost_eq(profile.tell_reliability, 0.75, 0.0001)
-	assert_eq(profile.cheat_budget, 2)
+	assert_eq(profile.cheat_budget, 1)
 	assert_almost_eq(float(profile.cheat_weights["SLEEVE"]), 1.0, 0.0001)
 	assert_almost_eq(profile.tilt_multiplier, 2.0, 0.0001)
 	assert_eq(profile.special, &"")
@@ -79,9 +79,9 @@ func test_jitter_no_modifica_el_original() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
 	var copy: RivalProfile = original.jittered(rng, 0.05)
-	assert_almost_eq(original.aggression, 0.8, 0.0001)
+	assert_almost_eq(original.aggression, 0.7, 0.0001)
 	assert_almost_eq(original.lying, 0.3, 0.0001)
-	assert_eq(original.cheat_budget, 2)
+	assert_eq(original.cheat_budget, 1)
 	assert_ne(copy, original)
 
 
