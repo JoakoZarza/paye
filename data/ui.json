@@ -1,5 +1,6 @@
 {
   "dealer_step_seconds": 0.6,
   "view": "3d",
-  "ps1": true
+  "ps1": true,
+  "ps1_shrink": 2
 }

@@ -4,8 +4,8 @@ extends SubViewportContainer
 ## de colores PS1. El HUD va afuera, a resolución completa (Plan 7, Tarea 6).
 
 const POST := preload("res://world/ps1/ps1_post.gdshader")
-## 1280×720 / 4 = 320×180.
-const SHRINK := 4
+## Por defecto 1280×720 / 2 = 640×360. Se cambia con "ps1_shrink" en data/ui.json.
+const SHRINK := 2
 
 var viewport: SubViewport
 
@@ -22,8 +22,8 @@ func _init() -> void:
 
 
 ## ps1 false: resolución completa y sin pasada de colores, para comparar.
-func configure(ps1: bool) -> void:
-	stretch_shrink = SHRINK if ps1 else 1
+func configure(ps1: bool, shrink := SHRINK) -> void:
+	stretch_shrink = shrink if ps1 else 1
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if ps1 else CanvasItem.TEXTURE_FILTER_LINEAR
 	if ps1:
 		var post := ShaderMaterial.new()

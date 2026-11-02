@@ -5,10 +5,14 @@ extends RefCounted
 
 const SHADER := preload("res://world/ps1/ps1.gdshader")
 
+## Grilla de los vértices: la misma resolución que la vista baja.
+static var snap_resolution := Vector2(640, 360)
+
 
 static func from_material(source: Material) -> ShaderMaterial:
 	var out := ShaderMaterial.new()
 	out.shader = SHADER
+	out.set_shader_parameter("snap_resolution", snap_resolution)
 	if source is BaseMaterial3D:
 		var base := source as BaseMaterial3D
 		out.set_shader_parameter("albedo", base.albedo_color)

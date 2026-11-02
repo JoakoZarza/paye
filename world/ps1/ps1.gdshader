@@ -9,7 +9,7 @@ uniform sampler2D albedo_texture : source_color, filter_nearest, repeat_enable;
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform bool has_texture = false;
 // Resolución de la grilla a la que se pegan los vértices.
-uniform vec2 snap_resolution = vec2(320.0, 180.0);
+uniform vec2 snap_resolution = vec2(640.0, 360.0);
 // 0 = texturas correctas, 1 = deformación afín completa.
 uniform float affine_strength : hint_range(0.0, 1.0) = 0.6;
 

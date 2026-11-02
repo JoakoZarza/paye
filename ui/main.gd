@@ -18,15 +18,17 @@ func _ready() -> void:
 	var config: Dictionary = get_meta("force_view") if has_meta("force_view") else load_config()
 	router = ScreenRouter.new()
 	if String(config.get("view", "2d")) == "3d":
-		_build_world(bool(config.get("ps1", true)))
+		_build_world(bool(config.get("ps1", true)), int(config.get("ps1_shrink", LowResView.SHRINK)))
 	router.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(router)
 	router.setup(rc)
 
 
-func _build_world(ps1: bool) -> void:
+func _build_world(ps1: bool, shrink: int) -> void:
+	shrink = maxi(shrink, 1)
+	Ps1Material.snap_resolution = Vector2(1280, 720) / shrink
 	var view := LowResView.new()
-	view.configure(ps1)
+	view.configure(ps1, shrink)
 	add_child(view)
 	bar = (load(BAR_SCENE) as PackedScene).instantiate() as Bar3D
 	bar.ps1 = ps1
