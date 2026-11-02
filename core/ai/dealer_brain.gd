@@ -28,12 +28,12 @@ const SECOND_LIE := 0.8
 const SECOND_LIE_SPREAD := 4
 
 const SHOW_BASE := 0.15
-const SHOW_LIES := 0.4
+const SHOW_LIES := 0.6
 const SHOW_HIGH_CLAIM := 31
-const SHOW_HIGH_BONUS := 0.1
+const SHOW_HIGH_BONUS := 0.2
 const SHOW_GAP := 5
-const SHOW_GAP_BONUS := 0.15
-const SHOW_MAX := 0.7
+const SHOW_GAP_BONUS := 0.2
+const SHOW_MAX := 0.9
 
 const TRUCO_CALL := 0.7
 const TRUCO_CALL_AGGR := 0.45

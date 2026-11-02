@@ -2,42 +2,40 @@
   "ira": [
     {
       "variant": "estallido",
-      "aggression": 0.7,
+      "aggression": 0.8,
       "lying": 0.3,
       "cheating": 0.5,
-      "stubbornness": 0.5,
+      "stubbornness": 0.6,
       "tell_reliability": 0.75,
-      "cheat_budget": 1,
+      "cheat_budget": 2,
       "cheat_weights": {
         "SLEEVE": 1
       },
       "special": "",
       "tilt_multiplier": 2,
-      "noise": 0.25,
-      "blunder": 0.15
+      "noise": 0.15
     },
     {
       "variant": "rencor",
-      "aggression": 0.6,
+      "aggression": 0.7,
       "lying": 0.3,
       "cheating": 0.4,
-      "stubbornness": 0.6,
+      "stubbornness": 0.7,
       "tell_reliability": 0.7,
-      "cheat_budget": 1,
+      "cheat_budget": 2,
       "cheat_weights": {
         "SLEEVE": 1
       },
       "special": "rencor",
       "tilt_multiplier": 1,
-      "noise": 0.25,
-      "blunder": 0.15
+      "noise": 0.15
     },
     {
       "variant": "mecha_corta",
-      "aggression": 0.85,
+      "aggression": 0.95,
       "lying": 0.2,
       "cheating": 0.3,
-      "stubbornness": 0.4,
+      "stubbornness": 0.5,
       "tell_reliability": 0.9,
       "cheat_budget": 1,
       "cheat_weights": {
@@ -45,8 +43,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
-      "noise": 0.25,
-      "blunder": 0.15
+      "noise": 0.15
     }
   ],
   "gula": [
