@@ -19,7 +19,7 @@ Cada tarea de cada plan dice quién la ejecuta. Ninguna entrega se da por buena 
 - [x] Node 24 ya instalado; Codex CLI 0.165.0 y plugin `codex@openai-codex` instalados.
 - [x] Gemini CLI 0.66.0 instalado.
 - [x] Iniciar sesión en Codex (`codex login`) y correr `/codex:setup`.
-- [ ] Gemini CLI: el inicio de sesión falló (el plan gratis pasó a Antigravity CLI). Se resuelve en el Plan 6.
+- [ ] Gemini CLI: el inicio de sesión falló (el plan gratis pasó a Antigravity CLI). El Plan 6 se hizo sin Gemini.
 - [ ] Crear el repositorio privado `JoakoZarza/paye` en GitHub y conectarlo (lo hacemos juntos cuando llegue el momento).
 
 ## Etapa 1 — MVP 2D
@@ -31,11 +31,11 @@ Cada tarea de cada plan dice quién la ejecuta. Ninguna entrega se da por buena 
 | 3. Trampas ✅ | Trampas del dealer, acusación, trampas del jugador, sospecha | Claude + Codex | Tests: toda trampa deja evidencia |
 | 4. Amuletos y mazos ✅ | Sistema de modificadores, 12 amuletos, mazos Normal y Viuda | Codex, revisa Claude | Tests por amuleto |
 | 5. Run y economía ✅ (con 5b y 5c) | Rondas, entrada y premio, multiplicadores, tienda, fiado, deuda, legado, muerte; diseño v2 (9 rondas con pecados y almas, la cuenta del Gualicho); economía más dura (propina, interés y retención del fiado, mejoras de amuletos, una mano más) | Claude + Codex | Simulación de miles de runs y runs completas con IA |
-| 6. Pantallas 2D | Bar, mesa, apuesta, partido, acusación, tienda, muerte, final | Gemini/Qwen, revisa Claude | Joako juega runs completas |
+| 6. Pantallas 2D ✅ | Bar, mesa, apuesta, partido, acusación, tienda, muerte, final; `Jugar.cmd` para abrir el juego | Claude + Codex | Runs completas por las pantallas; Joako juega runs completas |
 
 **Fin de la Etapa 1:** Joako juega runs completas en 2D, de la entrada al bar a los $10M o a la muerte.
 
-**Para calibrar jugando en el Plan 6:** la ventaja humana (pistas y acusaciones), lo que suma cada amuleto y si se nota la curva en V de las almas. La simulación solo puede estimarlos.
+**Pendiente: calibrar jugando** (Joako todavía no tuvo tiempo de jugar runs largas): la ventaja humana (pistas y acusaciones), lo que suma cada amuleto y si se nota la curva en V de las almas. La simulación solo puede estimarlos.
 
 ## Etapa 2 — Port 3D con modelos básicos
 
