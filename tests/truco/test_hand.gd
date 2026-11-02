@@ -360,10 +360,22 @@ func test_irse_al_mazo_con_el_envido_ganado_lo_pierde() -> void:
 	h.apply(TrucoAction.make(TrucoAction.Type.QUIERO, 1))
 	h.apply(TrucoAction.make(TrucoAction.Type.DECLARE_TANTO, 0, -1, 33))
 	h.apply(TrucoAction.make(TrucoAction.Type.SON_BUENAS, 1))
-	var events := h.apply(TrucoAction.make(TrucoAction.Type.MAZO, 0))
+	h.apply(TrucoAction.make(TrucoAction.Type.MAZO, 0))
+	assert_eq(h.phase, TrucoHand.Phase.SHOW_DECISION, "el rival puede reclamarlo")
+	assert_true(h.mazo_unshown())
+	var events := h.apply(TrucoAction.make(TrucoAction.Type.DEMAND_SHOW, 1))
 	assert_true(events.any(func(e: GameEvent) -> bool: return e.type == &"envido_forfeit"))
-	assert_true(h.is_over(), "sin mostrar no hay verificación")
-	assert_eq(h.envido_points, [0, 2] as Array[int])
+	assert_true(h.is_over())
+	assert_eq(h.envido_points, [0, 2] as Array[int], "reclamado: sin cartas para mostrar, lo pierde")
+	assert_eq(h.truco_points, [0, 1] as Array[int])
+
+
+func test_irse_al_mazo_sin_mostrar_y_que_no_lo_reclamen_lo_cobra() -> void:
+	var h := _envido_won_by_0(33)
+	h.apply(TrucoAction.make(T.MAZO, 0))
+	h.apply(TrucoAction.make(T.ACCEPT_TANTO, 1))
+	assert_true(h.is_over())
+	assert_eq(h.envido_points, [2, 0] as Array[int], "nadie lo reclamó")
 	assert_eq(h.truco_points, [0, 1] as Array[int])
 
 func _envido_won_by_0(declared: int) -> TrucoHand:

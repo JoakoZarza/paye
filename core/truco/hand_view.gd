@@ -71,3 +71,7 @@ func envido_winner() -> int:
 
 func tanto_shown() -> bool:
 	return _hand.tanto_shown()
+
+
+func mazo_unshown() -> bool:
+	return _hand.mazo_unshown()

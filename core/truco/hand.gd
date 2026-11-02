@@ -42,6 +42,8 @@ var _real_tanto: Array[int] = [0, 0]
 var _envido_winner := -1
 ## El ganador del envido ya mostró su tanto: lo cobró y puede irse al mazo sin perderlo.
 var _tanto_shown := false
+## El ganador del envido se fue al mazo sin mostrar: ya no puede probar su tanto.
+var _mazo_unshown := false
 ## Fotos del estado antes de cada canto de la cadena en curso (para el Rosario).
 var _call_snapshots: Array[Dictionary] = []
 ## Cantos que el Rosario le prohibió a cada jugador por el resto de la mano.
@@ -183,6 +185,11 @@ func tanto_shown() -> bool:
 	return _tanto_shown
 
 
+## Se fue al mazo con el envido ganado sin mostrar: reclamarlo siempre lo gana.
+func mazo_unshown() -> bool:
+	return _mazo_unshown
+
+
 ## El ganador del envido puede mostrar su tanto en su turno, antes de que termine la mano.
 func _can_show_tanto(p: int) -> bool:
 	return _envido_accepted and _envido_winner == p and not _tanto_shown
@@ -303,11 +310,9 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 			var points := _truco.rejected_value() if _truco.pending else _truco.accepted_value()
 			truco_points[1 - p] = points
 			events.append(GameEvent.make(&"mazo", {"player": p}))
-			# Irse al mazo sin mostrar el tanto ganado: el envido lo cobra el rival.
-			if _can_show_tanto(p):
-				envido_points[1 - p] += _envido_value
-				_envido_winner = -1
-				events.append(GameEvent.make(&"envido_forfeit", {"player": p, "points": _envido_value}))
+			# Irse al mazo sin mostrar el tanto ganado: si el rival lo reclama, el
+			# envido es suyo; si se olvida, lo cobra el que se fue (en SHOW_DECISION).
+			_mazo_unshown = _can_show_tanto(p)
 			_finish(events)
 		T.DEMAND_SHOW, T.ACCEPT_TANTO:
 			_resolve_show(p, a.type == T.DEMAND_SHOW, events)
@@ -400,6 +405,10 @@ func _resolve_show(demander: int, demanded: bool, events: Array[GameEvent]) -> v
 	var w := _envido_winner
 	if not demanded:
 		envido_points[w] += _envido_value
+	elif _mazo_unshown:
+		events.append(GameEvent.make(&"show_demanded", {"player": demander}))
+		envido_points[demander] += _envido_value
+		events.append(GameEvent.make(&"envido_forfeit", {"player": w, "points": _envido_value}))
 	else:
 		events.append(GameEvent.make(&"show_demanded", {"player": demander}))
 		var real_winner := _real_winner()

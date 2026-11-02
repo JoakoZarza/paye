@@ -34,6 +34,8 @@ const SHOW_HIGH_BONUS := 0.2
 const SHOW_GAP := 5
 const SHOW_GAP_BONUS := 0.2
 const SHOW_MAX := 0.9
+## Chance de reclamar el envido de quien se fue al mazo sin mostrar.
+const MAZO_CLAIM := 0.5
 
 const TRUCO_CALL := 0.7
 const TRUCO_CALL_AGGR := 0.45
@@ -270,21 +272,18 @@ func _decide_playing(view: HandView, me: int, legal: Array[TrucoAction]) -> Truc
 		return truco_call
 	var lost_a_baza := view.baza_results().has(1 - me)
 	if pt < MAZO_STRENGTH and lost_a_baza and view.truco_level() >= MAZO_MIN_LEVEL:
-		var fold := _fold(view, me, legal)
-		if fold != null:
-			return fold
+		return _fold(view, me, legal)
 	return TrucoAction.make(T.PLAY_CARD, me, pick_card(view))
 
 
 ## Irse al mazo. Con el envido ganado, primero lo muestra si no mintió; si mintió,
-## no se va: perdería esos puntos (null).
+## se va sin mostrar y espera que el rival se olvide de reclamarlo.
 func _fold(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
-	if view.envido_winner() != me or view.tanto_shown():
-		return TrucoAction.make(T.MAZO, me)
-	var show := _find(legal, [T.SHOW_TANTO])
-	if show != null and view.declared_tanto(me) <= view.my_tanto():
-		return show
-	return null
+	if view.envido_winner() == me and not view.tanto_shown() and view.declared_tanto(me) <= view.my_tanto():
+		var show := _find(legal, [T.SHOW_TANTO])
+		if show != null:
+			return show
+	return TrucoAction.make(T.MAZO, me)
 
 
 func _decide_envido_response(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
@@ -341,13 +340,14 @@ func _decide_truco_response(view: HandView, me: int, legal: Array[TrucoAction]) 
 	if pt >= accept_at:
 		return TrucoAction.make(T.QUIERO, me)
 	if pt < TRUCO_FOLD and profile.stubbornness < FOLD_MAX_STUBBORN:
-		var fold := _fold(view, me, legal)
-		if fold != null:
-			return fold
+		return _fold(view, me, legal)
 	return TrucoAction.make(T.NO_QUIERO, me)
 
 
 func _decide_show(view: HandView, me: int) -> TrucoAction:
+	# Se fue al mazo sin mostrar: reclamarlo gana siempre, pero a veces se olvida.
+	if view.mazo_unshown():
+		return TrucoAction.make(T.DEMAND_SHOW if _chance(MAZO_CLAIM) else T.ACCEPT_TANTO, me)
 	var claim := view.declared_tanto(1 - me)
 	var p := SHOW_BASE + model.lie_rate() * SHOW_LIES
 	if claim >= SHOW_HIGH_CLAIM:

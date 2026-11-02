@@ -99,7 +99,7 @@ Mejor de 3 bazas. Empate de rango = parda.
 
 El rival suma lo que vale el truco en ese momento (1 si no se cantó; si hay un canto de truco pendiente, lo de "no querido"). Irse en la primera baza sin que se haya cantado envido también da 1: algunos reglamentos dan 2 por el envido que se podía cantar, pero Joako eligió 1 (ver [TRUCO_REGLAS.md](TRUCO_REGLAS.md)).
 
-Si te vas al mazo **habiendo ganado el envido**, no mostraste tu tanto: **el envido lo cobra el rival**. Para no perderlo, el ganador del envido puede **mostrar el tanto** en su turno (botón "Mostrar el tanto") y después irse: si no mintió cobra el envido; si mintió, el envido y el castigo son del rival. La IA muestra antes de irse solo si no mintió.
+Si te vas al mazo **habiendo ganado el envido** sin mostrar, el rival puede **reclamarlo**: como ya no tenés cartas para probarlo, el envido es suyo. Si no lo reclama, lo cobrás vos aunque hayas mentido. La IA reclama el 50% de las veces (una habilidad o amuleto puede subirlo). Para no arriesgarte, podés **mostrar el tanto** en tu turno (botón "Mostrar el tanto") y después irte: si no mentiste cobrás el envido; si mentiste, el envido y el castigo son del rival. La IA muestra antes de irse si no mintió; si mintió, se va sin mostrar y espera que te olvides.
 
 ### 3.8 Partido
 

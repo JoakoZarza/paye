@@ -20,6 +20,8 @@ const ACTION_NAMES := {
 	T.QUIERO: "Quiero", T.NO_QUIERO: "No quiero", T.SON_BUENAS: "Son buenas",
 	T.DEMAND_SHOW: "Mostrame", T.ACCEPT_TANTO: "Está bien", T.MAZO: "Me voy al mazo", T.SHOW_TANTO: "Mostrar el tanto",
 }
+## El ganador del envido se fue al mazo sin mostrar: se reclama o se deja pasar.
+const CLAIM_NAMES := {T.DEMAND_SHOW: "Reclamar el envido", T.ACCEPT_TANTO: "Dejarlo pasar"}
 const TELLS_PATH := "res://data/i18n/tells.csv"
 const UI_JSON := "res://data/ui.json"
 
@@ -213,7 +215,10 @@ func _draw_actions(legal: Array[TrucoAction]) -> void:
 		if a.type == T.DECLARE_TANTO:
 			tanto_values.append(a.value)
 			continue
-		_button(_actions, ACTION_NAMES.get(a.type, T.keys()[a.type]), _act.bind(a)).name = "Act_%s" % T.keys()[a.type]
+		var text: String = ACTION_NAMES.get(a.type, T.keys()[a.type])
+		if rc.table().truco_match.hand.mazo_unshown():
+			text = CLAIM_NAMES.get(a.type, text)
+		_button(_actions, text, _act.bind(a)).name = "Act_%s" % T.keys()[a.type]
 	if tanto_values.is_empty():
 		return
 	var real := rc.table().truco_match.hand.own_tanto(PLAYER)
@@ -461,7 +466,7 @@ func _describe(e: GameEvent) -> String:
 			_known.clear()
 			return "— Mano nueva: " + ("sos mano" if int(d["mano"]) == PLAYER else "es mano el rival") + " —"
 		&"envido_forfeit":
-			return "%s se fue al mazo sin mostrar: el envido es del otro." % _who(d["player"])
+			return "Reclamado: %s se fue sin mostrar y el envido es del otro." % _who(d["player"])
 		&"tanto_shown":
 			return "%s mostró el tanto: el envido es suyo (+%d)." % [_who(d["player"]), d["points"]]
 		&"card_played":
