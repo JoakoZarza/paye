@@ -20,7 +20,7 @@ Cada tarea de cada plan dice quién la ejecuta. Ninguna entrega se da por buena 
 - [x] Gemini CLI 0.66.0 instalado.
 - [x] Iniciar sesión en Codex (`codex login`) y correr `/codex:setup`.
 - [ ] Gemini CLI: el inicio de sesión falló (el plan gratis pasó a Antigravity CLI). El Plan 6 se hizo sin Gemini.
-- [ ] Crear el repositorio privado `JoakoZarza/paye` en GitHub y conectarlo (lo hacemos juntos cuando llegue el momento).
+- [x] Repositorio privado `JoakoZarza/paye` en GitHub conectado (`origin`, rama `main`).
 
 ## Etapa 1 — MVP 2D
 
