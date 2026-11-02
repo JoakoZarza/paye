@@ -13,6 +13,7 @@
       },
       "special": "",
       "tilt_multiplier": 2,
+      "attention": 0.4,
       "noise": 0.15
     },
     {
@@ -28,6 +29,7 @@
       },
       "special": "rencor",
       "tilt_multiplier": 1,
+      "attention": 0.4,
       "noise": 0.15
     },
     {
@@ -43,6 +45,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.4,
       "noise": 0.15
     }
   ],
@@ -60,6 +63,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.75,
       "noise": 0.15
     },
     {
@@ -75,6 +79,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.75,
       "noise": 0.15
     },
     {
@@ -90,6 +95,7 @@
       },
       "special": "insaciable",
       "tilt_multiplier": 1,
+      "attention": 0.75,
       "noise": 0.15
     }
   ],
@@ -107,6 +113,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.25,
       "noise": 0.15
     },
     {
@@ -122,6 +129,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.25,
       "noise": 0.15
     },
     {
@@ -137,6 +145,7 @@
       },
       "special": "siesta",
       "tilt_multiplier": 1,
+      "attention": 0.25,
       "noise": 0.15
     }
   ],
@@ -154,6 +163,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.85,
       "noise": 0.15
     },
     {
@@ -169,6 +179,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.85,
       "noise": 0.15
     },
     {
@@ -185,6 +196,7 @@
       },
       "special": "resentida",
       "tilt_multiplier": 1,
+      "attention": 0.85,
       "noise": 0.15
     }
   ],
@@ -202,6 +214,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.5,
       "noise": 0.15
     },
     {
@@ -217,6 +230,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.5,
       "noise": 0.15
     },
     {
@@ -232,6 +246,7 @@
       },
       "special": "encantadora",
       "tilt_multiplier": 1,
+      "attention": 0.5,
       "noise": 0.15
     }
   ],
@@ -249,6 +264,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.65,
       "noise": 0.15
     },
     {
@@ -264,6 +280,7 @@
       },
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.65,
       "noise": 0.15
     },
     {
@@ -279,6 +296,7 @@
       },
       "special": "",
       "tilt_multiplier": 2,
+      "attention": 0.65,
       "noise": 0.15
     }
   ],
@@ -294,6 +312,7 @@
       "cheat_weights": {},
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.3,
       "noise": 0.45,
       "blunder": 0.4
     },
@@ -307,6 +326,7 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.3,
       "noise": 0.3,
       "blunder": 0.3
     },
@@ -320,6 +340,7 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.3,
       "noise": 0.3,
       "blunder": 0.3
     },
@@ -333,6 +354,7 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.3,
       "noise": 0.3,
       "blunder": 0.3
     }
@@ -348,6 +370,7 @@
       "cheat_budget": 0,
       "special": "",
       "tilt_multiplier": 1,
+      "attention": 0.9,
       "noise": 0.15
     }
   ]

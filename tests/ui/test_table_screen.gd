@@ -89,3 +89,25 @@ func test_las_cartas_del_rival_no_se_ven() -> void:
 		for l in screen._dealer_row.get_children():
 			assert_ne((l as Label).text, text)
 	assert_eq(screen._dealer_row.get_child_count(), dealer_cards.size())
+
+func test_al_irse_el_rival_sin_mostrar_no_se_pregunta_nada() -> void:
+	var pair := _screen()
+	var rc: RunController = pair[0]
+	var screen: Control = pair[1]
+	var m := rc.table().truco_match
+	var cards := [[Card.new(Card.Suit.ESPADA, 4), Card.new(Card.Suit.BASTO, 5), Card.new(Card.Suit.COPA, 6)],
+		[Card.new(Card.Suit.ORO, 7), Card.new(Card.Suit.ORO, 6), Card.new(Card.Suit.COPA, 4)]]
+	m.start_hand_with(cards, 0)
+	m.apply(TrucoAction.make(TrucoAction.Type.ENVIDO, 0))
+	m.apply(TrucoAction.make(TrucoAction.Type.QUIERO, 1))
+	m.apply(TrucoAction.make(TrucoAction.Type.DECLARE_TANTO, 0, -1, 20))
+	m.apply(TrucoAction.make(TrucoAction.Type.DECLARE_TANTO, 1, -1, 33))
+	m.apply(TrucoAction.make(TrucoAction.Type.PLAY_CARD, 0, 0))
+	m.apply(TrucoAction.make(TrucoAction.Type.MAZO, 1))
+	screen.refresh()
+	var names: Array = _enabled(screen).map(func(b: Button) -> String: return b.name)
+	assert_has(names, "Act_DEMAND_SHOW")
+	assert_has(names, "Continue")
+	assert_does_not_have(names, "Act_ACCEPT_TANTO")
+	screen.find_child("Continue", true, false).pressed.emit()
+	assert_eq(m.scores, [1, 2], "seguir de largo es olvidarse: el rival cobra su envido")

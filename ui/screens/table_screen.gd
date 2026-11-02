@@ -12,7 +12,7 @@ const ICONS := {&"calm": "😐 tranquilo", &"nervous": "😬 nervioso",
 const PHASE_NAMES := {
 	TrucoHand.Phase.PLAYING: "Jugando", TrucoHand.Phase.ENVIDO_RESPONSE: "Responden el envido",
 	TrucoHand.Phase.TANTO_DECLARATION: "Declaran el tanto", TrucoHand.Phase.TRUCO_RESPONSE: "Responden el truco",
-	TrucoHand.Phase.SHOW_DECISION: "¿Mostrar el tanto?", TrucoHand.Phase.OVER: "Mano terminada",
+	TrucoHand.Phase.SHOW_DECISION: "Mano terminada", TrucoHand.Phase.OVER: "Mano terminada",
 }
 const ACTION_NAMES := {
 	T.ENVIDO: "Envido", T.REAL_ENVIDO: "Real envido", T.FALTA_ENVIDO: "Falta envido",
@@ -20,8 +20,6 @@ const ACTION_NAMES := {
 	T.QUIERO: "Quiero", T.NO_QUIERO: "No quiero", T.SON_BUENAS: "Son buenas",
 	T.DEMAND_SHOW: "Mostrame", T.ACCEPT_TANTO: "Está bien", T.MAZO: "Me voy al mazo", T.SHOW_TANTO: "Mostrar el tanto",
 }
-## El ganador del envido se fue al mazo sin mostrar: se reclama o se deja pasar.
-const CLAIM_NAMES := {T.DEMAND_SHOW: "Reclamar el envido", T.ACCEPT_TANTO: "Dejarlo pasar"}
 const TELLS_PATH := "res://data/i18n/tells.csv"
 const UI_JSON := "res://data/ui.json"
 
@@ -208,6 +206,10 @@ func _redraw() -> void:
 
 
 func _draw_actions(legal: Array[TrucoAction]) -> void:
+	var hand := rc.table().truco_match.hand
+	if hand.phase == TrucoHand.Phase.SHOW_DECISION:
+		_draw_show_decision(hand, legal)
+		return
 	var tanto_values: Array[int] = []
 	for a in legal:
 		if a.type == T.PLAY_CARD:
@@ -215,10 +217,7 @@ func _draw_actions(legal: Array[TrucoAction]) -> void:
 		if a.type == T.DECLARE_TANTO:
 			tanto_values.append(a.value)
 			continue
-		var text: String = ACTION_NAMES.get(a.type, T.keys()[a.type])
-		if rc.table().truco_match.hand.mazo_unshown():
-			text = CLAIM_NAMES.get(a.type, text)
-		_button(_actions, text, _act.bind(a)).name = "Act_%s" % T.keys()[a.type]
+		_button(_actions, ACTION_NAMES.get(a.type, T.keys()[a.type]), _act.bind(a)).name = "Act_%s" % T.keys()[a.type]
 	if tanto_values.is_empty():
 		return
 	var real := rc.table().truco_match.hand.own_tanto(PLAYER)
@@ -291,6 +290,24 @@ func _find(legal: Array[TrucoAction], type: T, card_index := -1) -> TrucoAction:
 		if a.type == type and (card_index == -1 or a.card_index == card_index):
 			return a
 	return null
+
+
+## La mano terminó y el rival ganó el envido: nadie te pregunta nada. Podés pedir
+## que muestre (o reclamar si se fue sin mostrar); si seguís de largo, te olvidaste.
+func _draw_show_decision(hand: TrucoHand, legal: Array[TrucoAction]) -> void:
+	var demand := _find(legal, T.DEMAND_SHOW)
+	var accept := _find(legal, T.ACCEPT_TANTO)
+	if demand != null:
+		var text := "Reclamar el envido" if hand.mazo_unshown() else "Pedir que muestre"
+		_button(_actions, text, _act.bind(demand)).name = "Act_DEMAND_SHOW"
+	if accept != null:
+		_button(_actions, "Seguir", _accept_and_continue.bind(accept)).name = "Continue"
+
+
+func _accept_and_continue(a: TrucoAction) -> void:
+	_act(a)
+	if _hand_finished():
+		_on_continue()
 
 
 func _hand_finished() -> bool:

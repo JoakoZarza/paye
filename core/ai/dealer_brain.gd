@@ -34,8 +34,8 @@ const SHOW_HIGH_BONUS := 0.2
 const SHOW_GAP := 5
 const SHOW_GAP_BONUS := 0.2
 const SHOW_MAX := 0.9
-## Chance de reclamar el envido de quien se fue al mazo sin mostrar.
-const MAZO_CLAIM := 0.5
+## Con atención 0 se olvida de mostrar antes de irse la mitad de las veces.
+const FORGET_SHOW := 0.5
 
 const TRUCO_CALL := 0.7
 const TRUCO_CALL_AGGR := 0.45
@@ -276,12 +276,12 @@ func _decide_playing(view: HandView, me: int, legal: Array[TrucoAction]) -> Truc
 	return TrucoAction.make(T.PLAY_CARD, me, pick_card(view))
 
 
-## Irse al mazo. Con el envido ganado, primero lo muestra si no mintió; si mintió,
-## se va sin mostrar y espera que el rival se olvide de reclamarlo.
+## Irse al mazo. Con el envido ganado, primero lo muestra si no mintió (salvo que se
+## olvide); si mintió, se va sin mostrar y espera que el rival se olvide de reclamarlo.
 func _fold(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
 	if view.envido_winner() == me and not view.tanto_shown() and view.declared_tanto(me) <= view.my_tanto():
 		var show := _find(legal, [T.SHOW_TANTO])
-		if show != null:
+		if show != null and not _chance((1.0 - profile.attention) * FORGET_SHOW):
 			return show
 	return TrucoAction.make(T.MAZO, me)
 
@@ -347,7 +347,7 @@ func _decide_truco_response(view: HandView, me: int, legal: Array[TrucoAction]) 
 func _decide_show(view: HandView, me: int) -> TrucoAction:
 	# Se fue al mazo sin mostrar: reclamarlo gana siempre, pero a veces se olvida.
 	if view.mazo_unshown():
-		return TrucoAction.make(T.DEMAND_SHOW if _chance(MAZO_CLAIM) else T.ACCEPT_TANTO, me)
+		return TrucoAction.make(T.DEMAND_SHOW if _chance(profile.attention) else T.ACCEPT_TANTO, me)
 	var claim := view.declared_tanto(1 - me)
 	var p := SHOW_BASE + model.lie_rate() * SHOW_LIES
 	if claim >= SHOW_HIGH_CLAIM:
