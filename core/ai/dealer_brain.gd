@@ -269,10 +269,22 @@ func _decide_playing(view: HandView, me: int, legal: Array[TrucoAction]) -> Truc
 		_emit_tell(st)
 		return truco_call
 	var lost_a_baza := view.baza_results().has(1 - me)
-	# Con el envido ganado no se va al mazo: perdería esos puntos sin mostrar.
-	if pt < MAZO_STRENGTH and lost_a_baza and view.truco_level() >= MAZO_MIN_LEVEL and view.envido_winner() != me:
-		return TrucoAction.make(T.MAZO, me)
+	if pt < MAZO_STRENGTH and lost_a_baza and view.truco_level() >= MAZO_MIN_LEVEL:
+		var fold := _fold(view, me, legal)
+		if fold != null:
+			return fold
 	return TrucoAction.make(T.PLAY_CARD, me, pick_card(view))
+
+
+## Irse al mazo. Con el envido ganado, primero lo muestra si no mintió; si mintió,
+## no se va: perdería esos puntos (null).
+func _fold(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
+	if view.envido_winner() != me or view.tanto_shown():
+		return TrucoAction.make(T.MAZO, me)
+	var show := _find(legal, [T.SHOW_TANTO])
+	if show != null and view.declared_tanto(me) <= view.my_tanto():
+		return show
+	return null
 
 
 func _decide_envido_response(view: HandView, me: int, legal: Array[TrucoAction]) -> TrucoAction:
@@ -328,8 +340,10 @@ func _decide_truco_response(view: HandView, me: int, legal: Array[TrucoAction]) 
 		- profile.stubbornness * TRUCO_ACCEPT_STUBBORN - model.truco_call_rate() * TRUCO_ACCEPT_CALLS
 	if pt >= accept_at:
 		return TrucoAction.make(T.QUIERO, me)
-	if pt < TRUCO_FOLD and profile.stubbornness < FOLD_MAX_STUBBORN and view.envido_winner() != me:
-		return TrucoAction.make(T.MAZO, me)
+	if pt < TRUCO_FOLD and profile.stubbornness < FOLD_MAX_STUBBORN:
+		var fold := _fold(view, me, legal)
+		if fold != null:
+			return fold
 	return TrucoAction.make(T.NO_QUIERO, me)
 
 

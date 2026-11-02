@@ -40,6 +40,8 @@ var _resume_phase: Phase = Phase.PLAYING
 var _declared: Array[int] = [-1, -1]
 var _real_tanto: Array[int] = [0, 0]
 var _envido_winner := -1
+## El ganador del envido ya mostró su tanto: lo cobró y puede irse al mazo sin perderlo.
+var _tanto_shown := false
 ## Fotos del estado antes de cada canto de la cadena en curso (para el Rosario).
 var _call_snapshots: Array[Dictionary] = []
 ## Cantos que el Rosario le prohibió a cada jugador por el resto de la mano.
@@ -147,7 +149,7 @@ func force_end(winner: int, cheater: int) -> Array[GameEvent]:
 	truco_points[winner] = maxi(value, 1)
 	envido_points[cheater] = 0
 	# El envido del acusador se cobra con una verificación implícita: si mintió, no cobra.
-	if _envido_accepted and _envido_winner == winner:
+	if _envido_accepted and _envido_winner == winner and not _tanto_shown:
 		var lied := _declared[winner] > _real_tanto[winner] and _real_winner() != winner
 		if not lied:
 			envido_points[winner] += _envido_value
@@ -175,6 +177,15 @@ func envido_called() -> bool:
 ## -1 si no hubo envido querido o la declaración no terminó.
 func envido_winner() -> int:
 	return _envido_winner
+
+
+func tanto_shown() -> bool:
+	return _tanto_shown
+
+
+## El ganador del envido puede mostrar su tanto en su turno, antes de que termine la mano.
+func _can_show_tanto(p: int) -> bool:
+	return _envido_accepted and _envido_winner == p and not _tanto_shown
 
 
 ## Tanto de las cartas en mano y jugadas de p. La IA solo debe pedir el suyo.
@@ -210,6 +221,8 @@ func legal_actions() -> Array[TrucoAction]:
 			_add_envido_calls(out, p)
 			if _truco.can_raise(p) and not _call_veto[p].has(&"truco"):
 				out.append(TrucoAction.make(TRUCO_CALLS[_truco.level], p))
+			if _can_show_tanto(p):
+				out.append(TrucoAction.make(T.SHOW_TANTO, p))
 			out.append(TrucoAction.make(T.MAZO, p))
 		Phase.ENVIDO_RESPONSE:
 			out.append(TrucoAction.make(T.QUIERO, p))
@@ -223,6 +236,8 @@ func legal_actions() -> Array[TrucoAction]:
 			if _truco.can_raise(p) and not _call_veto[p].has(&"truco"):
 				out.append(TrucoAction.make(TRUCO_CALLS[_truco.level], p))
 			_add_envido_calls(out, p)
+			if _can_show_tanto(p):
+				out.append(TrucoAction.make(T.SHOW_TANTO, p))
 			out.append(TrucoAction.make(T.MAZO, p))
 		Phase.TANTO_DECLARATION:
 			var floor_value := 0 if p == mano else _declared[mano] + 1
@@ -243,7 +258,8 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 	var p := a.player
 	if a.type in ENVIDO_CALLS or a.type in TRUCO_CALLS:
 		_call_snapshots.append(_snapshot(p, &"envido" if a.type in ENVIDO_CALLS else &"truco"))
-	else:
+	# Mostrar el tanto no responde al canto pendiente: el Rosario lo puede seguir anulando.
+	elif a.type != T.SHOW_TANTO:
 		_call_snapshots.clear()
 	match a.type:
 		T.PLAY_CARD:
@@ -288,13 +304,15 @@ func apply(a: TrucoAction) -> Array[GameEvent]:
 			truco_points[1 - p] = points
 			events.append(GameEvent.make(&"mazo", {"player": p}))
 			# Irse al mazo sin mostrar el tanto ganado: el envido lo cobra el rival.
-			if _envido_accepted and _envido_winner == p:
+			if _can_show_tanto(p):
 				envido_points[1 - p] += _envido_value
 				_envido_winner = -1
 				events.append(GameEvent.make(&"envido_forfeit", {"player": p, "points": _envido_value}))
 			_finish(events)
 		T.DEMAND_SHOW, T.ACCEPT_TANTO:
 			_resolve_show(p, a.type == T.DEMAND_SHOW, events)
+		T.SHOW_TANTO:
+			_show_tanto(p, events)
 	return events
 
 
@@ -357,8 +375,19 @@ func _play_card(p: int, idx: int, events: Array[GameEvent]) -> void:
 	_finish(events)
 
 
+## Mostrar por las suyas: si mintió, el envido y el castigo son del rival.
+func _show_tanto(p: int, events: Array[GameEvent]) -> void:
+	_tanto_shown = true
+	if declaration_is_lie(p):
+		envido_points[1 - p] += _envido_value + LIE_PENALTY
+		events.append(GameEvent.make(&"lie_caught", {"player": p}))
+	else:
+		envido_points[p] += _envido_value
+		events.append(GameEvent.make(&"tanto_shown", {"player": p, "points": _envido_value}))
+
+
 func _finish(events: Array[GameEvent]) -> void:
-	if _envido_accepted and _envido_winner != -1:
+	if _envido_accepted and _envido_winner != -1 and not _tanto_shown:
 		phase = Phase.SHOW_DECISION
 		return
 	phase = Phase.OVER

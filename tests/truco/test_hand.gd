@@ -365,3 +365,44 @@ func test_irse_al_mazo_con_el_envido_ganado_lo_pierde() -> void:
 	assert_true(h.is_over(), "sin mostrar no hay verificación")
 	assert_eq(h.envido_points, [0, 2] as Array[int])
 	assert_eq(h.truco_points, [0, 1] as Array[int])
+
+func _envido_won_by_0(declared: int) -> TrucoHand:
+	var h := TrucoHand.new([_cards([[Card.Suit.ORO, 7], [Card.Suit.ORO, 6], [Card.Suit.COPA, 4]]),
+		_cards([[Card.Suit.ESPADA, 4], [Card.Suit.BASTO, 5], [Card.Suit.COPA, 6]])], 0, 15)
+	h.apply(TrucoAction.make(TrucoAction.Type.ENVIDO, 0))
+	h.apply(TrucoAction.make(TrucoAction.Type.QUIERO, 1))
+	h.apply(TrucoAction.make(TrucoAction.Type.DECLARE_TANTO, 0, -1, declared))
+	h.apply(TrucoAction.make(TrucoAction.Type.SON_BUENAS, 1))
+	return h
+
+
+func test_mostrar_el_tanto_y_despues_irse_al_mazo_lo_conserva() -> void:
+	var h := _envido_won_by_0(33)
+	assert_true(_has(h, T.SHOW_TANTO))
+	var events := h.apply(TrucoAction.make(T.SHOW_TANTO, 0))
+	assert_true(events.any(func(e: GameEvent) -> bool: return e.type == &"tanto_shown"))
+	assert_false(_has(h, T.SHOW_TANTO), "se muestra una sola vez")
+	events = h.apply(TrucoAction.make(T.MAZO, 0))
+	assert_false(events.any(func(e: GameEvent) -> bool: return e.type == &"envido_forfeit"))
+	assert_true(h.is_over(), "ya mostró: no hay que pedir que muestre")
+	assert_eq(h.envido_points, [2, 0] as Array[int])
+	assert_eq(h.truco_points, [0, 1] as Array[int])
+
+
+func test_mostrar_un_tanto_mentido_lo_delata() -> void:
+	# Tiene 3 de tanto y declara 33; el rival, con 32, se calló.
+	var h := TrucoHand.new([_cards([[Card.Suit.ORO, 1], [Card.Suit.COPA, 2], [Card.Suit.BASTO, 3]]),
+		_cards([[Card.Suit.ESPADA, 7], [Card.Suit.ESPADA, 5], [Card.Suit.COPA, 6]])], 0, 15)
+	h.apply(TrucoAction.make(T.ENVIDO, 0))
+	h.apply(TrucoAction.make(T.QUIERO, 1))
+	h.apply(TrucoAction.make(T.DECLARE_TANTO, 0, -1, 33))
+	h.apply(TrucoAction.make(T.SON_BUENAS, 1))
+	var events := h.apply(TrucoAction.make(T.SHOW_TANTO, 0))
+	assert_true(events.any(func(e: GameEvent) -> bool: return e.type == &"lie_caught"))
+	assert_eq(h.envido_points, [0, 2 + TrucoHand.LIE_PENALTY] as Array[int])
+
+
+func test_solo_el_ganador_del_envido_puede_mostrar() -> void:
+	var h := _envido_won_by_0(33)
+	h.apply(TrucoAction.make(T.PLAY_CARD, 0, 0))
+	assert_false(_has(h, T.SHOW_TANTO), "el rival no ganó el envido")

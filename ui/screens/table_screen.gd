@@ -18,7 +18,7 @@ const ACTION_NAMES := {
 	T.ENVIDO: "Envido", T.REAL_ENVIDO: "Real envido", T.FALTA_ENVIDO: "Falta envido",
 	T.TRUCO: "Truco", T.RETRUCO: "Quiero retruco", T.VALE_CUATRO: "Quiero vale cuatro",
 	T.QUIERO: "Quiero", T.NO_QUIERO: "No quiero", T.SON_BUENAS: "Son buenas",
-	T.DEMAND_SHOW: "Mostrame", T.ACCEPT_TANTO: "Está bien", T.MAZO: "Me voy al mazo",
+	T.DEMAND_SHOW: "Mostrame", T.ACCEPT_TANTO: "Está bien", T.MAZO: "Me voy al mazo", T.SHOW_TANTO: "Mostrar el tanto",
 }
 const TELLS_PATH := "res://data/i18n/tells.csv"
 const UI_JSON := "res://data/ui.json"
@@ -462,6 +462,8 @@ func _describe(e: GameEvent) -> String:
 			return "— Mano nueva: " + ("sos mano" if int(d["mano"]) == PLAYER else "es mano el rival") + " —"
 		&"envido_forfeit":
 			return "%s se fue al mazo sin mostrar: el envido es del otro." % _who(d["player"])
+		&"tanto_shown":
+			return "%s mostró el tanto: el envido es suyo (+%d)." % [_who(d["player"]), d["points"]]
 		&"card_played":
 			return "%s: %s" % [_who(d["player"]), card_text(d["card"])]
 		&"call_made":
