@@ -32,3 +32,8 @@ func refresh() -> void:
 func _sit() -> void:
 	rc.enter_match()
 	acted.emit()
+
+
+## Si te quedaste en la mesa, el rival nuevo se sienta frente a vos.
+func camera_marker() -> StringName:
+	return &"CamSeat" if router != null and router.stay_seated else &"CamBar"

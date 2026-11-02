@@ -9,6 +9,11 @@ const MOVE_SECONDS := 0.25
 const FAN_STEP := 0.07
 ## Tu mano, inclinada hacia la cámara; la mesa, boca arriba; el rival, boca abajo.
 const HAND_TILT := deg_to_rad(-45.0)
+## Mano apoyada sobre el borde de la mesa: mirando al rival asoma la mitad de arriba.
+const HAND_LOWERED := Vector3(0, -0.19, -0.13)
+const LOWERED_TILT := deg_to_rad(-75.0)
+## Con el mouse por encima de esta altura (fracción de pantalla) bajás la mano.
+const RAISE_BELOW := 0.5
 const FACE_UP := deg_to_rad(-90.0)
 const FACE_DOWN := deg_to_rad(90.0)
 const LAMP_COLORS := {&"calm": Color("#ffc77a"), &"nervous": Color("#e8d08a"),
@@ -28,6 +33,7 @@ var _cards: Dictionary = {}
 var _revealed: Dictionary = {}
 var _tell: Label3D
 var _score: Label3D
+var _hand_raised := true
 
 
 func _init(p_bar: Bar3D, p_presenter: TablePresenter, p_ps1 := false) -> void:
@@ -46,6 +52,32 @@ func _ready() -> void:
 	_score.modulate = Color("#D8C9A3")
 	presenter.changed.connect(sync)
 	sync()
+
+
+## La mano se levanta solo mirando tus cartas con el mouse abajo; si mirás al
+## rival, los costados o subís el mouse, la apoyás para ver la mesa.
+func _process(_delta: float) -> void:
+	var raised := hand_should_be_raised()
+	if raised != _hand_raised:
+		_hand_raised = raised
+		sync()
+
+
+func hand_should_be_raised() -> bool:
+	var cam := bar.camera
+	if cam == null:
+		return true
+	if cam.view != CameraRig.View.HAND or not cam.seated():
+		return false
+	if not cam.edge_look:
+		return true
+	var vp := bar.get_viewport()
+	var size := vp.get_visible_rect().size
+	return size.y <= 0.0 or vp.get_mouse_position().y / size.y >= RAISE_BELOW
+
+
+func hand_raised() -> bool:
+	return _hand_raised
 
 
 func _exit_tree() -> void:
@@ -93,7 +125,10 @@ func sync() -> void:
 		var mine: Array = h.cards[PLAYER]
 		for i in mine.size():
 			var pos := bar.marker("PlayerHand").position + Vector3((i - (mine.size() - 1) * 0.5) * FAN_STEP, 0.0, 0.0)
-			_place(mine[i], i, false, pos, Vector3(HAND_TILT, 0, 0), true)
+			if not _hand_raised:
+				pos += HAND_LOWERED
+			var tilt := HAND_TILT if _hand_raised else LOWERED_TILT
+			_place(mine[i], i, false, pos, Vector3(tilt, 0, 0), _hand_raised)
 			wanted[mine[i]] = true
 		var theirs: Array = h.cards[DEALER]
 		for i in theirs.size():
@@ -114,6 +149,9 @@ func sync() -> void:
 			_cards.erase(card)
 			_revealed.erase(card)
 	_sync_tell()
+	var accomplice := bar.slot("accomplice")
+	if accomplice != null:
+		accomplice.visible = presenter.accomplice_present()
 	var m := presenter.rc.table().truco_match
 	_score.text = "VOS  %d\n%s  %d" % [m.scores[PLAYER], presenter.sin_name().to_upper(), m.scores[DEALER]]
 

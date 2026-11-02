@@ -386,3 +386,11 @@ func _popup_built() -> void:
 func _popup_close() -> void:
 	if _popup_box != null:
 		_clear(_popup_box)
+
+
+func camera_marker() -> StringName:
+	return &"CamSeat"
+
+
+func wants_backdrop() -> bool:
+	return false

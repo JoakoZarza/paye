@@ -38,14 +38,14 @@ func _build_world(ps1: bool, shrink: int) -> void:
 	camera = CameraRig.new()
 	bar.add_child(camera)
 	camera.setup(bar)
-	camera.go_to_phase(rc.phase, true)
+	bar.camera = camera
 	router.world = bar
 	router.ps1 = ps1
 
 
 func _process(_delta: float) -> void:
 	if camera != null:
-		camera.go_to_phase(rc.phase)
+		camera.go_to(router.camera_marker())
 
 
 static func load_config() -> Dictionary:

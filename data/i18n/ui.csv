@@ -92,3 +92,6 @@ UI_SHOP_SOLD,"Vendiste %s por $%d."
 UI_SHOP_REROLLED,Ofertas nuevas.
 UI_SHOP_FAILED,No se pudo.
 UI_LEVEL_N,Nivel %s
+UI_SHOP_CHOICE,Ganaste. ¿Qué hacés?
+UI_SHOP_GO,Ir a la barra
+UI_SHOP_STAY,Quedarme en la mesa

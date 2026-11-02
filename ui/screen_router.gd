@@ -20,6 +20,8 @@ var rc: RunController
 ## El bar 3D de fondo; null en la vista 2D.
 var world: Bar3D
 var ps1 := false
+## Ganaste y elegiste quedarte en la mesa: el bar y el rival nuevo te encuentran sentado.
+var stay_seated := false
 var _screen: BaseScreen
 var _screen_name: StringName = &""
 var _backdrop: ColorRect
@@ -68,15 +70,18 @@ func refresh() -> void:
 		_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_screen.world = world
 		_screen.ps1 = ps1
-		_update_backdrop(next_name)
+		_screen.router = self
+		if next_name == &"table":
+			stay_seated = false
 		add_child(_screen)
 		_screen.acted.connect(refresh)
 		_screen.setup(rc)
 	else:
 		_screen.refresh()
+	_update_backdrop()
 
 
-func _update_backdrop(screen_name: StringName) -> void:
+func _update_backdrop() -> void:
 	if world == null:
 		return
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -85,4 +90,9 @@ func _update_backdrop(screen_name: StringName) -> void:
 		_backdrop.color = BACKDROP
 		_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_backdrop)
-	_backdrop.visible = screen_name != &"table"
+	_backdrop.visible = _screen.wants_backdrop()
+	move_child(_backdrop, 0)
+
+
+func camera_marker() -> StringName:
+	return &"CamBar" if _screen == null else _screen.camera_marker()

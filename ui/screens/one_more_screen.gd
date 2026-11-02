@@ -30,3 +30,7 @@ func _stake(fraction: float) -> void:
 func _skip() -> void:
 	rc.skip_one_more()
 	acted.emit()
+
+
+func camera_marker() -> StringName:
+	return &"CamSeat"

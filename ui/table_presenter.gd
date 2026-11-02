@@ -297,6 +297,12 @@ func evidence_text() -> String:
 		func(c: Cheat) -> String: return EVIDENCE_NAMES.get(c.kind, Cheat.Kind.keys()[c.kind])))
 
 
+## El cómplice del rival está espiando esta mano (se ve en la vista de espalda).
+func accomplice_present() -> bool:
+	var t := rc.table()
+	return t.active_cheat != null and t.active_cheat.kind == Cheat.Kind.ACCOMPLICE and not hand_finished()
+
+
 static func card_text(c: Card) -> String:
 	return "%d de %s" % [c.effective_number(), UiText.t("UI_SUIT_" + Card.Suit.keys()[c.effective_suit()])]
 

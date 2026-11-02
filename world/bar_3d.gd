@@ -3,7 +3,7 @@ extends Node3D
 ## Arma el bar a partir del catálogo de cubos provisorios.
 
 const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
-const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard"]
+const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
 const MARKER_POSITIONS: Dictionary = {
 	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.55, -2.3),
 	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.76, -0.3),
@@ -11,15 +11,19 @@ const MARKER_POSITIONS: Dictionary = {
 	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
 	"Baza3_Player": Vector3(0.12, 0.757, 0.08), "Baza3_Dealer": Vector3(0.12, 0.757, -0.08),
 	"Deck": Vector3(0.33, 0.76, 0), "AmuletTray": Vector3(-0.33, 0.76, 0.25),
-	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7)
+	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7),
+	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathCounter": Vector3(0.9, 1.6, -1.6),
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
 const MARKER_ROTATIONS: Dictionary = {
 	"CamSeat": Vector2(-20, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
+	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathCounter": Vector2(-12, 10),
 }
 
 ## Se fija antes de entrar al árbol: los huecos aplican el filtro PS1 al cargar.
 var ps1 := false
+## La cámara del jugador, para que la mesa sepa hacia dónde mira.
+var camera: CameraRig
 var _slots: Dictionary = {}
 
 
@@ -58,6 +62,7 @@ func _build() -> void:
 		asset_slot.rotation.y = deg_to_rad(float(data["rotation_y"]))
 		asset_slot.placeholder_inside = bool(data.get("inside", false))
 		asset_slot.ps1 = ps1
+		asset_slot.visible = not bool(data.get("hidden", false))
 		add_child(asset_slot)
 		_slots[asset_key] = asset_slot
 	_add_floor()
@@ -103,7 +108,7 @@ func _add_lights() -> void:
 	fill.name = "DimFill"
 	fill.position = Vector3(0, 2.4, 1.5)
 	fill.light_color = Color("#8291a0")
-	fill.light_energy = 0.22
+	fill.light_energy = 0.35
 	fill.omni_range = 7.0
 	add_child(fill)
 

@@ -50,6 +50,7 @@ Cabezas o máscaras que se ponen sobre `rival_base.glb`. Origen en la base del c
 | `head_soberbia.glb` | La Soberbia | Corona o sombrero alto, mirada desde arriba | 1.500 | 256 |
 | `head_alma.glb` | Almas en pena | Cara borrosa, sábana o máscara simple (sirve para las 4) | 1.000 | 128 |
 | `head_gualicho.glb` | El Gualicho | El dueño del bar, el más inquietante | 2.000 | 256 |
+| `accomplice.glb` | El cómplice | Figura parada atrás tuyo que espía tus cartas y le hace señas al rival. Se ve solo al mirar para atrás cuando el rival hace esa trampa. Cuerpo entero, de pie, 0,5 × 1,75 × 0,35 m | 2.000 | 256 |
 
 ## Prioridad 3: el bar alrededor
 

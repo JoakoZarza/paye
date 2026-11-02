@@ -14,12 +14,25 @@ const ROMAN := ["", "I", "II", "III"]
 
 var _message := ""
 var _message_bad := false
+## Vista 3D: primero elegís si te levantás a la barra o te quedás en la mesa.
+var _at_counter := false
+
+
+func camera_marker() -> StringName:
+	return &"CamShop" if _at_counter or world == null else &"CamSeat"
+
+
+func wants_backdrop() -> bool:
+	return _at_counter or world == null
 
 
 func refresh() -> void:
 	for c in get_children():
 		remove_child(c)
 		c.queue_free()
+	if world != null and not _at_counter:
+		_draw_choice()
+		return
 	var outer := VBoxContainer.new()
 	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(outer)
@@ -172,6 +185,39 @@ func _muted(l: Label) -> Label:
 
 func _name_of(id: StringName) -> String:
 	return UiText.t("UI_AMULET_" + String(id).to_upper())
+
+
+func _draw_choice() -> void:
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	box.offset_top = -170
+	box.offset_left = -260
+	box.offset_right = 260
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 10)
+	add_child(box)
+	var title := ScreenTools.label(box, UiText.t("UI_SHOP_CHOICE"), 26)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_constant_override("outline_size", 6)
+	title.add_theme_color_override("font_outline_color", Color.BLACK)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	box.add_child(row)
+	ScreenTools.button(row, UiText.t("UI_SHOP_GO"), "GoShop", _go_to_counter)
+	ScreenTools.button(row, UiText.t("UI_SHOP_STAY"), "Stay", _stay)
+
+
+func _go_to_counter() -> void:
+	_at_counter = true
+	acted.emit()
+
+
+## Te quedás sentado: sin tienda, pasa la ronda y se sienta el rival siguiente.
+func _stay() -> void:
+	if router != null:
+		router.stay_seated = true
+	_next()
 
 
 func _buy(i: int) -> void:
