@@ -19,17 +19,25 @@ const TWITCH_CHANCE := 0.02
 const TWITCH := 3.0
 const COLOR := Color("#D8C9A3")
 
+## Cada letra que aparece, para el balbuceo.
+signal letter_typed(ch: String)
+
 var text := ""
+## Un canto que espera tu respuesta no se apaga solo.
+var persistent := false
 var _glyphs: Array[Label3D] = []
 var _homes: Array[Vector3] = []
 var _age := 0.0
 var _jitter_time := 0.0
 var _rng := RandomNumberGenerator.new()
+var _typed := 0
 
 
-func say(p_text: String) -> void:
+func say(p_text: String, p_persistent := false) -> void:
 	text = p_text
+	persistent = p_persistent
 	_age = 0.0
+	_typed = 0
 	for g in _glyphs:
 		g.queue_free()
 	_glyphs.clear()
@@ -63,6 +71,12 @@ func say(p_text: String) -> void:
 				_glyphs.append(g)
 				_homes.append(home)
 			x += advance
+
+
+## Empieza a apagarse ya (respondiste el canto).
+func dismiss() -> void:
+	persistent = false
+	_age = maxf(_age, HOLD_SECONDS)
 
 
 func glyph_count() -> int:
@@ -102,7 +116,12 @@ func step(delta: float) -> void:
 	if _glyphs.is_empty():
 		return
 	_age += delta
-	var shown := int(_age * TYPE_RATE)
+	if persistent:
+		_age = minf(_age, HOLD_SECONDS)
+	var shown := mini(int(_age * TYPE_RATE), _glyphs.size())
+	while _typed < shown:
+		letter_typed.emit(_glyphs[_typed].text)
+		_typed += 1
 	var fade := clampf((HOLD_SECONDS + FADE_SECONDS - _age) / FADE_SECONDS, 0.0, 1.0)
 	_jitter_time += delta
 	var jump := _jitter_time >= JITTER_STEP

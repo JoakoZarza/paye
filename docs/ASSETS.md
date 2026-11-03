@@ -87,3 +87,7 @@ Se ven sobre la mesa, al lado de tus cartas. Chicos: entre 5 y 20 cm. Hasta 300 
 ## Concept art
 
 No lo usa el juego directamente, pero ayuda a que todo tenga el mismo estilo. Conviene guardarlo en `docs/concept/` y fijar primero una **paleta** (6 a 10 colores) y una **hoja de clima** del bar de noche, antes de modelar. Si cada modelo sale de una IA distinta, la paleta es lo que hace que parezcan del mismo juego.
+
+## Sonido
+
+- `assets/audio/babble/babble.wav`: una sílaba de balbuceo (0,05–0,1 s, mono). Opcional `<rival>.wav` por rival, con el nombre en minúsculas (por ejemplo `la ira.wav`). El juego le cambia el tono en cada sílaba; mientras no exista usa uno generado.

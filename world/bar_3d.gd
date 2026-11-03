@@ -13,11 +13,12 @@ const MARKER_POSITIONS: Dictionary = {
 	"Deck": Vector3(0.33, 0.76, 0), "AmuletTray": Vector3(-0.33, 0.76, 0.25),
 	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7),
 	"SpeechAnchor": Vector3(-0.5, 1.05, -0.5),
+	"TallyPlayer": Vector3(0.3, 0.7505, 0.24), "TallyDealer": Vector3(0.3, 0.7505, -0.2),
 	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathCounter": Vector3(0.9, 1.6, -1.6),
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
 const MARKER_ROTATIONS: Dictionary = {
-	"CamSeat": Vector2(-20, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
+	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
 	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathCounter": Vector2(-12, 10),
 }
 

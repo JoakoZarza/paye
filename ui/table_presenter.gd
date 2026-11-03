@@ -14,6 +14,8 @@ const T := TrucoAction.Type
 const PLAYER := 0
 const DEALER := 1
 const LOG_LINES := 14
+## Lo que dice el rival y se queda escrito hasta que respondas.
+const WAITING_EVENTS := [&"call_made", &"tanto_declared", &"show_demanded"]
 const ICONS := {&"calm": "😐 tranquilo", &"nervous": "😬 nervioso",
 	&"smug": "😏 agrandado", &"angry": "😠 enojado"}
 const PHASE_NAMES := {
@@ -39,6 +41,8 @@ var known: Array[String] = []
 ## cada frase nueva, para que el subtítulo sepa cuándo volver a escribir.
 var rival_line := ""
 var rival_line_id := 0
+## El último canto del rival espera que respondas o juegues.
+var rival_waiting := false
 var _seen_tell: Object
 
 var _tells: Dictionary = {}
@@ -336,6 +340,10 @@ func _apply(events: Array[GameEvent]) -> void:
 		var line := rival_says(e)
 		if line != "":
 			said.append(line)
+		if int(e.data.get("player", -1)) == PLAYER or e.type == &"hand_over":
+			rival_waiting = false
+		elif e.type in WAITING_EVENTS and int(e.data.get("player", -1)) == DEALER:
+			rival_waiting = true
 	if not said.is_empty():
 		rival_line = "
 ".join(said)

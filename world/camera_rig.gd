@@ -4,7 +4,8 @@ extends Camera3D
 ## pantalla esté: sobre tus cartas casi no se mueve, en el medio mira la mesa y al
 ## rival, afuera se mueve más y se sacude si sacudís el mouse. Dejar el mouse en un
 ## borde lateral (o mantener A/D) gira el cuerpo, sin pasarse de lo que gira una
-## persona. Entre la silla, la entrada y la barra camina rodeando la mesa.
+## persona. Con el clic derecho (o espacio) apretado te inclinás sobre la mesa para
+## ver de cerca las cartas jugadas. Sobre un botón la cabeza se queda quieta. Entre la silla, la entrada y la barra camina rodeando la mesa.
 
 enum Zone { CARDS, TABLE, AROUND }
 
@@ -16,13 +17,15 @@ const CARDS_RADII := Vector2(0.22, 0.32)
 const TABLE_CENTER := Vector2(0.5, 0.68)
 const TABLE_RADII := Vector2(0.27, 0.62)
 ## Grados (mirar arriba/abajo, girar) respecto de CamSeat.
-const HAND_LOOK := Vector2(-14, 0)
+const HAND_LOOK := Vector2(-16, 0)
 const CARDS_RANGE := Vector2(2, 3)
-const TABLE_PITCH_UP := 8.0
+const TABLE_PITCH_UP := 10.0
 const TABLE_YAW := 30.0
-const AROUND_PITCH_UP := 12.0
+const AROUND_PITCH_UP := 14.0
 const AROUND_YAW := 50.0
 ## Qué tan rápido sigue la cabeza al mouse en cada zona (más alto = más suelta).
+## Qué parte de la pantalla, desde tus cartas hacia arriba, lleva la mirada hasta arriba.
+const UP_SPAN := 0.6
 const ZONE_SPEED := { Zone.CARDS: 1.5, Zone.TABLE: 4.0, Zone.AROUND: 9.0 }
 ## Sacudón: cuánto empuja el mouse, el resorte que lo frena y cuánto ladea.
 const WOBBLE_PUSH := 0.9
@@ -36,6 +39,13 @@ const CALM_SECONDS := 1.5
 const EDGE_SIDE := 0.04
 const TWIST_SPEED := 55.0
 const TWIST_RETURN := 70.0
+## Manteniendo el giro acelera hasta un 50 % más en este tiempo.
+const TWIST_ACCEL := 0.5
+const TWIST_RAMP := 1.2
+## Inclinarse: cuánto se adelanta y baja la cabeza y hacia dónde mira (grados).
+const LEAN_OFFSET := Vector3(0, -0.1, -0.24)
+const LEAN_PITCH := -24.0
+const LEAN_SPEED := 4.0
 ## Cuello y torso juntos: más que esto una persona no gira.
 const MAX_YAW := 140.0
 ## Mirando hacia abajo y al frente se levantan las cartas.
@@ -70,6 +80,11 @@ var _wobble_speed := 0.0
 var _agitation := 0.0
 var _calm_time := 0.0
 var _last_mouse := Vector2(-1, -1)
+var _twist_hold := 0.0
+## 0 = sentado derecho, 1 = inclinado sobre la mesa.
+var _lean := 0.0
+## true con el mouse sobre un botón: la cabeza no sigue al mouse.
+var ui_hold := false
 
 
 func setup(p_bar: Bar3D) -> void:
@@ -94,6 +109,7 @@ func go_to(name: StringName, instant := false) -> void:
 	_wobble = 0.0
 	_wobble_speed = 0.0
 	_agitation = 0.0
+	_lean = 0.0
 	var wanted := _deg(HAND_LOOK) if name == &"CamSeat" else Vector2.ZERO
 	if _turn_tween != null:
 		_turn_tween.kill()
@@ -149,7 +165,7 @@ func agitated() -> bool:
 
 ## Mirando tus cartas: la cabeza baja y al frente.
 func looking_at_hand() -> bool:
-	if not seated():
+	if not seated() or _lean > 0.5:
 		return false
 	var t := turn_degrees()
 	return t.x < HAND_PITCH_BELOW and absf(t.y) < HAND_YAW_WITHIN
@@ -157,14 +173,19 @@ func looking_at_hand() -> bool:
 
 ## Un paso de la cabeza con el mouse en m (fracción de pantalla). turn: -1 izquierda,
 ## 1 derecha, 0 nada (teclas); el borde lateral también gira.
-func look(m: Vector2, delta: float, turn := 0) -> void:
+func look(m: Vector2, delta: float, turn := 0, lean := false) -> void:
 	if not seated() or delta <= 0.0:
 		return
 	if _turn_tween != null and _turn_tween.is_running():
 		_turn_tween.kill()
+	_lean = move_toward(_lean, 1.0 if lean else 0.0, LEAN_SPEED * delta)
+	if ui_hold:
+		_last_mouse = Vector2(-1, -1)
+		_twist_hold = 0.0
+		return
 	var zone := zone_at(m)
 	var c := clampf((m.x - 0.5) * 2.0, -1.0, 1.0)
-	var up := clampf((CARDS_CENTER.y - m.y) / CARDS_CENTER.y, 0.0, 1.0)
+	var up := clampf((CARDS_CENTER.y - m.y) / UP_SPAN, 0.0, 1.0)
 	var target := HAND_LOOK
 	match zone:
 		Zone.CARDS:
@@ -190,9 +211,12 @@ func look(m: Vector2, delta: float, turn := 0) -> void:
 		elif m.x >= 1.0 - EDGE_SIDE:
 			turn = 1
 	if turn != 0:
+		_twist_hold += delta
+		var twist_speed := TWIST_SPEED * (1.0 + TWIST_ACCEL * smoothstep(0.0, TWIST_RAMP, _twist_hold))
 		var limit := MAX_YAW - AROUND_YAW
-		_twist = clampf(_twist - turn * TWIST_SPEED * delta, -limit, limit)
+		_twist = clampf(_twist - turn * twist_speed * delta, -limit, limit)
 	else:
+		_twist_hold = 0.0
 		_twist = move_toward(_twist, 0.0, TWIST_RETURN * delta)
 	target.y = clampf(target.y + _twist, -MAX_YAW, MAX_YAW)
 
@@ -221,12 +245,14 @@ func _process(delta: float) -> void:
 		elif mouse_look:
 			m = _mouse_fraction(m)
 		var turn := 0
+		var lean := false
 		if mouse_look:
 			if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
 				turn -= 1
 			if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
 				turn += 1
-		look(m, delta, turn)
+			lean = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT) or Input.is_key_pressed(KEY_SPACE)
+		look(m, delta, turn, lean)
 	_apply()
 
 
@@ -243,7 +269,15 @@ func _mouse_fraction(fallback: Vector2) -> Vector2:
 func _apply() -> void:
 	# Girar sobre el eje vertical del mundo y cabecear sobre el propio; el ladeo viene
 	# solo del sacudón.
-	var yaw := _turn.y + deg_to_rad(_wobble)
-	var basis := Basis(Vector3.UP, yaw) * _base.basis * Basis(Vector3.RIGHT, _turn.x) \
+	# Inclinado, la cabeza va hacia las bazas y se adelanta.
+	var lean := smoothstep(0.0, 1.0, _lean)
+	var yaw := lerpf(_turn.y, 0.0, lean) + deg_to_rad(_wobble)
+	var pitch := lerpf(_turn.x, deg_to_rad(LEAN_PITCH), lean)
+	var basis := Basis(Vector3.UP, yaw) * _base.basis * Basis(Vector3.RIGHT, pitch) \
 		* Basis(Vector3.FORWARD, deg_to_rad(_wobble * WOBBLE_ROLL))
-	global_transform = Transform3D(basis, _base.origin)
+	var forward := Basis(Vector3.UP, _base.basis.get_euler().y)
+	global_transform = Transform3D(basis, _base.origin + forward * LEAN_OFFSET * lean)
+
+
+func leaning() -> bool:
+	return _lean > 0.5

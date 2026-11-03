@@ -278,3 +278,96 @@ func test_al_ganar_ir_a_la_barra_abre_la_tienda() -> void:
 	router.find_child("GoShop", true, false).pressed.emit()
 	assert_eq(router.camera_marker(), &"CamShop")
 	assert_not_null(router.find_child("Next", true, false))
+
+func test_los_puntos_se_tallan_en_palitos_de_a_cinco() -> void:
+	var tally := ScoreTally.new()
+	add_child_autofree(tally)
+	tally.set_points(7)
+	assert_eq(tally.points(), 7)
+	var diagonal: Array = ScoreTally.stick_shape(4)
+	assert_almost_eq(float(diagonal[2]), PI * 0.25, 0.001, "el quinto cruza en diagonal")
+	var next_group: Array = ScoreTally.stick_shape(5)
+	assert_gt(next_group[0].x, ScoreTally.SIDE, "el sexto empieza otro cuadrado")
+	tally.set_points(2)
+	assert_eq(tally.points(), 2, "partido nuevo: se empieza de cero")
+
+
+func test_la_mesa_talla_los_puntos_de_cada_uno() -> void:
+	var s := _setup()
+	var rc: RunController = s[0]
+	var table: Table3D = s[2]
+	var bar: Bar3D = s[3]
+	rc.table().truco_match.scores[0] = 3
+	rc.table().truco_match.scores[1] = 6
+	table.sync()
+	assert_eq((bar.marker("TallyPlayer").get_node("TallyPlayer") as ScoreTally).points(), 3)
+	assert_eq((bar.marker("TallyDealer").get_node("TallyDealer") as ScoreTally).points(), 6)
+
+
+func test_el_canto_del_rival_espera_tu_respuesta() -> void:
+	var s := _setup()
+	var table: Table3D = s[2]
+	var bar: Bar3D = s[3]
+	var p := table.presenter
+	var speech := bar.marker("SpeechAnchor").get_node("RivalSpeech") as Subtitle3D
+	p._apply([GameEvent.make(&"call_made", {"player": TablePresenter.DEALER, "call": TrucoAction.Type.TRUCO})] as Array[GameEvent])
+	assert_true(p.rival_waiting)
+	table.sync()
+	speech.step(Subtitle3D.HOLD_SECONDS * 3)
+	assert_gt(speech.visible_glyphs(), 0, "sigue escrito mientras no respondas")
+	p._apply([GameEvent.make(&"call_accepted", {"player": TablePresenter.PLAYER})] as Array[GameEvent])
+	assert_false(p.rival_waiting)
+	table.sync()
+	speech.step(Subtitle3D.FADE_SECONDS + 0.01)
+	assert_eq(speech.visible_glyphs(), 0, "respondiste: se apaga")
+
+
+func test_el_balbuceo_suena_cada_pocas_letras() -> void:
+	var b := Babble.new()
+	add_child_autofree(b)
+	b.set_voice("La Ira")
+	assert_not_null(b.stream)
+	var other := Babble.new()
+	add_child_autofree(other)
+	other.set_voice("La Gula")
+	assert_ne(b.base_pitch, other.base_pitch, "cada rival tiene su tono")
+
+
+func test_sobre_un_boton_la_cabeza_no_se_mueve() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	cam.ui_hold = true
+	var before := cam.turn_degrees()
+	_hold(cam, Vector2(0.1, 0.2), 1.0)
+	assert_eq(cam.turn_degrees(), before)
+
+
+func test_el_giro_acelera_un_poco() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	cam.look(Vector2(0.5, 0.45), 1.0 / 60.0, 1)
+	var first := absf(cam._twist)
+	_hold_turn(cam, 2.0)
+	var t0 := cam._twist
+	cam.look(Vector2(0.5, 0.45), 1.0 / 60.0, 1)
+	var late := absf(cam._twist - t0)
+	assert_gt(late, first * 1.3, "acelera")
+	assert_lt(late, first * 2.0, "pero no al doble")
+
+
+func _hold_turn(cam: CameraRig, seconds: float) -> void:
+	for i in int(seconds * 60):
+		cam.look(Vector2(0.5, 0.45), 1.0 / 60.0, 1)
+		cam._twist = 0.0
+
+
+func test_inclinarse_sobre_la_mesa() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	var seat := cam.global_position
+	for i in 60:
+		cam.look(Vector2(0.5, 0.9), 1.0 / 60.0, 0, true)
+	cam._apply()
+	assert_true(cam.leaning())
+	assert_lt(cam.global_position.z, seat.z - 0.15, "se adelanta")
+	assert_false(cam.looking_at_hand(), "inclinado, la mano se baja")

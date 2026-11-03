@@ -33,7 +33,8 @@ var _cards: Dictionary = {}
 var _revealed: Dictionary = {}
 var _speech: Subtitle3D
 var _said_id := 0
-var _score: Label3D
+var _tallies: Array[ScoreTally] = []
+var _babble: Babble
 var _hand_raised := true
 
 
@@ -50,8 +51,17 @@ func _ready() -> void:
 	_speech = Subtitle3D.new()
 	_speech.name = "RivalSpeech"
 	bar.marker("SpeechAnchor").add_child(_speech)
-	_score = _label3d(bar.marker("Scoreboard"), 96)
-	_score.modulate = Color("#D8C9A3")
+	_babble = Babble.new()
+	_babble.name = "RivalBabble"
+	bar.marker("SpeechAnchor").add_child(_babble)
+	_babble.set_voice(presenter.sin_name())
+	_speech.letter_typed.connect(_babble.on_letter)
+	for who in [PLAYER, DEALER]:
+		var tally := ScoreTally.new()
+		tally.name = "Tally" + ("Player" if who == PLAYER else "Dealer")
+		tally.ps1 = ps1
+		bar.marker(tally.name).add_child(tally)
+		_tallies.append(tally)
 	presenter.changed.connect(sync)
 	sync()
 
@@ -79,8 +89,9 @@ func _exit_tree() -> void:
 		_root.queue_free()
 	if is_instance_valid(_speech):
 		_speech.queue_free()
-	if is_instance_valid(_score):
-		_score.queue_free()
+	for n in [_babble] + _tallies:
+		if is_instance_valid(n):
+			n.queue_free()
 	if not is_instance_valid(bar):
 		return
 	var light := bar.get_node_or_null("LampLight") as Light3D
@@ -148,7 +159,8 @@ func sync() -> void:
 	if accomplice != null:
 		accomplice.visible = presenter.accomplice_present()
 	var m := presenter.rc.table().truco_match
-	_score.text = "VOS  %d\n%s  %d" % [m.scores[PLAYER], presenter.sin_name().to_upper(), m.scores[DEALER]]
+	for who in [PLAYER, DEALER]:
+		_tallies[who].set_points(m.scores[who])
 
 
 ## [posición, rotación] de la carta i de n en un abanico centrado en center.
@@ -196,7 +208,9 @@ func _on_card_clicked(index: int) -> void:
 func _sync_tell() -> void:
 	if presenter.rival_line_id != _said_id:
 		_said_id = presenter.rival_line_id
-		_speech.say(presenter.rival_line)
+		_speech.say(presenter.rival_line, presenter.rival_waiting)
+	elif _speech.persistent and not presenter.rival_waiting:
+		_speech.dismiss()
 	var t := presenter.tell()
 	var light := bar.get_node_or_null("LampLight") as Light3D
 	if light != null:

@@ -6,6 +6,14 @@ const T := TrucoAction.Type
 const PLAYER := TablePresenter.PLAYER
 const DEALER := TablePresenter.DEALER
 const HIDDEN_CARD := "[ ? ]"
+## Vista 3D: los cantos van en un arco alrededor de tu mano (centro y radios en
+## fracción de pantalla; ángulos en grados, 270 = abajo).
+const RING_CENTER := Vector2(0.5, 0.7)
+const RING_RADII := Vector2(0.27, 0.22)
+const RING_FROM := 165.0
+const RING_TO := 375.0
+## Margen alrededor de un botón dentro del cual la cabeza se queda quieta.
+const HOLD_MARGIN := 14.0
 
 var presenter: TablePresenter
 
@@ -28,6 +36,8 @@ var _dealer_title: Label
 var _table_title: Label
 var _player_title: Label
 var _built := false
+var _ring: Control
+var _table3d: Table3D
 
 
 func _ready() -> void:
@@ -65,7 +75,54 @@ func _use_world() -> void:
 	split.move_child(middle, _main.get_index() + 1)
 	(split.get_child(split.get_child_count() - 1) as Control).size_flags_stretch_ratio = 0.7
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(Table3D.new(world, presenter, ps1))
+	_ring = Control.new()
+	_ring.name = "Ring"
+	_ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_ring)
+	_table3d = Table3D.new(world, presenter, ps1)
+	add_child(_table3d)
+
+
+## Con el mouse sobre un botón la cabeza no se mueve, así se puede apretar.
+func _process(delta: float) -> void:
+	if world == null or world.camera == null:
+		return
+	world.camera.ui_hold = _mouse_on_button()
+	# Sin mirar tus cartas los cantos se apagan un poco, pero se pueden apretar igual.
+	var wanted := 1.0 if _table3d.hand_raised() or world.camera.ui_hold else 0.4
+	_ring.modulate.a = move_toward(_ring.modulate.a, wanted, delta * 4.0)
+
+
+func _mouse_on_button() -> bool:
+	var mouse := get_global_mouse_position()
+	for b in find_children("*", "BaseButton", true, false):
+		var c := b as Control
+		if c.is_visible_in_tree() and c.get_global_rect().grow(HOLD_MARGIN).has_point(mouse):
+			return true
+	return false
+
+
+## Pasa los cantos de la fila al arco alrededor de tus cartas.
+func _arrange_ring() -> void:
+	var items := _actions.get_children()
+	var n := items.size()
+	for i in n:
+		var c := items[i] as Control
+		_actions.remove_child(c)
+		_ring.add_child(c)
+		var t := 0.5 if n == 1 else float(i) / (n - 1)
+		var a := deg_to_rad(lerpf(RING_FROM, RING_TO, t))
+		var spot := RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y)
+		var half := c.get_combined_minimum_size() * 0.5
+		c.anchor_left = spot.x
+		c.anchor_right = spot.x
+		c.anchor_top = spot.y
+		c.anchor_bottom = spot.y
+		c.offset_left = -half.x
+		c.offset_right = half.x
+		c.offset_top = -half.y
+		c.offset_bottom = half.y
 
 
 func refresh() -> void:
@@ -189,11 +246,20 @@ func _redraw() -> void:
 	_clear(_player_row)
 	_clear(_actions)
 	_clear(_amulets)
+	if _ring != null:
+		_clear(_ring)
 	var hand := p.hand()
 	if hand == null:
 		return
 	if world == null:
 		_draw_cards(hand)
+	_draw_actions(hand)
+	if _ring != null:
+		_arrange_ring()
+
+
+func _draw_actions(_hand: TrucoHand) -> void:
+	var p := presenter
 	if p.hand_finished():
 		_button(_actions, "Seguir", _on_continue).name = "Continue"
 		return
