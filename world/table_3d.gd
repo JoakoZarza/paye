@@ -26,6 +26,9 @@ const AMULET_SPOTS := [Vector3(-0.3, 0.7505, 0.3), Vector3(-0.2, 0.7505, 0.36),
 	Vector3(-0.38, 0.7505, 0.2), Vector3(-0.38, 0.7505, 0.36)]
 ## En su turno el rival levanta el abanico, como quien piensa qué tirar.
 const DEALER_THINKING := Vector3(0, 0.05, 0.03)
+## El nombre de la carta que mirás inclinado: más chico y apenas arriba de ella.
+const PEEK_SCALE := 0.45
+const PEEK_ABOVE := Vector3(0, 0.07, 0)
 ## El canto va debajo de lo que murmura.
 const CALL_OFFSET := Vector3(0, -0.26, 0)
 const PLAYER := TablePresenter.PLAYER
@@ -49,6 +52,10 @@ var _amulets: Array[AmuletToken] = []
 var _amulets_key := ""
 var _babble: Babble
 var _props: TableProps
+## Cartas jugadas (Card -> true) y la que estás mirando inclinado, con su nombre arriba.
+var _on_table: Dictionary = {}
+var _peeked: Card3D
+var _peek_label: Subtitle3D
 var _hand_raised := true
 
 
@@ -81,6 +88,10 @@ func _ready() -> void:
 	_sheet.name = "Sheet"
 	_sheet.ps1 = ps1
 	bar.marker("ScoreSheet").add_child(_sheet)
+	_peek_label = Subtitle3D.new()
+	_peek_label.name = "PeekLabel"
+	_peek_label.scale = Vector3.ONE * PEEK_SCALE
+	_root.add_child(_peek_label)
 	_props = TableProps.new()
 	_props.name = "Props"
 	_props.ps1 = ps1
@@ -92,6 +103,8 @@ func _ready() -> void:
 ## La mano se levanta cuando la cabeza mira tus cartas; si mirás para otro lado
 ## la bajás un poco, sin apoyarla.
 func _process(_delta: float) -> void:
+	if _peeked != null and (not is_instance_valid(_peeked) or not _leaning()):
+		_end_peek()
 	var raised := hand_should_be_raised()
 	if raised != _hand_raised:
 		_hand_raised = raised
@@ -172,6 +185,7 @@ func sync() -> void:
 			var spot := fan(theirs_at, i, theirs.size(), HAND_TILT, PI)
 			_place(theirs[i], i, true, spot[0], spot[1], false)
 			wanted[theirs[i]] = true
+		_on_table.clear()
 		for who in [PLAYER, DEALER]:
 			var played: Array = h.played[who]
 			for b in played.size():
@@ -180,6 +194,7 @@ func sync() -> void:
 				var pos := marker.position + Vector3(0, 0.001 * maxi(b - 2, 0), 0)
 				_place(played[b], -1, who == DEALER, pos, Vector3(FACE_UP, 0, 0), false, true)
 				wanted[played[b]] = true
+				_on_table[played[b]] = true
 	for card in _cards.keys():
 		if not wanted.has(card):
 			(_cards[card] as Node).queue_free()
@@ -216,6 +231,7 @@ func _place(card: Card, index: int, dealer: bool, pos: Vector3, rot: Vector3, ho
 		if not dealer:
 			_revealed[card] = true
 		node.clicked.connect(_on_card_clicked)
+		node.hover_changed.connect(_on_card_hover.bind(card, node))
 		_cards[card] = node
 		if ps1:
 			Ps1Material.apply(node)
@@ -288,3 +304,34 @@ func _sync_amulets() -> void:
 		token.setup(infos[i], ps1)
 		token.pressed.connect(func(id: StringName, needs: StringName) -> void: amulet_pressed.emit(id, needs))
 		_amulets.append(token)
+
+
+func _leaning() -> bool:
+	return bar.camera != null and bar.camera.leaning()
+
+
+## Inclinado sobre la mesa, pasar el mouse por una carta jugada la levanta y dice qué es.
+func _on_card_hover(on: bool, card: Card, node: Card3D) -> void:
+	if not on:
+		if node == _peeked:
+			_end_peek()
+		return
+	if not _on_table.has(card) or not _leaning():
+		return
+	if _peeked != null and _peeked != node and is_instance_valid(_peeked):
+		_peeked.peek(false)
+	_peeked = node
+	node.peek(true)
+	_peek_label.position = node.position + PEEK_ABOVE
+	_peek_label.say(TablePresenter.card_text(card), true)
+
+
+func peeked_text() -> String:
+	return _peek_label.text if _peeked != null else ""
+
+
+func _end_peek() -> void:
+	if is_instance_valid(_peeked):
+		_peeked.peek(false)
+	_peeked = null
+	_peek_label.say("")

@@ -9,7 +9,7 @@ const HIDDEN_CARD := "[ ? ]"
 ## Vista 3D: los cantos van en un arco alrededor de tu mano (centro y radios en
 ## fracción de pantalla; ángulos en grados, 270 = abajo).
 const RING_CENTER := Vector2(0.5, 0.68)
-const RING_RADII := Vector2(0.2, 0.17)
+const RING_RADII := Vector2(0.135, 0.165)
 const RING_FROM := 160.0
 const RING_TO := 380.0
 ## Margen alrededor de un botón dentro del cual la cabeza se queda quieta.
@@ -63,9 +63,10 @@ func setup(p_rc: RunController) -> void:
 ## los clics sobre las cartas.
 func _use_world() -> void:
 	# En 3D lo que pasó se ve en la mesa y los amuletos están apoyados en ella.
-	# La ronda son las fichas, el puntaje la planilla y la fase se ve en las manos.
+	# La ronda son las fichas, el puntaje la planilla y la fase se ve en las manos; las
+	# cartas de más del rival se cuentan mirando su abanico.
 	for n in [_dealer_row, _table_row, _player_row, _dealer_title, _table_title, _player_title,
-			_log_title, _log, _amulets_title, _amulets, _title, _score, _phase_label]:
+			_log_title, _log, _amulets_title, _amulets, _title, _score, _phase_label, _evidence_label]:
 		n.visible = false
 	# Título y puntaje arriba, botones abajo, el medio libre para ver la mesa.
 	var gap := Control.new()
@@ -133,28 +134,56 @@ func _mouse_on_button() -> bool:
 	return false
 
 
-## Pasa los cantos de la fila al arco alrededor de tus cartas.
+## Pasa los cantos de la fila al arco alrededor de tus cartas: repartidos a distancias
+## iguales sobre el arco, y cada uno pegado por su lado de adentro, así todos quedan a la
+## misma distancia de las cartas sin importar lo largo del texto.
 func _arrange_ring() -> void:
 	var items := _actions.get_children()
 	var n := items.size()
+	var spots := ring_spots(n)
 	for i in n:
 		var c := items[i] as Control
 		_actions.remove_child(c)
 		_ring.add_child(c)
 		if c is Button:
 			RingStyle.shakify(c as Button)
-		var t := 0.5 if n == 1 else float(i) / (n - 1)
-		var a := deg_to_rad(lerpf(RING_FROM, RING_TO, t))
-		var spot := RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y)
-		var half := c.get_combined_minimum_size() * 0.5
+		var spot: Vector2 = spots[i]
+		var size := c.get_combined_minimum_size()
+		# Cuánto se corre hacia afuera según de qué lado del arco está.
+		var side := clampf((spot.x - RING_CENTER.x) / RING_RADII.x, -1.0, 1.0)
+		var left := -size.x * (0.5 - 0.5 * side)
 		c.anchor_left = spot.x
 		c.anchor_right = spot.x
 		c.anchor_top = spot.y
 		c.anchor_bottom = spot.y
-		c.offset_left = -half.x
-		c.offset_right = half.x
-		c.offset_top = -half.y
-		c.offset_bottom = half.y
+		c.offset_left = left
+		c.offset_right = left + size.x
+		c.offset_top = -size.y * 0.5
+		c.offset_bottom = size.y * 0.5
+
+
+## n puntos (fracción de pantalla) a la misma distancia uno de otro sobre el arco.
+static func ring_spots(n: int) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	if n <= 0:
+		return out
+	var samples: Array[Vector2] = []
+	var lengths: Array[float] = [0.0]
+	for k in 121:
+		var a := deg_to_rad(lerpf(RING_FROM, RING_TO, k / 120.0))
+		samples.append(RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y))
+		if k > 0:
+			# En píxeles de 16:9, para que la distancia sea la que se ve.
+			lengths.append(lengths[k - 1] + ((samples[k] - samples[k - 1]) * Vector2(16, 9)).length())
+	var total: float = lengths[120]
+	for i in n:
+		var want := total * (0.5 if n == 1 else float(i) / (n - 1))
+		var k := 1
+		while k < 120 and lengths[k] < want:
+			k += 1
+		var t := 0.0 if lengths[k] == lengths[k - 1] else (want - lengths[k - 1]) / (lengths[k] - lengths[k - 1])
+		out.append(samples[k - 1].lerp(samples[k], clampf(t, 0.0, 1.0)))
+	return out
 
 
 func refresh() -> void:

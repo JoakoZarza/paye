@@ -7,8 +7,8 @@ const COLOR := Color("#D8C9A3")
 const HOVER := Color("#D9A54A")
 const DISABLED := Color(0.55, 0.52, 0.46, 0.6)
 const FONT_SIZE := 24
-## Temblor de RichTextLabel: rate = qué tan rápido, level = cuánto.
-const SHAKE := "[shake rate=5.0 level=3 connected=1]%s[/shake]"
+## Movimiento de RichTextLabel: un vaivén lento (wave) y encima el temblor (shake).
+const SHAKE := "[wave amp=30.0 freq=1.2 connected=1][shake rate=6.0 level=4 connected=1]%s[/shake][/wave]"
 
 
 ## Convierte un botón normal: el texto pasa a una etiqueta temblorosa encima.

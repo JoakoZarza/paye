@@ -3,8 +3,12 @@ extends Node3D
 ## Representa una carta clickeable sin filtrar cartas ocultas.
 
 signal clicked(card_index: int)
+## Mouse encima o no, para todas las cartas (las de la mesa también).
+signal hover_changed(on: bool)
 
 const CARD_SIZE: Vector2 = Vector2(0.063, 0.095)
+const PEEK_LIFT := 0.03
+const BACK_GLOW := 0.45
 
 var card_index: int = -1
 var _card: Card
@@ -39,6 +43,10 @@ func _ready() -> void:
 	if back_material.albedo_texture == null:
 		back_material.albedo_color = Color("#6E1A1A")
 	back_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	# Brilla un poco solo: el borde claro se ve aunque el rival las tenga en la sombra.
+	back_material.emission_enabled = true
+	back_material.emission_texture = back_material.albedo_texture
+	back_material.emission_energy_multiplier = BACK_GLOW
 	_back.material_override = back_material
 	_face.visible = false
 	_face_label.visible = false
@@ -95,12 +103,23 @@ func face_is_stale(p_card: Card) -> bool:
 
 
 func set_hover(on: bool) -> void:
+	hover_changed.emit(on)
 	if _move_tween != null and _move_tween.is_running():
 		return
 	if _hover_tween != null and _hover_tween.is_running():
 		_hover_tween.kill()
 	_hover_tween = create_tween()
 	_hover_tween.tween_property(self, "position:y", rest_y + (0.02 if on and hoverable else 0.0), 0.15)
+
+
+## Levantarla un poco de la mesa para mirarla (inclinado sobre la mesa).
+func peek(on: bool) -> void:
+	if _move_tween != null and _move_tween.is_running():
+		return
+	if _hover_tween != null and _hover_tween.is_running():
+		_hover_tween.kill()
+	_hover_tween = create_tween()
+	_hover_tween.tween_property(self, "position:y", rest_y + (PEEK_LIFT if on else 0.0), 0.15)
 
 
 func _show_face() -> void:

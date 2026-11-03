@@ -458,3 +458,43 @@ func test_los_cantos_se_quedan_con_tu_mano() -> void:
 	screen.follow_hand()
 	assert_gt(ring.position.y, at_cards + 150.0, "mirando arriba los cantos bajan con la mano")
 	assert_false(ring.visible, "y no se ven")
+
+
+func test_los_cantos_quedan_parejos_sobre_el_arco() -> void:
+	var spots: Array = load("res://ui/screens/table_screen.gd").ring_spots(6)
+	var gaps: Array[float] = []
+	for i in range(1, spots.size()):
+		gaps.append(((spots[i] - spots[i - 1]) * Vector2(16, 9)).length())
+	for g in gaps:
+		assert_almost_eq(g, gaps[0], gaps[0] * 0.1, "misma distancia entre cantos")
+
+
+func test_inclinado_las_cartas_jugadas_dicen_que_son() -> void:
+	var s := _setup()
+	var table: Table3D = s[2]
+	var bar: Bar3D = s[3]
+	var cam := CameraRig.new()
+	cam.mouse_look = false
+	bar.add_child(cam)
+	cam.setup(bar)
+	bar.camera = cam
+	cam.go_to(&"CamSeat", true)
+	var p := table.presenter
+	while p.card_action(0) == null:
+		if p.dealer_should_play():
+			p.dealer_step()
+		elif not p.call_buttons().is_empty():
+			p.act(p.call_buttons()[0]["action"])
+		else:
+			break
+	p.act(p.card_action(0))
+	var played: Card = p.hand().played[TablePresenter.PLAYER][0]
+	var node: Card3D = table._cards[played]
+	node.set_hover(true)
+	assert_eq(table.peeked_text(), "", "sentado derecho no pasa nada")
+	for i in 60:
+		cam.look(Vector2(0.5, 0.9), 1.0 / 60.0, 0, true)
+	node.set_hover(true)
+	assert_eq(table.peeked_text(), TablePresenter.card_text(played))
+	node.set_hover(false)
+	assert_eq(table.peeked_text(), "")

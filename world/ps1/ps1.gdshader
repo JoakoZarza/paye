@@ -12,6 +12,8 @@ uniform bool has_texture = false;
 uniform vec2 snap_resolution = vec2(640.0, 360.0);
 // 0 = texturas correctas, 1 = deformación afín completa.
 uniform float affine_strength : hint_range(0.0, 1.0) = 0.6;
+// Cuánto brilla solo, sin luz (el dorso de las cartas, para contarlas en la sombra).
+uniform float self_light = 0.0;
 
 // UV*w y w se interpolan con perspectiva; su cociente da la interpolación afín.
 varying vec3 affine_uv;
@@ -31,6 +33,7 @@ void fragment() {
 		color *= texture(albedo_texture, uv);
 	}
 	ALBEDO = color.rgb;
+	EMISSION = color.rgb * self_light;
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }

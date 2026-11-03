@@ -19,6 +19,8 @@ static func from_material(source: Material) -> ShaderMaterial:
 		if base.albedo_texture != null:
 			out.set_shader_parameter("albedo_texture", base.albedo_texture)
 			out.set_shader_parameter("has_texture", true)
+		if base.emission_enabled:
+			out.set_shader_parameter("self_light", base.emission_energy_multiplier)
 	elif source is ShaderMaterial and (source as ShaderMaterial).shader == SHADER:
 		return source as ShaderMaterial
 	return out
