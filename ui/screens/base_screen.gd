@@ -82,7 +82,10 @@ func place_tags() -> void:
 		if not is_instance_valid(c) or not is_instance_valid(anchor):
 			continue
 		var at: Vector3 = anchor.global_position + (t[2] as Vector3)
-		c.visible = not cam.is_position_behind(at)
+		# Detrás de la cámara (o pegado a ella) no se ve.
+		c.visible = (cam.global_transform.affine_inverse() * at).z < -0.05
+		if not c.visible:
+			continue
 		var size := c.get_combined_minimum_size()
 		c.size = size
 		c.position = cam.unproject_position(at) / view * screen - size * 0.5
@@ -118,3 +121,37 @@ static func row_spots(texts: Array[String], gap: float, depth: float) -> Array[V
 ## Dos textos vecinos se pisan si uno pasa de 10 caracteres y el otro de 6.
 static func too_close(a: String, b: String) -> bool:
 	return (a.length() > 10 and b.length() > 6) or (b.length() > 10 and a.length() > 6)
+
+
+## Vista 3D: los mazos para empezar, uno al lado del otro sobre la mesa, con lo que
+## tienen de distinto escrito abajo.
+func world_decks(on_pick: Callable) -> void:
+	var table := world.slot("table")
+	var decks := RunDeck.load_all().values()
+	for i in decks.size():
+		var deck: RunDeck = decks[i]
+		var key := "UI_DECK_" + String(deck.id).to_upper()
+		var x := (i - (decks.size() - 1) * 0.5) * 0.36
+		world_button(UiText.t(key + "_NAME"), "Deck_" + String(deck.id), on_pick.bind(deck.id), table,
+			Vector3(x, 0.82, 0))
+		world_label(wrap_text(UiText.t(key + "_DESC"), 22), table, Vector3(x, 0.76, 0.08), 15)
+
+
+## Corta un texto en renglones de a lo sumo width letras.
+static func wrap_text(text: String, width: int) -> String:
+	var lines: Array[String] = []
+	var line := ""
+	for word in text.split(" ", false):
+		if line != "" and (line + " " + word).length() > width:
+			lines.append(line)
+			line = word
+		else:
+			line = word if line == "" else line + " " + word
+	if line != "":
+		lines.append(line)
+	return "\n".join(lines)
+
+
+## Donde se escribe lo que hay que saber: la pizarra del bar.
+func board() -> Node3D:
+	return world.slot("scoreboard")

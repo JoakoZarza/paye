@@ -636,3 +636,17 @@ func test_al_enderezarte_vuelven_tus_cartas() -> void:
 	assert_true(cam.looking_at_hand(), "sin bajar el mouse, la cabeza vuelve a las cartas")
 	_hold(cam, Vector2(0.5, 0.2), 3.0)
 	assert_false(cam.looking_at_hand(), "moviendo el mouse se mira otra cosa")
+
+
+func test_las_pantallas_del_bar_se_escriben_sobre_los_objetos() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	var deck := router.find_child("Deck_normal", true, false) as Button
+	assert_not_null(deck, "inicio: los mazos sobre la mesa")
+	assert_null(router.find_child("*DeckPicker*", true, false), "sin la lista 2D")
+	deck.pressed.emit()
+	assert_eq(rc.phase, RunController.Phase.BAR)
