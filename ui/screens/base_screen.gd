@@ -45,7 +45,7 @@ func world_button(text: String, node_name: String, callback: Callable, anchor: N
 
 ## Un texto tembloroso escrito encima de un objeto del bar.
 func world_label(text: String, anchor: Node3D, offset := Vector3.ZERO, size := 22) -> RichTextLabel:
-	var l := RingStyle.shaky_label(text, size)
+	var l := RingStyle.reading_label(text, size)
 	var font := ThemeDB.fallback_font
 	l.custom_minimum_size = font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, size) + Vector2(24, 12)
 	add_child(l)

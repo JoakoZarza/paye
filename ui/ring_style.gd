@@ -7,8 +7,11 @@ const COLOR := Color("#D8C9A3")
 const HOVER := Color("#D9A54A")
 const DISABLED := Color(0.55, 0.52, 0.46, 0.6)
 const FONT_SIZE := 24
-## Movimiento de RichTextLabel: un vaivén lento (wave) y encima el temblor (shake).
-const SHAKE := "[wave amp=30.0 freq=1.2 connected=1][shake rate=6.0 level=4 connected=1]%s[/shake][/wave]"
+## Movimiento de RichTextLabel. Lo que se aprieta flota (wave) y tiembla a saltos;
+## lo que solo se lee (HUD, datos) tiembla a saltos como en CloverPit.
+const SHAKE := "[wave amp=30.0 freq=1.2 connected=1][jitter amp=0.7 fps=10]%s[/jitter][/wave]"
+const JITTER := "[jitter amp=0.7 fps=12]%s[/jitter]"
+static var _effect: JitterEffect
 
 
 ## Convierte un botón normal: el texto pasa a una etiqueta temblorosa encima.
@@ -42,7 +45,21 @@ static func shaky_label(text: String, size := FONT_SIZE) -> RichTextLabel:
 	label.add_theme_constant_override("outline_size", 8)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	label.add_theme_color_override("default_color", COLOR)
+	label.install_effect(effect())
 	label.text = "[center]" + SHAKE % text + "[/center]"
+	return label
+
+
+static func effect() -> JitterEffect:
+	if _effect == null:
+		_effect = JitterEffect.new()
+	return _effect
+
+
+## Un texto para leer (no se aprieta): solo el temblor a saltos.
+static func reading_label(text: String, size := FONT_SIZE) -> RichTextLabel:
+	var label := shaky_label(text, size)
+	label.text = "[center]" + JITTER % text + "[/center]"
 	return label
 
 

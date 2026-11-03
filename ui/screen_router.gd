@@ -103,7 +103,7 @@ func _update_backdrop() -> void:
 
 func _update_hud() -> void:
 	if _hud == null:
-		_hud = RingStyle.shaky_label("", 16)
+		_hud = RingStyle.reading_label("", 16)
 		_hud.name = "Hud"
 		_hud.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 		_hud.offset_left = -380
@@ -116,7 +116,7 @@ func _update_hud() -> void:
 	_hud.visible = s != null
 	if s != null:
 		_hud_plain = UiText.t("UI_HUD_MONEY") % [s.money, s.fiado, s.debt]
-		_hud.text = "[right]" + RingStyle.SHAKE % _hud_plain + "[/right]"
+		_hud.text = "[right]" + RingStyle.JITTER % _hud_plain + "[/right]"
 
 
 func hud_text() -> String:

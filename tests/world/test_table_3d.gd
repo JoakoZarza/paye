@@ -286,7 +286,21 @@ func test_al_ganar_ir_a_la_barra_abre_la_tienda() -> void:
 	router.find_child("GoShop", true, false).pressed.emit()
 	assert_eq(router.camera_marker(), &"CamShop")
 	assert_not_null(router.find_child("Next", true, false))
-	assert_not_null(router.find_child("Buy0", true, false), "las ofertas están en la barra")
+	var shop: Node = null
+	for c in router.get_children():
+		if c is BaseScreen:
+			shop = c
+	var items: Array = shop.shop_items()
+	assert_eq(items.size(), rc.shop.offers.size(), "las ofertas están en el mantel")
+	assert_null(router.find_child("Buy0", true, false), "se compra desde la vista de cerca")
+	shop.inspect(items[0])
+	assert_eq(shop.inspected(), items[0])
+	assert_true(items[0].inspecting(), "levita")
+	assert_not_null(router.find_child("Buy0", true, false))
+	assert_lt((r[0] as Bar3D).get_node("LampLight").light_energy, 1.0, "el bar se oscurece")
+	shop.close_inspect()
+	assert_null(shop.inspected())
+	assert_false(items[0].inspecting(), "vuelve al mantel")
 	assert_null(router.find_child("*ScrollContainer*", true, false), "sin el panel de la tienda 2D")
 
 func test_los_puntos_se_tallan_en_palitos_de_a_cinco() -> void:

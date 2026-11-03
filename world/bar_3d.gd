@@ -5,7 +5,7 @@ extends Node3D
 const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
 const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
 const MARKER_POSITIONS: Dictionary = {
-	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.55, -2.3),
+	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.72, -2.92),
 	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.95, -0.42),
 	"Baza1_Player": Vector3(-0.12, 0.755, 0.08), "Baza1_Dealer": Vector3(-0.12, 0.755, -0.08),
 	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
@@ -19,7 +19,7 @@ const MARKER_POSITIONS: Dictionary = {
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
 const MARKER_ROTATIONS: Dictionary = {
-	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
+	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-55, 0),
 	# Los diálogos del rival, como un cartel un poco girado hacia vos.
 	"SpeechAnchor": Vector2(6, 25),
 	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathCounter": Vector2(-12, 10),

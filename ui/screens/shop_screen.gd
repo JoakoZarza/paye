@@ -19,14 +19,27 @@ var _at_counter := false
 ## Vista 3D en la barra: los amuletos apoyados (ofertas y los tuyos).
 var _counter_items: Array[Node3D] = []
 
-## Sobre la barra: ofertas en el medio, los tuyos a la izquierda y los botones de
-## cambiar ofertas y volver a la derecha (en metros, respecto de la barra).
+## El mantel sobre la barra: ofertas atrás, lo tuyo adelante a la izquierda y los
+## botones de cambiar ofertas y volver adelante a la derecha (metros, respecto de la barra).
 const COUNTER_TOP := 1.1
-const OFFER_X := [-0.5, 0.0, 0.5, 0.25, -0.25]
-const OWNED_X := [-1.15, -0.85]
-const OFFER_Z := 0.12
-const RIGHT_X := 0.88
+const CLOTH_SIZE := Vector2(1.3, 0.52)
+const OFFER_X := [-0.4, 0.0, 0.4, -0.2, 0.2]
+const OWNED_X := [-0.4, -0.12]
+const BACK_Z := -0.1
+const FRONT_Z := 0.12
+const RIGHT_X := 0.36
 const WRAP := 24
+## Viendo un objeto de cerca: dónde flota (respecto de la cámara) y cuánto se apaga el bar.
+const INSPECT_AT := Vector3(-0.27, -0.02, -0.55)
+const DIM := 0.15
+const CATEGORY_NAMES := {
+	AmuletDef.Category.CARDS: "Cartas", AmuletDef.Category.TANTO: "Tanto",
+	AmuletDef.Category.CALLS: "Cantos", AmuletDef.Category.INFO: "Información",
+	AmuletDef.Category.CHEAT: "Trampa", AmuletDef.Category.ECONOMY: "Plata",
+}
+
+var _inspected: ShopItem
+var _details: Control
 
 
 func camera_marker() -> StringName:
@@ -295,27 +308,172 @@ func _exit_tree() -> void:
 
 
 func _clear_counter() -> void:
+	_end_inspect(true)
 	for n in _counter_items:
 		if is_instance_valid(n):
 			n.queue_free()
 	_counter_items.clear()
 
 
-## Vista 3D: la tienda apoyada sobre la barra, con el texto escrito arriba de cada cosa.
+## Vista 3D: la tienda es un mantel sobre la barra visto desde arriba. Atrás las
+## ofertas, adelante lo tuyo; cada cosa con su cartelito escrito a mano. Clic derecho
+## sobre un objeto lo muestra de cerca con todos sus datos, y ahí se compra o se vende.
 func _draw_counter() -> void:
 	var counter := world.slot("bar_counter")
 	var s := rc.state
-	var slots_full := s.loadout.equipped().size() >= Loadout.SLOTS
+	var top := counter.position + Vector3(0, COUNTER_TOP, 0)
+	_add_cloth(top)
 	if _message != "":
-		world_label(_message, counter, Vector3(0, COUNTER_TOP + 0.55, OFFER_Z), 20) \
+		world_label(_message, counter, Vector3(0, COUNTER_TOP + 0.02, CLOTH_SIZE.y * 0.5 + 0.06), 18) \
 			.add_theme_color_override("default_color", WARN if _message_bad else GOOD)
 	for i in rc.shop.offers.size():
 		var def: AmuletDef = rc.shop.offers[i]
-		var x: float = OFFER_X[i % OFFER_X.size()]
-		_put_amulet(counter, def, Vector3(x, COUNTER_TOP, OFFER_Z))
+		var price := rc.shop.price_of(def, s)
+		_put_item(def, "$%d" % price, false, top + Vector3(OFFER_X[i % OFFER_X.size()], 0, BACK_Z)).set_meta("offer", i)
+	if rc.shop.offers.is_empty():
+		world_label(UiText.t("UI_SHOP_SOLD_OUT"), counter, Vector3(0, COUNTER_TOP, BACK_Z), 18)
+	var owned := s.loadout.equipped()
+	for k in owned.size():
+		var def: AmuletDef = owned[k]
+		_put_item(def, ROMAN[s.loadout.level(def.id)], true, top + Vector3(OWNED_X[k % OWNED_X.size()], 0, FRONT_Z))
+	var cost := rc.economy.reroll_cost(s.round, rc.shop.rerolls)
+	world_button(UiText.t("UI_SHOP_REROLL") % cost, "Reroll", _reroll, counter,
+		Vector3(RIGHT_X, COUNTER_TOP, FRONT_Z - 0.03), s.money >= cost)
+	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(RIGHT_X, COUNTER_TOP, FRONT_Z + 0.08))
+
+
+## El mantel oscuro sobre la barra.
+func _add_cloth(top: Vector3) -> void:
+	var cloth := MeshInstance3D.new()
+	cloth.name = "ShopCloth"
+	var quad := QuadMesh.new()
+	quad.size = CLOTH_SIZE
+	cloth.mesh = quad
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("#1E1B18")
+	material.roughness = 1.0
+	cloth.material_override = material
+	cloth.rotation.x = -PI * 0.5
+	cloth.position = top + Vector3(0, 0.001, 0)
+	world.add_child(cloth)
+	if ps1:
+		Ps1Material.apply(cloth)
+	_counter_items.append(cloth)
+
+
+func _put_item(def: AmuletDef, tag: String, is_owned: bool, at: Vector3) -> ShopItem:
+	var item := ShopItem.new()
+	item.ps1 = ps1
+	item.position = at + Vector3(0, 0.002, 0)
+	world.add_child(item)
+	item.setup(def, tag, is_owned, RARITY_COLORS[def.rarity])
+	item.inspect_requested.connect(inspect)
+	_counter_items.append(item)
+	return item
+
+
+func shop_items() -> Array[ShopItem]:
+	var out: Array[ShopItem] = []
+	for n in _counter_items:
+		if n is ShopItem and is_instance_valid(n):
+			out.append(n)
+	return out
+
+
+# --- Ver de cerca ---
+
+## Levanta el objeto a la izquierda de la pantalla, oscurece el bar y a la derecha
+## escribe todo lo que hay que saber de él, con los botones para comprarlo o venderlo.
+func inspect(item: ShopItem) -> void:
+	if _inspected == item:
+		return
+	_end_inspect(true)
+	_inspected = item
+	var cam := world.camera
+	var at := item.global_position + Vector3(0, 0.25, 0)
+	if cam != null:
+		at = cam.global_transform * INSPECT_AT
+	item.lift_to(at)
+	_dim(true)
+	for t in _tags:
+		(t[0] as Control).modulate.a = 0.0
+	_draw_details(item)
+
+
+func inspected() -> ShopItem:
+	return _inspected
+
+
+func close_inspect() -> void:
+	_end_inspect(false)
+
+
+func _end_inspect(instant: bool) -> void:
+	if _inspected == null:
+		return
+	if is_instance_valid(_inspected):
+		_inspected.put_back(instant)
+	_inspected = null
+	_dim(false)
+	for t in _tags:
+		if is_instance_valid(t[0]):
+			(t[0] as Control).modulate.a = 1.0
+	if is_instance_valid(_details):
+		_details.queue_free()
+	_details = null
+
+
+## Baja las luces del bar mientras se mira un objeto (él trae su propia luz).
+func _dim(on: bool) -> void:
+	for light_name in ["LampLight", "DimFill", "CounterLight"]:
+		var light := world.get_node_or_null(light_name) as Light3D
+		if light == null:
+			continue
+		if not light.has_meta("bright"):
+			light.set_meta("bright", light.light_energy)
+		var bright: float = light.get_meta("bright")
+		light.light_energy = bright * (DIM if on else 1.0)
+	var env := world.get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if env != null and env.environment != null:
+		if not env.has_meta("bright"):
+			env.set_meta("bright", env.environment.ambient_light_energy)
+		var bright_env: float = env.get_meta("bright")
+		env.environment.ambient_light_energy = bright_env * (DIM if on else 1.0)
+
+
+func _draw_details(item: ShopItem) -> void:
+	var s := rc.state
+	var def := item.def
+	var key := "UI_AMULET_" + String(def.id).to_upper()
+	_details = VBoxContainer.new()
+	_details.name = "Details"
+	_details.anchor_left = 0.52
+	_details.anchor_right = 0.95
+	_details.anchor_top = 0.15
+	_details.anchor_bottom = 0.9
+	_details.add_theme_constant_override("separation", 10)
+	add_child(_details)
+	var title := RingStyle.reading_label(UiText.t(key), 34)
+	title.add_theme_color_override("default_color", RARITY_COLORS[def.rarity].lerp(Color.WHITE, 0.3))
+	_details.add_child(title)
+	var level := s.loadout.level(def.id) if item.owned else 0
+	var lines: Array[String] = [
+		UiText.t("UI_RARITY_" + AmuletDef.Rarity.keys()[def.rarity]) + " · " + CATEGORY_NAMES.get(def.category, ""),
+		UiText.t("UI_DETAIL_ACTIVE") % def.charges if def.kind == AmuletDef.Kind.ACTIVE else UiText.t("UI_DETAIL_PASSIVE"),
+		(UiText.t("UI_DETAIL_LEVEL") % [ROMAN[level], ROMAN[AmuletDef.MAX_LEVEL]]) if item.owned else UiText.t("UI_DETAIL_NOT_YOURS"),
+		"",
+		_wrap_wide(UiText.t(key + "_DESC")),
+	]
+	for line in lines:
+		_details.add_child(RingStyle.reading_label(line, 20))
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	_details.add_child(row)
+	if not item.owned:
+		var i: int = item.get_meta("offer", -1)
 		var price := rc.shop.price_of(def, s)
 		var quote := rc.shop.quote(price, s)
-		var text := _name_of(def.id) + "\n" + _wrap(UiText.t("UI_AMULET_" + String(def.id).to_upper() + "_DESC"))
+		var slots_full := s.loadout.equipped().size() >= Loadout.SLOTS
 		var why := ""
 		if slots_full:
 			why = UiText.t("UI_SHOP_WHY_FULL")
@@ -323,49 +481,63 @@ func _draw_counter() -> void:
 			why = UiText.t("UI_SHOP_WHY_MONEY")
 		elif int(quote["fiado"]) > 0:
 			why = UiText.t("UI_SHOP_SPLIT") % [int(quote["paid"]), int(quote["fiado"])]
-		world_label(text, counter, Vector3(x, COUNTER_TOP + 0.42, OFFER_Z), 16) \
-			.add_theme_color_override("default_color", RARITY_COLORS[def.rarity].lerp(Color.WHITE, 0.35))
-		var buy := UiText.t("UI_SHOP_BUY") + " " + UiText.t("UI_SHOP_PRICE") % price
-		world_button(buy, "Buy%d" % i, _buy.bind(i), counter, Vector3(x, COUNTER_TOP + 0.1, OFFER_Z + 0.05),
-			quote["ok"] and not slots_full)
 		if why != "":
-			world_label(_wrap(why), counter, Vector3(x, COUNTER_TOP + 0.02, OFFER_Z + 0.1), 14) \
-				.add_theme_color_override("default_color", WARN)
-	if rc.shop.offers.is_empty():
-		world_label(UiText.t("UI_SHOP_SOLD_OUT"), counter, Vector3(0, COUNTER_TOP + 0.2, OFFER_Z), 18)
-	var owned := s.loadout.equipped()
-	for k in owned.size():
-		var def: AmuletDef = owned[k]
-		var x: float = OWNED_X[k % OWNED_X.size()]
+			var warn := RingStyle.reading_label(why, 18)
+			warn.add_theme_color_override("default_color", WARN)
+			row.add_child(warn)
+		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_BUY") + " " + UiText.t("UI_SHOP_PRICE") % price,
+			"Buy%d" % i, _buy_inspected.bind(i), quote["ok"] and not slots_full))
+	else:
 		var id: StringName = def.id
-		_put_amulet(counter, def, Vector3(x, COUNTER_TOP, OFFER_Z))
-		var level := s.loadout.level(id)
-		world_label(_name_of(id) + "\n" + UiText.t("UI_LEVEL_N") % ROMAN[level], counter,
-			Vector3(x, COUNTER_TOP + 0.3, OFFER_Z), 16)
 		var up := rc.shop.upgrade_price(id, s)
 		if up >= 0:
 			var can := bool(rc.shop.quote(up, s)["ok"]) and rc.shop.can_upgrade_now()
-			world_button(UiText.t("UI_SHOP_UPGRADE") % [ROMAN[level + 1], up], "Upgrade_" + String(id),
-				_upgrade.bind(id), counter, Vector3(x, COUNTER_TOP + 0.12, OFFER_Z + 0.05), can)
+			RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_UPGRADE") % [ROMAN[level + 1], up],
+				"Upgrade_" + String(id), _upgrade_inspected.bind(id), can))
 		var value := rc.economy.sell_value(int(s.paid_for.get(id, 0)))
-		world_button(UiText.t("UI_SHOP_SELL") % value, "Sell_" + String(id), _sell.bind(id), counter,
-			Vector3(x, COUNTER_TOP + 0.04, OFFER_Z + 0.1))
-	var cost := rc.economy.reroll_cost(s.round, rc.shop.rerolls)
-	world_button(UiText.t("UI_SHOP_REROLL") % cost, "Reroll", _reroll, counter,
-		Vector3(RIGHT_X, COUNTER_TOP + 0.25, OFFER_Z), s.money >= cost)
-	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(RIGHT_X, COUNTER_TOP + 0.08, OFFER_Z + 0.05))
+		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_SELL") % value, "Sell_" + String(id),
+			_sell_inspected.bind(id)))
+	RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_DETAIL_CLOSE"), "CloseDetails", close_inspect))
 
 
-## Un amuleto apoyado en la barra: su modelo amulet_<id>.glb o un cubito del color de su rareza.
-func _put_amulet(counter: Node3D, def: AmuletDef, at: Vector3) -> void:
-	var item := AssetSlot.new()
-	item.asset_name = "amulet_" + String(def.id)
-	item.placeholder_size = AmuletToken.SIZE * 1.5
-	item.placeholder_color = RARITY_COLORS[def.rarity]
-	item.ps1 = ps1
-	item.position = counter.position + at
-	world.add_child(item)
-	_counter_items.append(item)
+func _buy_inspected(i: int) -> void:
+	_end_inspect(true)
+	_buy(i)
+
+
+func _upgrade_inspected(id: StringName) -> void:
+	_end_inspect(true)
+	_upgrade(id)
+
+
+func _sell_inspected(id: StringName) -> void:
+	_end_inspect(true)
+	_sell(id)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _inspected == null:
+		return
+	var mb := event as InputEventMouseButton
+	var key := event as InputEventKey
+	if (mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_RIGHT) or \
+			(key != null and key.pressed and key.keycode == KEY_ESCAPE):
+		close_inspect()
+		get_viewport().set_input_as_handled()
+
+
+static func _wrap_wide(text: String) -> String:
+	var lines: Array[String] = []
+	var line := ""
+	for word in text.split(" ", false):
+		if line != "" and (line + " " + word).length() > 40:
+			lines.append(line)
+			line = word
+		else:
+			line = word if line == "" else line + " " + word
+	if line != "":
+		lines.append(line)
+	return "\n".join(lines)
 
 
 ## Corta el texto en renglones de a lo sumo WRAP letras, por palabras.

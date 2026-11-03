@@ -38,10 +38,15 @@ func _initialize() -> void:
 	main.router.refresh()
 	if phase == "shop":
 		main.router.find_child("GoShop", true, false).pressed.emit()
+		if args.size() > 3 and args[3] == "inspect":
+			await create_timer(2.0).timeout
+			for c in main.router.get_children():
+				if c is BaseScreen and c.has_method("shop_items"):
+					c.inspect(c.shop_items()[0])
 	if args.size() > 5 and args[5] == "1":
 		_force_speech(main.router)
 	await create_timer(1.2).timeout
-	if args.size() > 3:
+	if args.size() > 3 and phase != "shop":
 		# Dónde queda el mouse para cada vista; back = mantenerlo en el borde derecho.
 		var spots := {"hand": Vector2(0.5, 0.9), "rival": Vector2(0.5, 0.25), "left": Vector2(0.15, 0.4),
 			"right": Vector2(0.85, 0.4), "back": Vector2(1.0, 0.45)}
