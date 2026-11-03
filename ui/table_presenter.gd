@@ -35,6 +35,11 @@ const UI_JSON := "res://data/ui.json"
 var rc: RunController
 var log_lines: Array[String] = []
 var known: Array[String] = []
+## Lo último que dijo el rival en voz alta (pista y cantos) y un número que sube con
+## cada frase nueva, para que el subtítulo sepa cuándo volver a escribir.
+var rival_line := ""
+var rival_line_id := 0
+var _seen_tell: Object
 
 var _tells: Dictionary = {}
 
@@ -319,10 +324,22 @@ func dealer_seconds() -> float:
 # --- Registro ---
 
 func _apply(events: Array[GameEvent]) -> void:
+	var said: Array[String] = []
+	var t := rc.table().brain.last_tell
+	if t != null and t != _seen_tell:
+		said.append("«%s»" % _tells.get(String(t.text_key), String(t.text_key)))
+	_seen_tell = t
 	for e in events:
 		var text := describe(e)
 		if text != "":
 			log_lines.append(text)
+		var line := rival_says(e)
+		if line != "":
+			said.append(line)
+	if not said.is_empty():
+		rival_line = "
+".join(said)
+		rival_line_id += 1
 	while log_lines.size() > LOG_LINES:
 		log_lines.pop_front()
 	events_applied.emit(events)
@@ -390,6 +407,31 @@ func describe(e: GameEvent) -> String:
 			return ""
 		&"illegal_action":
 			return "No se puede."
+	return ""
+
+
+## Lo que el rival dice en voz alta con este evento, o "".
+func rival_says(e: GameEvent) -> String:
+	var d := e.data
+	if int(d.get("player", -1)) != DEALER:
+		return ""
+	match e.type:
+		&"call_made":
+			return "¡%s!" % ACTION_NAMES.get(d["call"], "?")
+		&"call_accepted":
+			return "Quiero."
+		&"call_rejected":
+			return "No quiero."
+		&"tanto_declared":
+			return "%d." % d["value"]
+		&"son_buenas":
+			return "Son buenas."
+		&"show_demanded":
+			return "A ver, mostrá."
+		&"tanto_shown":
+			return "Mirá: %d." % d["points"]
+		&"mazo":
+			return "Me voy."
 	return ""
 
 

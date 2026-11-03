@@ -178,7 +178,8 @@ func _redraw() -> void:
 	_title.text = p.title()
 	_score.text = p.score_text()
 	_phase_label.text = p.phase_text()
-	_tell_label.text = p.tell_text()
+	# En 3D la pista la dice el rival en el aire.
+	_tell_label.text = "" if world != null else p.tell_text()
 	_known_label.text = p.known_text()
 	_evidence_label.text = p.evidence_text()
 	_log.text = "\n".join(p.log_lines)

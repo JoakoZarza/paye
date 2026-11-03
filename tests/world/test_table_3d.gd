@@ -92,26 +92,64 @@ func _rig() -> Array:
 	var bar: Bar3D = BAR.instantiate()
 	add_child_autofree(bar)
 	var cam := CameraRig.new()
-	cam.edge_look = false
+	cam.mouse_look = false
 	bar.add_child(cam)
 	cam.setup(bar)
 	bar.camera = cam
 	return [bar, cam]
 
 
-func test_vistas_sentado() -> void:
-	var r := _rig()
-	var cam: CameraRig = r[1]
+func _hold(cam: CameraRig, m: Vector2, seconds: float) -> void:
+	for i in int(seconds * 60):
+		cam.look(m, 1.0 / 60.0)
+
+
+func test_zonas_de_la_pantalla() -> void:
+	assert_eq(CameraRig.zone_at(Vector2(0.5, 0.9)), CameraRig.Zone.CARDS)
+	assert_eq(CameraRig.zone_at(Vector2(0.5, 0.3)), CameraRig.Zone.TABLE)
+	assert_eq(CameraRig.zone_at(Vector2(0.05, 0.2)), CameraRig.Zone.AROUND)
+
+
+func test_sobre_tus_cartas_casi_no_se_mueve() -> void:
+	var cam: CameraRig = _rig()[1]
 	cam.go_to(&"CamSeat", true)
-	assert_eq(cam.view, CameraRig.View.HAND)
-	cam.navigate(&"up")
-	assert_eq(cam.view, CameraRig.View.RIVAL)
-	cam.navigate(&"left")
-	assert_eq(cam.view, CameraRig.View.LEFT)
-	cam.navigate(&"left")
-	assert_eq(cam.view, CameraRig.View.BACK)
-	cam.navigate(&"down")
-	assert_eq(cam.view, CameraRig.View.HAND)
+	_hold(cam, Vector2(0.68, 0.95), 3.0)
+	var t := cam.turn_degrees()
+	assert_lt(absf(t.y), 3.5)
+	assert_lt(t.x, -10.0, "sigue mirando las cartas")
+	assert_true(cam.looking_at_hand())
+
+
+func test_en_el_medio_mira_al_rival() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	_hold(cam, Vector2(0.5, 0.2), 3.0)
+	assert_gt(cam.turn_degrees().x, 0.0)
+	assert_false(cam.looking_at_hand())
+
+
+func test_el_borde_gira_sin_dar_la_vuelta() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	_hold(cam, Vector2(1.0, 0.45), 8.0)
+	var yaw := cam.turn_degrees().y
+	assert_lt(yaw, -110.0, "llega a mirar atrás")
+	assert_gte(yaw, -CameraRig.MAX_YAW - 0.5, "no gira más que una persona")
+	_hold(cam, Vector2(0.5, 0.9), 6.0)
+	assert_gt(cam.turn_degrees().y, -5.0, "soltando el borde vuelve")
+
+
+func test_afuera_se_agita_y_tarda_en_calmarse() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	assert_false(cam.agitated())
+	for i in 30:
+		cam.look(Vector2(0.1 if i % 10 < 5 else 0.9, 0.15), 1.0 / 60.0)
+	assert_true(cam.agitated())
+	_hold(cam, Vector2(0.5, 0.9), 0.8)
+	assert_true(cam.agitated(), "pasar por adentro no alcanza")
+	_hold(cam, Vector2(0.5, 0.9), 1.5)
+	assert_false(cam.agitated())
 
 
 func test_camina_rodeando_la_mesa() -> void:
@@ -126,8 +164,9 @@ func test_camina_rodeando_la_mesa() -> void:
 	assert_has(route, &"PathSide", "pasa por el costado de la mesa")
 	for stop: StringName in route:
 		assert_not_null(bar.marker(String(stop)))
-	cam.navigate(&"up")
-	assert_eq(cam.view, CameraRig.View.HAND, "caminando no se cambia de vista")
+	var before := cam.turn_degrees()
+	cam.look(Vector2(0.5, 0.2), 0.5)
+	assert_eq(cam.turn_degrees(), before, "caminando el mouse no mueve la cabeza")
 
 
 func test_la_mano_baja_si_no_miras_tus_cartas() -> void:
@@ -135,16 +174,56 @@ func test_la_mano_baja_si_no_miras_tus_cartas() -> void:
 	var bar: Bar3D = s[3]
 	var table: Table3D = s[2]
 	var cam := CameraRig.new()
-	cam.edge_look = false
+	cam.mouse_look = false
 	bar.add_child(cam)
 	cam.setup(bar)
 	bar.camera = cam
 	cam.go_to(&"CamSeat", true)
 	assert_true(table.hand_should_be_raised())
-	cam.set_view(CameraRig.View.RIVAL, true)
+	var raised_y := table.player_card(0).rest_y
+	_hold(cam, Vector2(0.5, 0.2), 3.0)
 	assert_false(table.hand_should_be_raised())
 	table._process(0.0)
 	assert_false(table.hand_raised())
+	assert_almost_eq(table.player_card(0).rest_y, raised_y + Table3D.HAND_LOWERED.y, 0.001,
+		"solo baja la altura, sin apoyarla en la mesa")
+
+
+func test_las_cartas_van_en_abanico() -> void:
+	var c := Vector3.ZERO
+	var left: Array = Table3D.fan(c, 0, 3, Table3D.HAND_TILT, 0.0)
+	var mid: Array = Table3D.fan(c, 1, 3, Table3D.HAND_TILT, 0.0)
+	var right: Array = Table3D.fan(c, 2, 3, Table3D.HAND_TILT, 0.0)
+	assert_lt(left[0].x, mid[0].x)
+	assert_lt(mid[0].x, right[0].x)
+	assert_gt(left[1].z, 0.0, "la de la izquierda se abre a la izquierda")
+	assert_lt(right[1].z, 0.0)
+	assert_lt(left[0].y, mid[0].y, "las de los costados quedan más bajas, como en la mano")
+
+
+func test_el_rival_habla_con_subtitulos_que_tiemblan() -> void:
+	var s := _setup()
+	var table: Table3D = s[2]
+	var bar: Bar3D = s[3]
+	var speech := bar.marker("SpeechAnchor").get_node("RivalSpeech") as Subtitle3D
+	assert_not_null(speech)
+	table.presenter.rival_line = "¡Truco!"
+	table.presenter.rival_line_id += 1
+	table.sync()
+	assert_eq(speech.text, "¡Truco!")
+	assert_eq(speech.glyph_count(), 7)
+	speech.step(0.05)
+	assert_lt(speech.visible_glyphs(), 7, "se va escribiendo")
+	speech.step(1.0)
+	assert_eq(speech.visible_glyphs(), 7)
+	var before := speech._glyphs[0].position
+	var moved := false
+	for i in 10:
+		speech.step(Subtitle3D.JITTER_STEP)
+		moved = moved or speech._glyphs[0].position != before
+	assert_true(moved, "las letras tiemblan")
+	speech.step(Subtitle3D.HOLD_SECONDS + Subtitle3D.FADE_SECONDS)
+	assert_eq(speech.visible_glyphs(), 0, "se apaga solo")
 
 
 func test_el_complice_se_ve_atras() -> void:

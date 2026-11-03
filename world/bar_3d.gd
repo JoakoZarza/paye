@@ -6,12 +6,13 @@ const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
 const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
 const MARKER_POSITIONS: Dictionary = {
 	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.55, -2.3),
-	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.76, -0.3),
+	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.95, -0.42),
 	"Baza1_Player": Vector3(-0.12, 0.755, 0.08), "Baza1_Dealer": Vector3(-0.12, 0.755, -0.08),
 	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
 	"Baza3_Player": Vector3(0.12, 0.757, 0.08), "Baza3_Dealer": Vector3(0.12, 0.757, -0.08),
 	"Deck": Vector3(0.33, 0.76, 0), "AmuletTray": Vector3(-0.33, 0.76, 0.25),
 	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7),
+	"SpeechAnchor": Vector3(-0.5, 1.05, -0.5),
 	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathCounter": Vector3(0.9, 1.6, -1.6),
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.

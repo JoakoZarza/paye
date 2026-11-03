@@ -1,33 +1,46 @@
 class_name CameraRig
 extends Camera3D
-## La cámara del jugador. Sentado tiene vistas fijas (tus cartas, el rival, los
-## costados y la espalda) que se cambian con W/A/S/D, las flechas o dejando el mouse
-## en un borde. Entre la silla, la entrada y la barra camina rodeando la mesa.
+## La cámara del jugador. Sentado, la cabeza sigue al mouse según en qué zona de la
+## pantalla esté: sobre tus cartas casi no se mueve, en el medio mira la mesa y al
+## rival, afuera se mueve más y se sacude si sacudís el mouse. Dejar el mouse en un
+## borde lateral (o mantener A/D) gira el cuerpo, sin pasarse de lo que gira una
+## persona. Entre la silla, la entrada y la barra camina rodeando la mesa.
 
-signal view_changed(view: View)
-
-enum View { HAND, RIVAL, LEFT, RIGHT, BACK }
+enum Zone { CARDS, TABLE, AROUND }
 
 const STEP_SECONDS := 0.45
 const TURN_SECONDS := 0.3
+## Zonas: elipses con centro y radios en fracción de pantalla. Fuera de las dos es AROUND.
+const CARDS_CENTER := Vector2(0.5, 0.86)
+const CARDS_RADII := Vector2(0.22, 0.32)
+const TABLE_CENTER := Vector2(0.5, 0.68)
+const TABLE_RADII := Vector2(0.27, 0.62)
 ## Grados (mirar arriba/abajo, girar) respecto de CamSeat.
-const VIEW_ANGLES := {
-	View.HAND: Vector2(-14, 0), View.RIVAL: Vector2(6, 0),
-	View.LEFT: Vector2(4, 75), View.RIGHT: Vector2(4, -75), View.BACK: Vector2(2, 180),
-}
-## Adónde lleva cada dirección desde cada vista.
-const NAV := {
-	View.HAND: {&"up": View.RIVAL, &"left": View.LEFT, &"right": View.RIGHT, &"down": View.BACK},
-	View.RIVAL: {&"down": View.HAND, &"left": View.LEFT, &"right": View.RIGHT},
-	View.LEFT: {&"right": View.RIVAL, &"left": View.BACK, &"down": View.HAND},
-	View.RIGHT: {&"left": View.RIVAL, &"right": View.BACK, &"down": View.HAND},
-	View.BACK: {&"up": View.HAND, &"down": View.HAND, &"left": View.RIGHT, &"right": View.LEFT},
-}
-## Bordes de la pantalla (fracción) y cuánto hay que quedarse para girar.
-const EDGE_TOP := 0.06
-const EDGE_BOTTOM := 0.05
+const HAND_LOOK := Vector2(-14, 0)
+const CARDS_RANGE := Vector2(2, 3)
+const TABLE_PITCH_UP := 8.0
+const TABLE_YAW := 30.0
+const AROUND_PITCH_UP := 12.0
+const AROUND_YAW := 50.0
+## Qué tan rápido sigue la cabeza al mouse en cada zona (más alto = más suelta).
+const ZONE_SPEED := { Zone.CARDS: 1.5, Zone.TABLE: 4.0, Zone.AROUND: 9.0 }
+## Sacudón: cuánto empuja el mouse, el resorte que lo frena y cuánto ladea.
+const WOBBLE_PUSH := 0.9
+const WOBBLE_SPRING := 60.0
+const WOBBLE_DAMP := 7.0
+const WOBBLE_ROLL := 0.35
+const WOBBLE_MAX := 10.0
+## Volviendo de afuera, hay que quedarse este tiempo adentro para que se calme.
+const CALM_SECONDS := 1.5
+## Giro del cuerpo con el mouse en el borde: velocidad, tope y vuelta al soltar.
 const EDGE_SIDE := 0.04
-const EDGE_DWELL := 0.35
+const TWIST_SPEED := 55.0
+const TWIST_RETURN := 70.0
+## Cuello y torso juntos: más que esto una persona no gira.
+const MAX_YAW := 140.0
+## Mirando hacia abajo y al frente se levantan las cartas.
+const HAND_PITCH_BELOW := -8.0
+const HAND_YAW_WITHIN := 18.0
 ## Caminos que rodean la mesa en lugar de atravesarla.
 const ROUTES := {
 	[&"CamBar", &"CamSeat"]: [&"PathSide", &"PathStand"],
@@ -40,17 +53,23 @@ const ROUTES := {
 
 var bar: Bar3D
 var target_marker: StringName = &""
-var view: View = View.HAND
-## false en los tests: el mouse no gira la cámara.
-var edge_look := true
+## false en los tests: el mouse real no mueve la cabeza.
+var mouse_look := true
+## Si x >= 0, se usa esta posición (fracción) en lugar del mouse real (capturas).
+var forced_mouse := Vector2(-1, -1)
 
 var _base: Transform3D
+## Radianes: x = cabeceo, y = giro.
 var _turn := Vector2.ZERO
 var _turn_tween: Tween
 var _walk: Tween
-var _edge := &""
-var _edge_time := 0.0
-var _edge_used := false
+var _twist := 0.0
+var _wobble := 0.0
+var _wobble_speed := 0.0
+## 1 = agitado (estuvo afuera hace poco), 0 = calmo.
+var _agitation := 0.0
+var _calm_time := 0.0
+var _last_mouse := Vector2(-1, -1)
 
 
 func setup(p_bar: Bar3D) -> void:
@@ -71,17 +90,18 @@ func go_to(name: StringName, instant := false) -> void:
 		return
 	var from := target_marker
 	target_marker = name
-	# Las vistas son solo en la silla; en otro lugar se mira derecho.
-	if name == &"CamSeat":
-		set_view(View.HAND, from == &"")
+	_twist = 0.0
+	_wobble = 0.0
+	_wobble_speed = 0.0
+	_agitation = 0.0
+	var wanted := _deg(HAND_LOOK) if name == &"CamSeat" else Vector2.ZERO
+	if _turn_tween != null:
+		_turn_tween.kill()
+	if is_inside_tree() and not instant and from != &"":
+		_turn_tween = create_tween()
+		_turn_tween.tween_property(self, "_turn", wanted, TURN_SECONDS)
 	else:
-		if _turn_tween != null:
-			_turn_tween.kill()
-		if is_inside_tree() and not instant:
-			_turn_tween = create_tween()
-			_turn_tween.tween_property(self, "_turn", Vector2.ZERO, TURN_SECONDS)
-		else:
-			_turn = Vector2.ZERO
+		_turn = wanted
 	if _walk != null:
 		_walk.kill()
 	if instant or not is_inside_tree() or from == &"":
@@ -105,85 +125,125 @@ func _blend(t: float, from: Transform3D, to: Transform3D) -> void:
 	_base = from.interpolate_with(to, t)
 
 
-func set_view(v: View, instant := false) -> void:
-	if v == view and not instant:
-		return
-	view = v
-	var a: Vector2 = VIEW_ANGLES[v]
-	var wanted := Vector2(deg_to_rad(a.x), deg_to_rad(a.y))
-	if _turn_tween != null:
-		_turn_tween.kill()
-	if instant or not is_inside_tree():
-		_turn = wanted
-	else:
-		_turn_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		_turn_tween.tween_property(self, "_turn", wanted, TURN_SECONDS)
-	view_changed.emit(v)
+static func zone_at(m: Vector2) -> Zone:
+	if _inside(m, CARDS_CENTER, CARDS_RADII):
+		return Zone.CARDS
+	if _inside(m, TABLE_CENTER, TABLE_RADII):
+		return Zone.TABLE
+	return Zone.AROUND
 
 
-## dir: &"up", &"down", &"left" o &"right".
-func navigate(dir: StringName) -> void:
+static func _inside(m: Vector2, center: Vector2, radii: Vector2) -> bool:
+	var d := (m - center) / radii
+	return d.length_squared() <= 1.0
+
+
+## Grados de cabeceo y giro: x = cabeceo, y = giro.
+func turn_degrees() -> Vector2:
+	return Vector2(rad_to_deg(_turn.x), rad_to_deg(_turn.y))
+
+
+func agitated() -> bool:
+	return _agitation > 0.0
+
+
+## Mirando tus cartas: la cabeza baja y al frente.
+func looking_at_hand() -> bool:
 	if not seated():
-		return
-	var next: Variant = NAV[view].get(dir)
-	if next != null:
-		set_view(next)
+		return false
+	var t := turn_degrees()
+	return t.x < HAND_PITCH_BELOW and absf(t.y) < HAND_YAW_WITHIN
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not (event is InputEventKey) or not event.pressed or event.echo:
+## Un paso de la cabeza con el mouse en m (fracción de pantalla). turn: -1 izquierda,
+## 1 derecha, 0 nada (teclas); el borde lateral también gira.
+func look(m: Vector2, delta: float, turn := 0) -> void:
+	if not seated() or delta <= 0.0:
 		return
-	match (event as InputEventKey).keycode:
-		KEY_W, KEY_UP:
-			navigate(&"up")
-		KEY_S, KEY_DOWN:
-			navigate(&"down")
-		KEY_A, KEY_LEFT:
-			navigate(&"left")
-		KEY_D, KEY_RIGHT:
-			navigate(&"right")
+	if _turn_tween != null and _turn_tween.is_running():
+		_turn_tween.kill()
+	var zone := zone_at(m)
+	var c := clampf((m.x - 0.5) * 2.0, -1.0, 1.0)
+	var up := clampf((CARDS_CENTER.y - m.y) / CARDS_CENTER.y, 0.0, 1.0)
+	var target := HAND_LOOK
+	match zone:
+		Zone.CARDS:
+			target += Vector2(up * CARDS_RANGE.x, -c * CARDS_RANGE.y)
+		Zone.TABLE:
+			target = Vector2(lerpf(HAND_LOOK.x, TABLE_PITCH_UP, up), -c * TABLE_YAW)
+		Zone.AROUND:
+			target = Vector2(lerpf(HAND_LOOK.x, AROUND_PITCH_UP, up), -c * AROUND_YAW)
+
+	# Afuera se agita; adentro tiene que quedarse un rato para calmarse.
+	if zone == Zone.AROUND:
+		_agitation = 1.0
+		_calm_time = 0.0
+	elif _agitation > 0.0:
+		_calm_time += delta
+		if _calm_time >= CALM_SECONDS:
+			_agitation = move_toward(_agitation, 0.0, delta * 3.0)
+
+	# El cuerpo gira mientras el mouse esté en el borde o se mantenga A/D.
+	if turn == 0:
+		if m.x <= EDGE_SIDE:
+			turn = -1
+		elif m.x >= 1.0 - EDGE_SIDE:
+			turn = 1
+	if turn != 0:
+		var limit := MAX_YAW - AROUND_YAW
+		_twist = clampf(_twist - turn * TWIST_SPEED * delta, -limit, limit)
+	else:
+		_twist = move_toward(_twist, 0.0, TWIST_RETURN * delta)
+	target.y = clampf(target.y + _twist, -MAX_YAW, MAX_YAW)
+
+	# Sacudón: la velocidad horizontal del mouse empuja un resorte.
+	var push := 0.0
+	if _last_mouse.x >= 0.0:
+		push = (m.x - _last_mouse.x) / delta
+	_last_mouse = m
+	_wobble_speed += (-push * WOBBLE_PUSH * _agitation * 60.0 - WOBBLE_SPRING * _wobble - WOBBLE_DAMP * _wobble_speed) * delta
+	_wobble = clampf(_wobble + _wobble_speed * delta, -WOBBLE_MAX, WOBBLE_MAX)
+
+	var speed := lerpf(ZONE_SPEED[zone], ZONE_SPEED[Zone.AROUND], _agitation)
+	var k := 1.0 - exp(-speed * delta)
+	_turn = _turn.lerp(_deg(target), k)
+
+
+func _deg(v: Vector2) -> Vector2:
+	return Vector2(deg_to_rad(v.x), deg_to_rad(v.y))
 
 
 func _process(delta: float) -> void:
-	if edge_look and seated():
-		_check_edges(delta)
+	if seated():
+		var m := Vector2(0.5, CARDS_CENTER.y)
+		if forced_mouse.x >= 0.0:
+			m = forced_mouse
+		elif mouse_look:
+			m = _mouse_fraction(m)
+		var turn := 0
+		if mouse_look:
+			if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+				turn -= 1
+			if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+				turn += 1
+		look(m, delta, turn)
 	_apply()
 
 
-## Dejar el mouse un rato en un borde gira hacia ese lado; para volver a girar
-## hay que salir del borde.
-func _check_edges(delta: float) -> void:
+func _mouse_fraction(fallback: Vector2) -> Vector2:
 	var vp := get_viewport()
 	if vp == null:
-		return
+		return fallback
 	var size := vp.get_visible_rect().size
 	if size.x <= 0.0 or size.y <= 0.0:
-		return
-	var m := vp.get_mouse_position() / size
-	var edge := &""
-	if m.y < EDGE_TOP:
-		edge = &"up"
-	elif m.y > 1.0 - EDGE_BOTTOM:
-		edge = &"down"
-	elif m.x < EDGE_SIDE:
-		edge = &"left"
-	elif m.x > 1.0 - EDGE_SIDE:
-		edge = &"right"
-	if edge != _edge:
-		_edge = edge
-		_edge_time = 0.0
-		_edge_used = false
-		return
-	if edge == &"" or _edge_used:
-		return
-	_edge_time += delta
-	if _edge_time >= EDGE_DWELL:
-		_edge_used = true
-		navigate(edge)
+		return fallback
+	return (vp.get_mouse_position() / size).clamp(Vector2.ZERO, Vector2.ONE)
 
 
 func _apply() -> void:
-	# Girar sobre el eje vertical del mundo y cabecear sobre el propio, para que la
-	# cámara nunca se ladee.
-	var basis := Basis(Vector3.UP, _turn.y) * _base.basis * Basis(Vector3.RIGHT, _turn.x)
+	# Girar sobre el eje vertical del mundo y cabecear sobre el propio; el ladeo viene
+	# solo del sacudón.
+	var yaw := _turn.y + deg_to_rad(_wobble)
+	var basis := Basis(Vector3.UP, yaw) * _base.basis * Basis(Vector3.RIGHT, _turn.x) \
+		* Basis(Vector3.FORWARD, deg_to_rad(_wobble * WOBBLE_ROLL))
 	global_transform = Transform3D(basis, _base.origin)

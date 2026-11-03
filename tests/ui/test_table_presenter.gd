@@ -74,3 +74,16 @@ func test_sin_tu_turno_no_hay_acciones() -> void:
 	if p.dealer_should_play():
 		assert_true(p.player_legal().is_empty())
 		assert_null(p.card_action(0))
+
+
+func test_lo_que_dice_el_rival_en_voz_alta() -> void:
+	var p := _presenter()
+	var D := TablePresenter.DEALER
+	assert_eq(p.rival_says(GameEvent.make(&"call_made", {"player": D, "call": TrucoAction.Type.TRUCO})), "¡Truco!")
+	assert_eq(p.rival_says(GameEvent.make(&"call_accepted", {"player": D})), "Quiero.")
+	assert_eq(p.rival_says(GameEvent.make(&"call_made", {"player": TablePresenter.PLAYER, "call": TrucoAction.Type.TRUCO})), "",
+		"lo tuyo no es subtítulo del rival")
+	var id := p.rival_line_id
+	p._apply([GameEvent.make(&"call_rejected", {"player": D})] as Array[GameEvent])
+	assert_eq(p.rival_line, "No quiero.")
+	assert_eq(p.rival_line_id, id + 1)

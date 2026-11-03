@@ -23,12 +23,15 @@ func _initialize() -> void:
 	rc.start_run(&"normal")
 	if phase == "match":
 		rc.enter_match()
-	main.camera.edge_look = false
+	main.camera.mouse_look = false
 	main.router.refresh()
 	await create_timer(1.2).timeout
 	if args.size() > 3:
-		main.camera.set_view(CameraRig.View.keys().find(args[3].to_upper()))
-		await create_timer(0.6).timeout
+		# Dónde queda el mouse para cada vista; back = mantenerlo en el borde derecho.
+		var spots := {"hand": Vector2(0.5, 0.9), "rival": Vector2(0.5, 0.25), "left": Vector2(0.15, 0.4),
+			"right": Vector2(0.85, 0.4), "back": Vector2(1.0, 0.45)}
+		main.camera.forced_mouse = spots.get(args[3], Vector2(0.5, 0.9))
+		await create_timer(3.0 if args[3] == "back" else 1.2).timeout
 	for i in 5:
 		await process_frame
 	root.get_texture().get_image().save_png(out)
