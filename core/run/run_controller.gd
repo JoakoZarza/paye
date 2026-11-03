@@ -71,9 +71,17 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 		state.paid_for[legacy] = 0
 	# El legado se consume al empezar: guardarlo ya evita recuperarlo cerrando el juego.
 	meta.legacy = &""
+	# Lo que nadie retira del guardarropas se pierde en la tercera run nueva.
+	var wardrobe_lost: StringName = &""
+	if not meta.wardrobe.is_empty():
+		meta.wardrobe["runs"] = int(meta.wardrobe["runs"]) + 1
+		if int(meta.wardrobe["runs"]) >= economy.wardrobe_runs:
+			wardrobe_lost = meta.wardrobe["id"]
+			meta.wardrobe = {}
 	phase = Phase.BAR
 	_checkpoint()
-	return [GameEvent.make(&"run_started", {"money": state.money, "debt": state.debt, "legacy": legacy, "deck": deck_id})]
+	return [GameEvent.make(&"run_started", {"money": state.money, "debt": state.debt, "legacy": legacy,
+		"deck": deck_id, "wardrobe_lost": wardrobe_lost})]
 
 
 ## La versión de cada ronda la eligió la semilla al empezar la run.
@@ -320,6 +328,9 @@ func condemn() -> Array[GameEvent]:
 func next_round() -> Array[GameEvent]:
 	if phase != Phase.SHOP:
 		return [_illegal()]
+	# Cada ronda que pasa, el guardarropas cobra la suya.
+	if not meta.wardrobe.is_empty():
+		meta.wardrobe["fee"] = int(meta.wardrobe["fee"]) + economy.wardrobe_round_fee(state.round)
 	state.round += 1
 	shop.offers.clear()
 	phase = Phase.BAR
@@ -380,6 +391,65 @@ func sell(id: StringName) -> int:
 	var value := shop.sell(id, state)
 	_checkpoint()
 	return value
+
+
+# --- Guardarropas (entre runs) ---
+
+## Lo guardado, o vacío. Ver MetaState.wardrobe.
+func wardrobe() -> Dictionary:
+	return meta.wardrobe
+
+
+## Cuántas runs nuevas le quedan antes de perderse (contando la que se está jugando).
+func wardrobe_runs_left() -> int:
+	if meta.wardrobe.is_empty():
+		return 0
+	return economy.wardrobe_runs - int(meta.wardrobe["runs"])
+
+
+## Deja un amuleto tuyo en el guardarropas con su nivel; libera el lugar. Gratis al
+## dejarlo: se paga al retirarlo, por cada ronda que estuvo guardado.
+func store_amulet(id: StringName) -> Dictionary:
+	if phase != Phase.SHOP:
+		return {"ok": false, "reason": &"closed"}
+	if not meta.wardrobe.is_empty():
+		return {"ok": false, "reason": &"wardrobe_full"}
+	if not state.loadout.has(id):
+		return {"ok": false, "reason": &"not_equipped"}
+	meta.wardrobe = {"id": id, "level": state.loadout.level(id), "paid": int(state.paid_for.get(id, 0)),
+		"fee": 0, "runs": 0}
+	state.loadout.unequip(id)
+	state.paid_for.erase(id)
+	_checkpoint()
+	return {"ok": true, "reason": &""}
+
+
+## Lo retira pagando lo que se debe (plata primero, después fiado, como al comprar).
+func retrieve_amulet() -> Dictionary:
+	if phase != Phase.SHOP:
+		return {"ok": false, "reason": &"closed", "paid": 0, "fiado": 0}
+	if meta.wardrobe.is_empty():
+		return {"ok": false, "reason": &"wardrobe_empty", "paid": 0, "fiado": 0}
+	var id: StringName = meta.wardrobe["id"]
+	if not _defs.has(id):
+		meta.wardrobe = {}
+		return {"ok": false, "reason": &"wardrobe_empty", "paid": 0, "fiado": 0}
+	if state.loadout.equipped().size() >= Loadout.SLOTS:
+		return {"ok": false, "reason": &"no_slot", "paid": 0, "fiado": 0}
+	if state.loadout.has(id):
+		return {"ok": false, "reason": &"already_equipped", "paid": 0, "fiado": 0}
+	var fee := int(meta.wardrobe["fee"])
+	var quote := shop.quote(fee, state)
+	if not quote["ok"]:
+		return quote
+	state.money -= int(quote["paid"])
+	state.fiado += int(quote["fiado"])
+	state.loadout.equip(_defs[id])
+	state.loadout.set_level(id, int(meta.wardrobe["level"]))
+	state.paid_for[id] = int(meta.wardrobe["paid"])
+	meta.wardrobe = {}
+	_checkpoint()
+	return quote
 
 
 func reroll() -> bool:

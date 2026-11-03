@@ -65,6 +65,8 @@ func refresh() -> void:
 	if _screen_name != next_name:
 		if _screen_name == &"start" and world != null:
 			blink()
+		if world != null and world.camera != null:
+			world.camera.ui_hold = false
 		if _screen != null:
 			_screen.queue_free()
 		_screen = null

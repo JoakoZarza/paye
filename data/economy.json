@@ -30,5 +30,7 @@
   "gossip_suspicion": 0.3,
   "greed_entries_per_cheat": 5,
   "greed_max_extra": 2,
-  "one_more_fractions": [0.25, 0.5, 1.0]
+  "one_more_fractions": [0.25, 0.5, 1.0],
+  "wardrobe_fee": 0.1,
+  "wardrobe_runs": 3
 }

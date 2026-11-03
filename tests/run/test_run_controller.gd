@@ -349,3 +349,52 @@ func test_morir_solo_desde_el_bar_el_partido_o_la_cuenta() -> void:
 	_win_round(rc)
 	assert_eq(rc.phase, RunController.Phase.SHOP)
 	assert_eq(rc.die()[0].type, &"illegal_action")
+
+
+func _to_shop(rc: RunController) -> void:
+	rc.enter_match()
+	_end_match(rc, 0)
+	rc.finish_match()
+	if rc.phase == RunController.Phase.ONE_MORE:
+		rc.skip_one_more()
+
+
+func test_guardarropas_guarda_con_nivel_y_cobra_por_ronda() -> void:
+	var meta := MetaState.new()
+	var rc := _controller(meta)
+	rc.start_run(&"normal")
+	_to_shop(rc)
+	rc.state.loadout.equip(AmuletDef.load_all()[&"hat"])
+	rc.state.loadout.upgrade(&"hat")
+	rc.state.paid_for[&"hat"] = 300
+	assert_true(rc.store_amulet(&"hat")["ok"])
+	assert_false(rc.state.loadout.has(&"hat"), "libera el lugar")
+	assert_eq(rc.store_amulet(&"hat")["reason"], &"wardrobe_full")
+	assert_eq(MetaState.load_from(META_PATH).wardrobe["level"], 2, "queda guardado en disco")
+	assert_eq(rc.wardrobe()["fee"], 0, "dejarlo es gratis")
+	rc.next_round()
+	assert_eq(rc.wardrobe()["fee"], _economy.wardrobe_round_fee(1), "cada ronda cobra la suya")
+	_to_shop(rc)
+	var money := rc.state.money
+	var r := rc.retrieve_amulet()
+	assert_true(r["ok"])
+	assert_eq(rc.state.loadout.level(&"hat"), 2, "vuelve con su nivel")
+	assert_eq(rc.state.paid_for[&"hat"], 300, "y con lo invertido, para venderlo")
+	assert_eq(money - rc.state.money + rc.state.fiado, _economy.wardrobe_round_fee(1), "se paga lo que se debe")
+	assert_true(rc.wardrobe().is_empty())
+
+
+func test_guardarropas_se_pierde_en_la_tercera_run() -> void:
+	var meta := MetaState.new()
+	meta.wardrobe = {"id": &"hat", "level": 3, "paid": 100, "fee": 40, "runs": 0}
+	var rc := _controller(meta)
+	rc.start_run(&"normal")
+	assert_eq(rc.wardrobe_runs_left(), 2)
+	rc.die()
+	rc.start_run(&"normal")
+	assert_eq(rc.wardrobe_runs_left(), 1, "sigue guardado, con lo que se debe")
+	assert_eq(rc.wardrobe()["fee"], 40)
+	rc.die()
+	var events := rc.start_run(&"normal")
+	assert_true(rc.wardrobe().is_empty(), "a la tercera run nueva desaparece")
+	assert_eq(events[0].data["wardrobe_lost"], &"hat")

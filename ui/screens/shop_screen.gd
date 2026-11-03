@@ -27,6 +27,9 @@ const OFFER_X := [-0.36, 0.0, 0.36]
 const OWNED_X := [-0.18, 0.18]
 ## Afuera del mantel, a cada costado sobre la barra.
 const SIDE_X := 0.85
+## El guardarropas: una caja sobre la barra, adelante a la derecha del mantel.
+const WARDROBE_AT := Vector3(0.78, 0, 0.27)
+const WARDROBE_SIZE := Vector3(0.2, 0.06, 0.14)
 const BACK_Z := -0.17
 const FRONT_Z := 0.16
 const RIGHT_X := 0.36
@@ -116,6 +119,20 @@ func refresh() -> void:
 		var empty := _card(yours, MUTED)
 		_muted(ScreenTools.label(empty, UiText.t("UI_SHOP_EMPTY_SLOT")))
 
+	var w := rc.wardrobe()
+	if w.is_empty() or not AmuletDef.load_all().has(w["id"]):
+		_muted(ScreenTools.label(box, UiText.t("UI_WARDROBE_EMPTY"), 18))
+	else:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		box.add_child(row)
+		var text: String = UiText.t("UI_WARDROBE") + ": " + _name_of(w["id"]) + " " + ROMAN[int(w["level"])]
+		ScreenTools.label(row, text, 18)
+		var fee := int(w["fee"])
+		var can := s.loadout.equipped().size() < Loadout.SLOTS and not s.loadout.has(w["id"]) \
+			and bool(rc.shop.quote(fee, s)["ok"])
+		ScreenTools.button(row, UiText.t("UI_WARDROBE_TAKE") % fee, "Retrieve", _retrieve, can)
+
 	# Abajo y siempre a la vista: el último aviso y los botones para seguir.
 	var bottom := MarginContainer.new()
 	for side in ["left", "right", "bottom"]:
@@ -181,6 +198,7 @@ func _owned_card(parent: Node, def: AmuletDef) -> void:
 			why = UiText.t("UI_SHOP_WHY_MONEY")
 	var value := rc.economy.sell_value(int(s.paid_for.get(id, 0)))
 	ScreenTools.button(buttons, UiText.t("UI_SHOP_SELL") % value, "Sell_" + String(id), _sell.bind(id))
+	_store_button(buttons, id, false)
 	if why != "":
 		_muted(ScreenTools.label(card, why, 16))
 	card.add_child(buttons)
@@ -305,6 +323,10 @@ func _reason(reason: StringName) -> String:
 			return UiText.t("UI_SHOP_WHY_MONEY")
 		&"already_upgraded":
 			return UiText.t("UI_SHOP_WHY_UPGRADED")
+		&"wardrobe_full":
+			return UiText.t("UI_WARDROBE_FULL")
+		&"already_equipped":
+			return UiText.t("UI_WARDROBE_SAME")
 	return UiText.t("UI_SHOP_FAILED")
 
 
@@ -354,10 +376,38 @@ func _draw_counter() -> void:
 	if _message != "":
 		world_label(_wrap(_message), counter, Vector3(-SIDE_X, COUNTER_TOP, 0.3), 16) \
 			.add_theme_color_override("default_color", WARN if _message_bad else GOOD)
+	_draw_wardrobe(counter, top, flat)
 	var cost := rc.economy.reroll_cost(s.round, rc.shop.rerolls)
 	world_button(UiText.t("UI_SHOP_REROLL") % cost, "Reroll", _reroll, counter,
-		Vector3(SIDE_X, COUNTER_TOP, -0.06), s.money >= cost)
-	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(SIDE_X, COUNTER_TOP, 0.12))
+		Vector3(SIDE_X, COUNTER_TOP, -0.22), s.money >= cost)
+	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(SIDE_X, COUNTER_TOP, -0.06))
+
+
+## La caja del guardarropas; si tiene algo, el amuleto arriba con su cartel "guardado".
+func _draw_wardrobe(counter: Node3D, top: Vector3, flat: Basis) -> void:
+	var at := top + flat * WARDROBE_AT
+	var box := AssetSlot.new()
+	box.name = "WardrobeBox"
+	box.asset_name = "wardrobe"
+	box.placeholder_size = WARDROBE_SIZE
+	box.placeholder_color = Color("#3B2616")
+	box.ps1 = ps1
+	box.position = at
+	box.rotation.y = counter.rotation.y
+	world.add_child(box)
+	_counter_items.append(box)
+	var w := rc.wardrobe()
+	if w.is_empty() or not AmuletDef.load_all().has(w["id"]):
+		world_label(UiText.t("UI_WARDROBE_EMPTY"), counter, WARDROBE_AT + Vector3(0, COUNTER_TOP + 0.08, -0.1), 16) \
+			.name = "WardrobeLabel"
+		return
+	var def: AmuletDef = AmuletDef.load_all()[w["id"]]
+	var item := _put_item(def, ROMAN[int(w["level"])], false, at + Vector3(0, WARDROBE_SIZE.y, 0), counter.rotation.y)
+	item.set_meta("wardrobe", true)
+	var label := UiText.t("UI_WARDROBE")
+	if int(w["fee"]) > 0:
+		label += "\n" + UiText.t("UI_WARDROBE_OWED") % int(w["fee"])
+	world_label(label, counter, WARDROBE_AT + Vector3(0, COUNTER_TOP + 0.08, -0.1), 16).name = "WardrobeLabel"
 
 
 ## En la barra la plata se ve sobre la barra, no en la esquina.
@@ -499,11 +549,12 @@ func _draw_details(item: ShopItem) -> void:
 	var title := RingStyle.reading_label(UiText.t(key), 34)
 	title.add_theme_color_override("default_color", RARITY_COLORS[def.rarity].lerp(Color.WHITE, 0.3))
 	_details.add_child(title)
-	var level := s.loadout.level(def.id) if item.owned else 0
+	var stored := item.has_meta("wardrobe")
+	var level := s.loadout.level(def.id) if item.owned else (int(rc.wardrobe().get("level", 1)) if stored else 0)
 	var lines: Array[String] = [
 		UiText.t("UI_RARITY_" + AmuletDef.Rarity.keys()[def.rarity]) + " · " + CATEGORY_NAMES.get(def.category, ""),
 		UiText.t("UI_DETAIL_ACTIVE") % def.charges if def.kind == AmuletDef.Kind.ACTIVE else UiText.t("UI_DETAIL_PASSIVE"),
-		(UiText.t("UI_DETAIL_LEVEL") % [ROMAN[level], ROMAN[AmuletDef.MAX_LEVEL]]) if item.owned else UiText.t("UI_DETAIL_NOT_YOURS"),
+		(UiText.t("UI_DETAIL_LEVEL") % [ROMAN[level], ROMAN[AmuletDef.MAX_LEVEL]]) if item.owned or stored else UiText.t("UI_DETAIL_NOT_YOURS"),
 		"",
 		_wrap_wide(UiText.t(key + "_DESC")),
 	]
@@ -512,7 +563,9 @@ func _draw_details(item: ShopItem) -> void:
 	var row := VBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	_details.add_child(row)
-	if not item.owned:
+	if stored:
+		_wardrobe_details(row)
+	elif not item.owned:
 		var i: int = item.get_meta("offer", -1)
 		var price := rc.shop.price_of(def, s)
 		var quote := rc.shop.quote(price, s)
@@ -540,7 +593,71 @@ func _draw_details(item: ShopItem) -> void:
 		var value := rc.economy.sell_value(int(s.paid_for.get(id, 0)))
 		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_SELL") % value, "Sell_" + String(id),
 			_sell_inspected.bind(id)))
+		_store_button(row, id, true)
 	RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_DETAIL_CLOSE"), "CloseDetails", close_inspect))
+
+
+## Guardado: cuánto se debe, cuánto aguanta y el botón para retirarlo.
+func _wardrobe_details(row: Container) -> void:
+	var s := rc.state
+	var w := rc.wardrobe()
+	var fee := int(w["fee"])
+	var left := rc.wardrobe_runs_left()
+	var lines: Array[String] = [UiText.t("UI_WARDROBE_HELP")]
+	if fee > 0:
+		lines.append(UiText.t("UI_WARDROBE_OWED") % fee)
+	lines.append(UiText.t("UI_WARDROBE_LAST") if left <= 1 else UiText.t("UI_WARDROBE_LEFT") % (left - 1))
+	for line in lines:
+		row.add_child(RingStyle.reading_label(_wrap_wide(line), 18))
+	var why := ""
+	if s.loadout.equipped().size() >= Loadout.SLOTS:
+		why = UiText.t("UI_SHOP_WHY_FULL")
+	elif s.loadout.has(w["id"]):
+		why = UiText.t("UI_WARDROBE_SAME")
+	elif not rc.shop.quote(fee, s)["ok"]:
+		why = UiText.t("UI_SHOP_WHY_MONEY")
+	if why != "":
+		var warn := RingStyle.reading_label(_wrap_wide(why), 18)
+		warn.add_theme_color_override("default_color", WARN)
+		row.add_child(warn)
+	RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_WARDROBE_TAKE") % fee, "Retrieve",
+		_retrieve_inspected, why == ""))
+
+
+## "Dejarlo en el guardarropas": apagado si ya hay algo guardado.
+func _store_button(parent: Container, id: StringName, shaky: bool) -> void:
+	var fee := rc.economy.wardrobe_round_fee(rc.state.round)
+	var b := ScreenTools.button(parent, UiText.t("UI_WARDROBE_STORE") % fee, "Store_" + String(id),
+		_store_inspected.bind(id) if shaky else _store.bind(id), rc.wardrobe().is_empty())
+	if not rc.wardrobe().is_empty():
+		b.tooltip_text = UiText.t("UI_WARDROBE_FULL")
+	if shaky:
+		RingStyle.shakify(b)
+
+
+func _store(id: StringName) -> void:
+	var r := rc.store_amulet(id)
+	_message_bad = not r["ok"]
+	_message = UiText.t("UI_WARDROBE_STORED") % _name_of(id) if r["ok"] else _reason(r["reason"])
+	acted.emit()
+
+
+func _retrieve() -> void:
+	var id: StringName = rc.wardrobe().get("id", &"")
+	var r := rc.retrieve_amulet()
+	_message_bad = not r["ok"]
+	_message = UiText.t("UI_WARDROBE_TAKEN") % _name_of(id) if r["ok"] else _reason(r["reason"])
+	acted.emit()
+
+
+func _store_inspected(id: StringName) -> void:
+	_end_inspect(true)
+	_store(id)
+
+
+func _retrieve_inspected() -> void:
+	_end_inspect(true)
+	_retrieve()
 
 
 func _buy_inspected(i: int) -> void:

@@ -86,3 +86,11 @@ func prize_multiplier(player_called_envido: bool) -> float:
 		var def: AmuletDef = _amulets[&"train_coin"]
 		return float(def.value("prize_multiplier", level(&"train_coin"), 1.0))
 	return 1.0
+
+
+## Pone un amuleto equipado en un nivel (al sacarlo del guardarropas).
+func set_level(id: StringName, value: int) -> void:
+	if not _amulets.has(id):
+		return
+	while level(id) < mini(value, AmuletDef.MAX_LEVEL):
+		upgrade(id)

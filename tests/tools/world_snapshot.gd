@@ -31,6 +31,8 @@ func _initialize() -> void:
 		m.award(0, m.target)
 		rc.finish_match()
 		rc.skip_one_more()
+		# Algo en el guardarropas, para verlo en la captura.
+		rc.meta.wardrobe = {"id": &"hat", "level": 2, "paid": 100, "fee": 15, "runs": 0}
 	main.camera.mouse_look = false
 	if args.size() > 4 and phase == "match":
 		var pts := args[4].split(",")

@@ -27,6 +27,10 @@ var gossip_suspicion: float = 0.3
 var greed_entries_per_cheat: int = 5
 var greed_max_extra: int = 2
 var one_more_fractions: Array[float] = [0.25, 0.5, 1.0]
+## Guardarropas: cuánto se cobra por cada ronda que un amuleto pasa guardado (fracción
+## de la entrada de esa ronda) y en qué run nueva se pierde si nadie lo retira.
+var wardrobe_fee: float = 0.1
+var wardrobe_runs: int = 3
 
 const PRICE_EPSILON := 0.000001
 
@@ -61,6 +65,8 @@ static func load_from(path: String = "res://data/economy.json") -> Economy:
 	economy.greed_entries_per_cheat = int(data.get("greed_entries_per_cheat", economy.greed_entries_per_cheat))
 	economy.greed_max_extra = int(data.get("greed_max_extra", economy.greed_max_extra))
 	economy.one_more_fractions = _float_array(data.get("one_more_fractions", economy.one_more_fractions))
+	economy.wardrobe_fee = float(data.get("wardrobe_fee", economy.wardrobe_fee))
+	economy.wardrobe_runs = int(data.get("wardrobe_runs", economy.wardrobe_runs))
 	return economy
 
 
@@ -162,3 +168,8 @@ static func _parse_json(text: String) -> Variant:
 
 func sell_value(paid: int) -> int:
 	return floori(float(paid) * sell_ratio)
+
+
+## Lo que cuesta una ronda de guardarropas (nunca gratis).
+func wardrobe_round_fee(round: int) -> int:
+	return maxi(1, roundi(float(entry(round)) * wardrobe_fee))

@@ -102,6 +102,18 @@ UI_DETAIL_PASSIVE,Funciona solo todo el tiempo
 UI_DETAIL_LEVEL,Nivel %s de %s
 UI_DETAIL_NOT_YOURS,Todavía no es tuyo
 UI_DETAIL_CLOSE,Dejarlo en la mesa
+UI_WARDROBE,Guardarropas
+UI_WARDROBE_EMPTY,Guardarropas (vacío)
+UI_WARDROBE_STORE,Dejarlo en el guardarropas ($%d por ronda)
+UI_WARDROBE_FULL,El guardarropas ya tiene algo.
+UI_WARDROBE_TAKE,Retirarlo ($%d)
+UI_WARDROBE_OWED,Se debe $%d de guardarropas
+UI_WARDROBE_LEFT,Te lo guardan esta run y %d más.
+UI_WARDROBE_LAST,Última run: si no lo retirás lo tiran.
+UI_WARDROBE_STORED,%s quedó en el guardarropas.
+UI_WARDROBE_TAKEN,%s volvió con vos.
+UI_WARDROBE_SAME,Ya tenés uno igual.
+UI_WARDROBE_HELP,"Guardado conserva su nivel. Cobran por cada ronda que pasa, y se paga al retirarlo."
 UI_SHOP_BOUGHT,Compraste %s.
 UI_SHOP_BOUGHT_FIADO,"Quedaron $%d fiados."
 UI_SHOP_UPGRADED,Mejoraste %s.

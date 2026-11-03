@@ -708,3 +708,61 @@ func test_acusar_abre_una_flor() -> void:
 			assert_false((c as Control).visible, "los cantos se esconden")
 	(screen.find_child("CancelAccuse", true, false) as Button).pressed.emit()
 	assert_null(screen._flower, "cancelar cierra la flor")
+
+
+func test_al_terminar_la_mesa_la_cabeza_queda_libre() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	rc.enter_match()
+	var r := _rig()
+	var cam: CameraRig = r[1]
+	var screen: BaseScreen = SCENE.instantiate()
+	screen.world = r[0]
+	add_child(screen)
+	screen.setup(rc)
+	cam.go_to(&"CamSeat", true)
+	cam.ui_hold = true
+	screen.free()
+	assert_false(cam.ui_hold, "ganar con el mouse sobre un botón no traba la cámara")
+	var before := cam.turn_degrees()
+	_hold(cam, Vector2(0.02, 0.4), 3.0)
+	assert_gt(cam.turn_degrees().y, before.y + 60.0, "se puede girar hacia la barra")
+
+
+func test_el_guardarropas_de_la_barra() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	rc.enter_match()
+	var m := rc.table().truco_match
+	m.start_hand()
+	m.award(0, m.target)
+	rc.finish_match()
+	if rc.phase == RunController.Phase.ONE_MORE:
+		rc.skip_one_more()
+	rc.state.loadout.equip(AmuletDef.load_all()[&"hat"])
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	router.find_child("GoShop", true, false).pressed.emit()
+	assert_not_null((r[0] as Bar3D).find_child("WardrobeBox", true, false), "la caja está sobre la barra")
+	var shop: Node = null
+	for c in router.get_children():
+		if c is BaseScreen:
+			shop = c
+	var hat: ShopItem = null
+	for it: ShopItem in shop.shop_items():
+		if it.owned and it.def.id == &"hat":
+			hat = it
+	shop.inspect(hat)
+	(router.find_child("Store_hat", true, false) as Button).pressed.emit()
+	assert_false(rc.state.loadout.has(&"hat"))
+	var stored: ShopItem = null
+	for it: ShopItem in shop.shop_items():
+		if it.has_meta("wardrobe"):
+			stored = it
+	assert_not_null(stored, "lo guardado se ve arriba de la caja")
+	shop.inspect(stored)
+	(router.find_child("Retrieve", true, false) as Button).pressed.emit()
+	assert_true(rc.state.loadout.has(&"hat"), "se retira desde la vista de cerca")

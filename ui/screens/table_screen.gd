@@ -115,6 +115,13 @@ func _process(delta: float) -> void:
 	_ring.modulate.a = move_toward(_ring.modulate.a, wanted, delta * 4.0)
 
 
+## Al irse la mesa la cabeza queda libre (si no, ganar con el mouse sobre un botón
+## dejaba la cámara trabada).
+func _exit_tree() -> void:
+	if world != null and world.camera != null:
+		world.camera.ui_hold = false
+
+
 ## Los cantos están pegados a tu mano en el mundo: si subís la mirada se van con ella
 ## hacia abajo y salen de la pantalla.
 func follow_hand() -> void:
