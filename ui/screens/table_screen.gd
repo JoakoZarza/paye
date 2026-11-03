@@ -61,8 +61,9 @@ func setup(p_rc: RunController) -> void:
 ## los clics sobre las cartas.
 func _use_world() -> void:
 	# En 3D lo que pasó se ve en la mesa y los amuletos están apoyados en ella.
+	# La ronda son las fichas, el puntaje la planilla y la fase se ve en las manos.
 	for n in [_dealer_row, _table_row, _player_row, _dealer_title, _table_title, _player_title,
-			_log_title, _log, _amulets_title, _amulets]:
+			_log_title, _log, _amulets_title, _amulets, _title, _score, _phase_label]:
 		n.visible = false
 	# Título y puntaje arriba, botones abajo, el medio libre para ver la mesa.
 	var gap := Control.new()

@@ -13,7 +13,7 @@ const WIDTH := 0.2
 const LENGTH := 0.24
 const NAMES := ["NOS", "ELLOS"]
 ## Tamaño sobre la mesa (no toca la altura de los surcos).
-const SHEET_SCALE := 1.6
+const SHEET_SCALE := 0.8
 
 var ps1 := false
 var _tallies: Array[ScoreTally] = []

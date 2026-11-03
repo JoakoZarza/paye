@@ -2,7 +2,7 @@ class_name Table3D
 extends Node
 ## Pone en el bar 3D lo que dice el TablePresenter: tus cartas en abanico, las del
 ## rival boca abajo, las jugadas en su baza, lo que dice el rival al lado suyo, la luz según
-## su humor y la pizarra. Los clics en tus cartas vuelven al presentador (Plan 7, Tarea 4).
+## su humor, la planilla de puntos y lo que está apoyado en la mesa (TableProps). Los clics en tus cartas vuelven al presentador (Plan 7, Tarea 4).
 
 signal amulet_pressed(id: StringName, needs: StringName)
 
@@ -21,10 +21,11 @@ const FACE_DOWN := deg_to_rad(90.0)
 const LAMP_COLORS := {&"calm": Color("#ffc77a"), &"nervous": Color("#e8d08a"),
 	&"smug": Color("#ffb45a"), &"angry": Color("#ff7a52")}
 const LAMP_DEFAULT := Color("#ffc77a")
-## Amuletos sobre el lado izquierdo de la mesa: el primero cerca tuyo, el segundo más
-## allá, y si hubiera más se alternan.
-const AMULET_SPOTS := [Vector3(-0.32, 0.7505, 0.3), Vector3(-0.3, 0.7505, -0.2),
-	Vector3(-0.38, 0.7505, 0.18), Vector3(-0.36, 0.7505, -0.08)]
+## Tus amuletos, de tu lado a la izquierda. Los objetos del rival irían en DealerItems.
+const AMULET_SPOTS := [Vector3(-0.3, 0.7505, 0.3), Vector3(-0.2, 0.7505, 0.36),
+	Vector3(-0.38, 0.7505, 0.2), Vector3(-0.38, 0.7505, 0.36)]
+## En su turno el rival levanta el abanico, como quien piensa qué tirar.
+const DEALER_THINKING := Vector3(0, 0.05, 0.03)
 ## El canto va debajo de lo que murmura.
 const CALL_OFFSET := Vector3(0, -0.26, 0)
 const PLAYER := TablePresenter.PLAYER
@@ -47,6 +48,7 @@ var _sheet: ScoreSheet
 var _amulets: Array[AmuletToken] = []
 var _amulets_key := ""
 var _babble: Babble
+var _props: TableProps
 var _hand_raised := true
 
 
@@ -77,6 +79,10 @@ func _ready() -> void:
 	_sheet.name = "Sheet"
 	_sheet.ps1 = ps1
 	bar.marker("ScoreSheet").add_child(_sheet)
+	_props = TableProps.new()
+	_props.name = "Props"
+	_props.ps1 = ps1
+	bar.add_child(_props)
 	presenter.changed.connect(sync)
 	sync()
 
@@ -105,7 +111,7 @@ func _exit_tree() -> void:
 	for n in [_speech, _call]:
 		if is_instance_valid(n):
 			n.queue_free()
-	for n in [_babble, _sheet] + _amulets:
+	for n in [_babble, _sheet, _props] + _amulets:
 		if is_instance_valid(n):
 			n.queue_free()
 	if not is_instance_valid(bar):
@@ -143,18 +149,25 @@ func sync() -> void:
 	var h := presenter.hand()
 	var wanted := {}
 	if h != null:
+		# El mazo, a la derecha del pie; las cartas nuevas salen de ahí.
+		_props.set_mano(h.mano)
+		bar.marker("Deck").position = TableProps.deck_spot(h.mano) + Vector3(0, TableProps.DECK_SIZE.y, 0)
+		var my_turn := presenter.player_can_act()
 		var mine: Array = h.cards[PLAYER]
 		var center := bar.marker("PlayerHand").position
 		if not _hand_raised:
 			center += HAND_LOWERED
 		for i in mine.size():
 			var spot := fan(center, i, mine.size(), HAND_TILT, 0.0)
-			_place(mine[i], i, false, spot[0], spot[1], _hand_raised)
+			_place(mine[i], i, false, spot[0], spot[1], _hand_raised and my_turn)
 			wanted[mine[i]] = true
 		# El rival también las agarra en abanico, de espaldas a vos.
 		var theirs: Array = h.cards[DEALER]
+		var theirs_at := bar.marker("DealerHand").position
+		if presenter.dealer_should_play():
+			theirs_at += DEALER_THINKING
 		for i in theirs.size():
-			var spot := fan(bar.marker("DealerHand").position, i, theirs.size(), HAND_TILT, PI)
+			var spot := fan(theirs_at, i, theirs.size(), HAND_TILT, PI)
 			_place(theirs[i], i, true, spot[0], spot[1], false)
 			wanted[theirs[i]] = true
 		for who in [PLAYER, DEALER]:
@@ -176,6 +189,8 @@ func sync() -> void:
 		accomplice.visible = presenter.accomplice_present()
 	var m := presenter.rc.table().truco_match
 	_sheet.set_scores(m.scores)
+	_props.set_chips(presenter.rc.state.round - 1)
+	_props.set_stake(stake() if h != null else 0)
 	_sync_amulets()
 
 
@@ -235,6 +250,19 @@ func _sync_tell() -> void:
 	var light := bar.get_node_or_null("LampLight") as Light3D
 	if light != null:
 		light.light_color = LAMP_COLORS.get(t.get("kind", &""), LAMP_DEFAULT)
+
+
+## Lo que vale la mano con el truco cantado (2, 3 o 4); 0 sin truco.
+func stake() -> int:
+	var h := presenter.hand()
+	if h == null or h.is_over():
+		return 0
+	var level := h.truco_level()
+	return level if level >= 2 else 0
+
+
+func props() -> TableProps:
+	return _props
 
 
 func amulet_tokens() -> Array[AmuletToken]:

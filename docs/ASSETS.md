@@ -91,3 +91,5 @@ No lo usa el juego directamente, pero ayuda a que todo tenga el mismo estilo. Co
 ## Sonido
 
 - `assets/audio/babble/babble.wav`: una sílaba de balbuceo (0,05–0,1 s, mono). Opcional `<rival>.wav` por rival, con el nombre en minúsculas (por ejemplo `la ira.wav`). El juego le cambia el tono en cada sílaba; mientras no exista usa uno generado.
+
+- `deck.glb` (el mazo apoyado, 0,063 × 0,014 × 0,095 m). Las fichas y porotos por ahora son formas simples.

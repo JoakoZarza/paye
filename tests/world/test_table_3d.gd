@@ -403,3 +403,37 @@ func test_el_tanto_se_elige_con_flechitas() -> void:
 	dial.declared.connect(func(v: int) -> void: got[0] = v)
 	(dial.find_child("Declare", true, false) as Button).pressed.emit()
 	assert_eq(got[0], 5)
+
+
+func test_el_mazo_va_a_la_derecha_del_pie() -> void:
+	var s := _setup()
+	var table: Table3D = s[2]
+	var h := table.presenter.hand()
+	h.mano = TablePresenter.PLAYER
+	table.sync()
+	var deck := (s[3] as Bar3D).marker("Deck")
+	assert_lt(deck.position.x, 0.0, "sos mano: a la derecha del rival, que te queda a la izquierda")
+	assert_lt(deck.position.z, 0.0, "del lado del rival")
+	h.mano = TablePresenter.DEALER
+	table.sync()
+	assert_gt(deck.position.x, 0.0, "es mano el rival: a tu derecha")
+	assert_gt(deck.position.z, 0.0, "de tu lado")
+
+
+func test_fichas_por_rival_vencido_y_porotos_del_truco() -> void:
+	var s := _setup()
+	var rc: RunController = s[0]
+	var table: Table3D = s[2]
+	assert_eq(table.props().chips(), rc.state.round - 1, "primer rival: ninguna ficha")
+	rc.state.round = 3
+	table.sync()
+	assert_eq(table.props().chips(), 2)
+	table.props().set_stake(3)
+	assert_eq(table.props().beans(), 3)
+	table.props().set_stake(0)
+	assert_eq(table.props().beans(), 0)
+
+
+func test_tus_amuletos_van_de_tu_lado() -> void:
+	for spot: Vector3 in Table3D.AMULET_SPOTS:
+		assert_gt(spot.z, 0.0)
