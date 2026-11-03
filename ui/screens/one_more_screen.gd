@@ -6,6 +6,10 @@ func refresh() -> void:
 	for c in get_children():
 		remove_child(c)
 		c.queue_free()
+	_clear_tags()
+	if world != null:
+		_draw_world()
+		return
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(box)
@@ -34,3 +38,25 @@ func _skip() -> void:
 
 func camera_marker() -> StringName:
 	return &"CamSeat"
+
+
+## Vista 3D: el premio en el medio de la mesa, cada apuesta en fila y "seguir" cerca tuyo.
+func _draw_world() -> void:
+	var table := world.slot("table")
+	world_label(UiText.t("UI_ONE_MORE_TITLE") + "\n" + UiText.t("UI_ONE_MORE_PRIZE") % [rc.state.money, rc.state.fiado],
+		table, Vector3(0, 0.9, -0.2), 24)
+	var options := rc.one_more_options()
+	var shown: Array[int] = []
+	for i in options.size():
+		if options[i] > 0:
+			shown.append(i)
+	for k in shown.size():
+		var i := shown[k]
+		var x := (k - (shown.size() - 1) * 0.5) * 0.22
+		world_button(UiText.t("UI_ONE_MORE_STAKE") % options[i], "Stake%d" % i,
+			_stake.bind(rc.economy.one_more_fractions[i]), table, Vector3(x, 0.8, 0.0))
+	world_button(UiText.t("UI_ONE_MORE_SKIP"), "Skip", _skip, table, Vector3(0, 0.78, 0.28))
+
+
+func wants_backdrop() -> bool:
+	return world == null

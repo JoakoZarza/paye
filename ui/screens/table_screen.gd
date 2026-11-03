@@ -12,6 +12,9 @@ const RING_CENTER := Vector2(0.5, 0.68)
 const RING_RADII := Vector2(0.135, 0.165)
 const RING_FROM := 160.0
 const RING_TO := 380.0
+## Espacio mínimo entre dos cantos (píxeles) y hasta cuánto se puede abrir el arco.
+const RING_GAP := 6.0
+const RING_MAX_GROW := 1.8
 ## Margen alrededor de un botón dentro del cual la cabeza se queda quieta.
 const HOLD_MARGIN := 14.0
 ## Si tu mano queda más abajo que esto (fracción de pantalla), los cantos no se ven.
@@ -39,6 +42,8 @@ var _table_title: Label
 var _player_title: Label
 var _built := false
 var _ring: Control
+## Cuánto se abrió el arco para que no se pisen los cantos (1 = nada).
+var ring_grow := 1.0
 var _table3d: Table3D
 var _log_title: Label
 var _amulets_title: Label
@@ -115,7 +120,7 @@ func follow_hand() -> void:
 	if cam.is_position_behind(spot):
 		_ring.visible = false
 		return
-	_ring.visible = true
+	_ring.visible = not _table3d.dealing()
 	var view := cam.get_viewport().get_visible_rect().size
 	if view.x <= 0.0 or view.y <= 0.0:
 		return
@@ -138,32 +143,64 @@ func _mouse_on_button() -> bool:
 ## iguales sobre el arco, y cada uno pegado por su lado de adentro, así todos quedan a la
 ## misma distancia de las cartas sin importar lo largo del texto.
 func _arrange_ring() -> void:
-	var items := _actions.get_children()
-	var n := items.size()
-	var spots := ring_spots(n)
-	for i in n:
-		var c := items[i] as Control
+	var items: Array[Control] = []
+	for c in _actions.get_children():
 		_actions.remove_child(c)
 		_ring.add_child(c)
 		if c is Button:
 			RingStyle.shakify(c as Button)
-		var spot: Vector2 = spots[i]
-		var size := c.get_combined_minimum_size()
-		# Cuánto se corre hacia afuera según de qué lado del arco está.
-		var side := clampf((spot.x - RING_CENTER.x) / RING_RADII.x, -1.0, 1.0)
-		var left := -size.x * (0.5 - 0.5 * side)
-		c.anchor_left = spot.x
-		c.anchor_right = spot.x
-		c.anchor_top = spot.y
-		c.anchor_bottom = spot.y
-		c.offset_left = left
-		c.offset_right = left + size.x
-		c.offset_top = -size.y * 0.5
-		c.offset_bottom = size.y * 0.5
+		items.append(c as Control)
+	# Si se pisan, se abre el arco de a poco hasta que entren todos.
+	var screen := get_viewport_rect().size
+	var grow := 1.0
+	while true:
+		var rects := _ring_rects(items, grow, screen)
+		if not _any_overlap(rects) or grow >= RING_MAX_GROW:
+			break
+		grow += 0.06
+	ring_grow = grow
+	var spots := ring_spots(items.size(), grow)
+	for i in items.size():
+		var c := items[i]
+		var r := _ring_rect(c, spots[i], grow, Vector2.ONE)
+		c.anchor_left = spots[i].x
+		c.anchor_right = spots[i].x
+		c.anchor_top = spots[i].y
+		c.anchor_bottom = spots[i].y
+		c.offset_left = r.position.x
+		c.offset_right = r.end.x
+		c.offset_top = r.position.y
+		c.offset_bottom = r.end.y
+
+
+## Rectángulo del canto respecto de su punto (en píxeles), pegado por su lado de
+## adentro: los de la izquierda terminan en el punto, los de la derecha empiezan ahí.
+func _ring_rect(c: Control, spot: Vector2, grow: float, _screen: Vector2) -> Rect2:
+	var size := c.get_combined_minimum_size()
+	var side := clampf((spot.x - RING_CENTER.x) / (RING_RADII.x * grow), -1.0, 1.0)
+	var left := -size.x * (0.5 - 0.5 * side)
+	return Rect2(Vector2(left, -size.y * 0.5), size)
+
+
+func _ring_rects(items: Array[Control], grow: float, screen: Vector2) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	var spots := ring_spots(items.size(), grow)
+	for i in items.size():
+		var r := _ring_rect(items[i], spots[i], grow, screen)
+		out.append(Rect2(spots[i] * screen + r.position, r.size))
+	return out
+
+
+static func _any_overlap(rects: Array[Rect2]) -> bool:
+	for i in rects.size():
+		for j in range(i + 1, rects.size()):
+			if rects[i].grow(RING_GAP).intersects(rects[j]):
+				return true
+	return false
 
 
 ## n puntos (fracción de pantalla) a la misma distancia uno de otro sobre el arco.
-static func ring_spots(n: int) -> Array[Vector2]:
+static func ring_spots(n: int, grow := 1.0) -> Array[Vector2]:
 	var out: Array[Vector2] = []
 	if n <= 0:
 		return out
@@ -171,7 +208,7 @@ static func ring_spots(n: int) -> Array[Vector2]:
 	var lengths: Array[float] = [0.0]
 	for k in 121:
 		var a := deg_to_rad(lerpf(RING_FROM, RING_TO, k / 120.0))
-		samples.append(RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y))
+		samples.append(RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y) * grow)
 		if k > 0:
 			# En píxeles de 16:9, para que la distancia sea la que se ve.
 			lengths.append(lengths[k - 1] + ((samples[k] - samples[k - 1]) * Vector2(16, 9)).length())
@@ -419,6 +456,10 @@ func _schedule_dealer() -> void:
 
 ## También la llaman los tests para no esperar el temporizador.
 func _on_dealer_timer() -> void:
+	# Mientras se reparte el rival espera a tener sus cartas.
+	if _table3d != null and _table3d.dealing() and is_inside_tree():
+		_timer.start()
+		return
 	presenter.dealer_step()
 
 

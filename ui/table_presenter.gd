@@ -45,6 +45,9 @@ var rival_line_id := 0
 var rival_call := ""
 var rival_call_id := 0
 var rival_waiting := false
+## Las cartas con las que el rival mostró el tanto (las ves sobre la mesa un rato).
+var shown_cards: Array[Card] = []
+var shown_id := 0
 var _seen_tell: Object
 
 var _tells: Dictionary = {}
@@ -331,6 +334,7 @@ func dealer_seconds() -> float:
 
 func _apply(events: Array[GameEvent]) -> void:
 	var said: Array[String] = []
+	var show_rival := false
 	var t := rc.table().brain.last_tell
 	if t != null and t != _seen_tell:
 		said.append("«%s»" % _tells.get(String(t.text_key), String(t.text_key)))
@@ -340,6 +344,12 @@ func _apply(events: Array[GameEvent]) -> void:
 		if text != "":
 			log_lines.append(text)
 		var line := rival_says(e)
+		var who := int(e.data.get("player", -1))
+		# El rival muestra por las suyas, o porque le pediste; si se fue sin mostrar, no hay cartas.
+		if (e.type == &"tanto_shown" and who == DEALER) or (e.type == &"show_demanded" and who == PLAYER):
+			show_rival = true
+		elif e.type == &"envido_forfeit" and who == DEALER:
+			show_rival = false
 		if int(e.data.get("player", -1)) == PLAYER or e.type == &"hand_over":
 			rival_waiting = false
 		elif e.type in WAITING_EVENTS and int(e.data.get("player", -1)) == DEALER:
@@ -352,6 +362,9 @@ func _apply(events: Array[GameEvent]) -> void:
 	if not said.is_empty():
 		rival_line = "\n".join(said)
 		rival_line_id += 1
+	if show_rival and hand() != null:
+		shown_cards = envido_cards(_all_cards(DEALER))
+		shown_id += 1
 	while log_lines.size() > LOG_LINES:
 		log_lines.pop_front()
 	events_applied.emit(events)
@@ -478,3 +491,34 @@ static func _load_csv(path: String) -> Dictionary:
 		if line.size() >= 2:
 			out[line[0]] = line[1]
 	return out
+
+
+## Todas las cartas que tuvo p en esta mano: las que le quedan y las que jugó.
+func _all_cards(p: int) -> Array[Card]:
+	var out: Array[Card] = []
+	var h := hand()
+	out.assign(h.played[p])
+	out.append_array(h.cards[p])
+	return out
+
+
+## Las cartas que forman el mejor tanto: las dos más altas del palo que más suma, o la
+## que más vale si no hay dos del mismo palo.
+static func envido_cards(cards: Array[Card]) -> Array[Card]:
+	var best: Array[Card] = []
+	var best_value := -1
+	for c in cards:
+		if c.envido_value() > best_value:
+			best_value = c.envido_value()
+			best = [c]
+	for i in cards.size():
+		for j in range(i + 1, cards.size()):
+			var a := cards[i]
+			var b := cards[j]
+			if a.effective_suit() != b.effective_suit():
+				continue
+			var v := 20 + a.envido_value() + b.envido_value()
+			if v > best_value:
+				best_value = v
+				best = [a, b]
+	return best

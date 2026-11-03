@@ -38,6 +38,7 @@ func _ready() -> void:
 	_back.position.z = -0.0005
 	_back.rotation.y = PI
 	_face_label.position.z = 0.001
+	_face_label.double_sided = false
 	var back_material := StandardMaterial3D.new()
 	back_material.albedo_texture = CardTextures.back()
 	if back_material.albedo_texture == null:
@@ -47,6 +48,7 @@ func _ready() -> void:
 	back_material.emission_enabled = true
 	back_material.emission_texture = back_material.albedo_texture
 	back_material.emission_energy_multiplier = BACK_GLOW
+	back_material.set_meta(Ps1Material.SINGLE_SIDE_META, true)
 	_back.material_override = back_material
 	_face.visible = false
 	_face_label.visible = false
@@ -131,10 +133,13 @@ func _show_face() -> void:
 		var material := StandardMaterial3D.new()
 		material.albedo_texture = texture
 		material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		material.set_meta(Ps1Material.SINGLE_SIDE_META, true)
 		_face.material_override = material
 		_face_label.visible = false
 	else:
-		_face.material_override = null
+		var plain := StandardMaterial3D.new()
+		plain.set_meta(Ps1Material.SINGLE_SIDE_META, true)
+		_face.material_override = plain
 		_face_label.text = "%d\n%s" % [_card.effective_number(), CardTextures.SUIT_NAMES[_card.effective_suit()]]
 		_face_label.visible = true
 	_face.visible = true

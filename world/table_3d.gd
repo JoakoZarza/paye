@@ -11,7 +11,7 @@ const MOVE_SECONDS := 0.25
 ## Abanico como se agarran las cartas: giran alrededor del puño, la de la derecha encima.
 const FAN_ANGLE := deg_to_rad(16.0)
 const FAN_RADIUS := 0.13
-const FAN_LAYER := 0.002
+const FAN_LAYER := 0.004
 ## Tu mano, inclinada hacia la cámara.
 const HAND_TILT := deg_to_rad(-45.0)
 ## Sin mirar tus cartas la mano solo baja: sigue tapándolas del rival.
@@ -29,6 +29,22 @@ const DEALER_THINKING := Vector3(0, 0.05, 0.03)
 ## El nombre de la carta que mirás inclinado: más chico y apenas arriba de ella.
 const PEEK_SCALE := 0.45
 const PEEK_ABOVE := Vector3(0, 0.07, 0)
+## Dónde deja el rival las cartas del tanto que muestra, y cuánto las deja.
+const SHOW_SPOT := Vector3(0, 0.756, -0.27)
+const SHOW_GAP := 0.075
+const SHOW_SECONDS := 4.0
+## Entre mano y mano: el mazo sube al centro a la altura del pecho, se mezcla, baja a
+## su lugar y se reparte de a una carta, empezando por el mano.
+const SHUFFLE_AT := Vector3(0, 1.02, -0.05)
+const SHUFFLE_RISE := 0.35
+const SHUFFLE_SECONDS := 0.8
+const SHUFFLE_DROP := 0.3
+const DEAL_STEP := 0.11
+const DEAL_FLIGHT := 0.18
+## Animación "shuffle" del modelo del mazo, si la trae.
+const SHUFFLE_ANIMATION := &"shuffle"
+## Los tests la apagan para que las cartas estén en su lugar al instante.
+static var animate_deals := true
 ## El canto va debajo de lo que murmura.
 const CALL_OFFSET := Vector3(0, -0.26, 0)
 const PLAYER := TablePresenter.PLAYER
@@ -56,6 +72,15 @@ var _props: TableProps
 var _on_table: Dictionary = {}
 var _peeked: Card3D
 var _peek_label: Subtitle3D
+## Cartas del tanto que mostró el rival, boca arriba de su lado hasta show_until.
+var _showing: Array[Card] = []
+var _shown_id := 0
+var _show_until := 0.0
+var _last_hand: TrucoHand
+var _dealing := false
+## Mientras se reparte: Card3D -> [posición, rotación] adonde va cuando le toque.
+var _pending: Dictionary = {}
+var _new_hand := false
 var _hand_raised := true
 
 
@@ -105,6 +130,9 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _peeked != null and (not is_instance_valid(_peeked) or not _leaning()):
 		_end_peek()
+	if not _showing.is_empty() and Time.get_ticks_msec() / 1000.0 > _show_until:
+		_showing.clear()
+		sync()
 	var raised := hand_should_be_raised()
 	if raised != _hand_raised:
 		_hand_raised = raised
@@ -163,6 +191,12 @@ func player_card(i: int) -> Card3D:
 func sync() -> void:
 	var h := presenter.hand()
 	var wanted := {}
+	_new_hand = h != null and h != _last_hand and animate_deals and is_inside_tree()
+	if h != null and h != _last_hand:
+		_last_hand = h
+		if _new_hand:
+			_dealing = true
+			_pending.clear()
 	if h != null:
 		# El mazo, a la derecha del pie; las cartas nuevas salen de ahí.
 		_props.set_mano(h.mano)
@@ -177,13 +211,24 @@ func sync() -> void:
 			_place(mine[i], i, false, spot[0], spot[1], _hand_raised and my_turn)
 			wanted[mine[i]] = true
 		# El rival también las agarra en abanico, de espaldas a vos.
+		if presenter.shown_id != _shown_id:
+			_shown_id = presenter.shown_id
+			_showing = presenter.shown_cards.duplicate()
+			_show_until = Time.get_ticks_msec() / 1000.0 + SHOW_SECONDS
 		var theirs: Array = h.cards[DEALER]
 		var theirs_at := bar.marker("DealerHand").position
 		if presenter.dealer_should_play():
 			theirs_at += DEALER_THINKING
 		for i in theirs.size():
-			var spot := fan(theirs_at, i, theirs.size(), HAND_TILT, PI)
-			_place(theirs[i], i, true, spot[0], spot[1], false)
+			var k := _showing.find(theirs[i])
+			if k >= 0:
+				# Mostrándolas: boca arriba sobre la mesa, de su lado.
+				var at := SHOW_SPOT + Vector3((k - (_showing.size() - 1) * 0.5) * SHOW_GAP, 0, 0)
+				_place(theirs[i], i, true, at, Vector3(FACE_UP, 0, 0), false, true)
+			else:
+				var spot := fan(theirs_at, i, theirs.size(), HAND_TILT, PI)
+				_hide_again(theirs[i])
+				_place(theirs[i], i, true, spot[0], spot[1], false)
 			wanted[theirs[i]] = true
 		_on_table.clear()
 		for who in [PLAYER, DEALER]:
@@ -206,6 +251,9 @@ func sync() -> void:
 		accomplice.visible = presenter.accomplice_present()
 	var m := presenter.rc.table().truco_match
 	_sheet.set_scores(m.scores)
+	if _new_hand:
+		_new_hand = false
+		_deal(h)
 	_props.set_chips(presenter.rc.state.round - 1)
 	_props.set_stake(stake() if h != null else 0)
 	_sync_amulets()
@@ -235,8 +283,14 @@ func _place(card: Card, index: int, dealer: bool, pos: Vector3, rot: Vector3, ho
 		_cards[card] = node
 		if ps1:
 			Ps1Material.apply(node)
+		if _dealing:
+			node.visible = false
+			_pending[node] = [pos, rot]
 	node.card_index = index
 	node.hoverable = hoverable
+	if _pending.has(node):
+		_pending[node] = [pos, rot]
+		return
 	if (reveal and not _revealed.has(card)) or node.face_is_stale(card):
 		node.reveal(card)
 		_revealed[card] = true
@@ -335,3 +389,73 @@ func _end_peek() -> void:
 		_peeked.peek(false)
 	_peeked = null
 	_peek_label.say("")
+
+
+func showing() -> Array[Card]:
+	return _showing
+
+
+## Una carta del rival que volvió a su mano después de mostrarla se tapa otra vez.
+func _hide_again(card: Card) -> void:
+	var node: Card3D = _cards.get(card)
+	if node == null or not _revealed.has(card):
+		return
+	node.setup_card(card, node.card_index, true, false)
+	_revealed.erase(card)
+
+
+func dealing() -> bool:
+	return _dealing
+
+
+## Mezcla en el aire y reparte de a una, alternando y empezando por el mano.
+func _deal(h: TrucoHand) -> void:
+	var deck := _props.deck
+	if _props._deck_tween != null:
+		_props._deck_tween.kill()
+	var lift := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	lift.tween_property(deck, "position", SHUFFLE_AT, SHUFFLE_RISE)
+	await lift.finished
+	var anim := deck.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if anim != null and anim.has_animation(SHUFFLE_ANIMATION):
+		anim.play(SHUFFLE_ANIMATION)
+	# Hasta que esté la animación de Joako: el mazo se sacude un poco en el aire.
+	var shake := create_tween().set_loops(4)
+	shake.tween_property(deck, "rotation:y", 0.25, SHUFFLE_SECONDS / 8.0)
+	shake.tween_property(deck, "rotation:y", -0.25, SHUFFLE_SECONDS / 8.0)
+	await get_tree().create_timer(SHUFFLE_SECONDS).timeout
+	shake.kill()
+	deck.rotation.y = 0.0
+	var rest := TableProps.deck_spot(h.mano)
+	var drop := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	drop.tween_property(deck, "position", rest, SHUFFLE_DROP)
+	await drop.finished
+	for card in deal_order(h):
+		var node: Card3D = _cards.get(card)
+		if node == null or not is_instance_valid(node) or not _pending.has(node):
+			continue
+		var target: Array = _pending[node]
+		_pending.erase(node)
+		node.position = bar.marker("Deck").position
+		node.visible = true
+		node.move_to(target[0], target[1], DEAL_FLIGHT)
+		await get_tree().create_timer(DEAL_STEP).timeout
+	for node: Card3D in _pending.keys():
+		if is_instance_valid(node):
+			node.visible = true
+	_pending.clear()
+	_dealing = false
+	sync()
+
+
+## Orden de reparto: una para el mano, una para el pie, y así; las de más, al final.
+static func deal_order(h: TrucoHand) -> Array[Card]:
+	var first: Array = h.cards[h.mano] + h.played[h.mano]
+	var second: Array = h.cards[1 - h.mano] + h.played[1 - h.mano]
+	var out: Array[Card] = []
+	for i in maxi(first.size(), second.size()):
+		if i < first.size():
+			out.append(first[i])
+		if i < second.size():
+			out.append(second[i])
+	return out

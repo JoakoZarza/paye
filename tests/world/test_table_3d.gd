@@ -7,6 +7,14 @@ const BAR := preload("res://world/bar_3d.tscn")
 const MAX_STEPS := 3000
 
 
+func before_all() -> void:
+	Table3D.animate_deals = false
+
+
+func after_all() -> void:
+	Table3D.animate_deals = true
+
+
 func after_each() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(META_PATH))
 
@@ -32,7 +40,7 @@ func _dealer_faces_hidden(table: Table3D) -> bool:
 	var h := table.presenter.hand()
 	for card: Card in h.cards[TablePresenter.DEALER]:
 		var node: Card3D = table._cards.get(card)
-		if node == null:
+		if node == null or card in table.showing():
 			continue
 		var face := node.get_node("Face") as MeshInstance3D
 		var label := node.get_node("FaceLabel") as Label3D
@@ -498,3 +506,71 @@ func test_inclinado_las_cartas_jugadas_dicen_que_son() -> void:
 	assert_eq(table.peeked_text(), TablePresenter.card_text(played))
 	node.set_hover(false)
 	assert_eq(table.peeked_text(), "")
+
+
+func test_los_cantos_no_se_pisan() -> void:
+	var s := _setup()
+	var screen: BaseScreen = s[1]
+	var items: Array[Control] = []
+	for old in screen._ring.get_children():
+		screen._ring.remove_child(old)
+		old.free()
+	for t in ["Quiero", "No quiero", "Quiero retruco", "Envido", "Real envido", "Falta envido",
+			"Me voy al mazo", "Acusar…", "Mostrar el tanto"]:
+		var b := Button.new()
+		b.text = t
+		screen._actions.add_child(b)
+	screen._arrange_ring()
+	for c in screen._ring.get_children():
+		items.append(c as Control)
+	var rects: Array[Rect2] = []
+	for c in items:
+		rects.append(c.get_global_rect())
+	for i in rects.size():
+		for j in range(i + 1, rects.size()):
+			assert_false(rects[i].intersects(rects[j]), "%s pisa a %s" % [items[i].name, items[j].name])
+
+
+func test_el_rival_muestra_las_cartas_del_tanto() -> void:
+	var cards: Array[Card] = [Card.new(Card.Suit.ORO, 7), Card.new(Card.Suit.ORO, 6), Card.new(Card.Suit.ESPADA, 1)]
+	var best := TablePresenter.envido_cards(cards)
+	assert_eq(best.size(), 2)
+	assert_true(cards[0] in best and cards[1] in best, "7 y 6 de oro: 33")
+	var s := _setup()
+	var table: Table3D = s[2]
+	var p := table.presenter
+	p._apply([GameEvent.make(&"tanto_shown", {"player": TablePresenter.DEALER, "points": 30})] as Array[GameEvent])
+	table.sync()
+	assert_false(table.showing().is_empty(), "el rival pone sus cartas del tanto en la mesa")
+	var shown: Card = table.showing()[0]
+	var node: Card3D = table._cards[shown]
+	assert_true(node.get_node("Face").visible, "boca arriba")
+	table._show_until = 0.0
+	table._process(0.0)
+	assert_true(table.showing().is_empty())
+	if shown in p.hand().cards[TablePresenter.DEALER]:
+		assert_false(node.get_node("Face").visible, "vuelve a su mano tapada")
+
+
+func test_se_reparte_de_a_una_empezando_por_el_mano() -> void:
+	var s := _setup()
+	var table: Table3D = s[2]
+	var h := table.presenter.hand()
+	var order := Table3D.deal_order(h)
+	assert_eq(order.size(), h.cards[0].size() + h.cards[1].size() + h.played[0].size() + h.played[1].size())
+	assert_true(order[0] in h.cards[h.mano] or order[0] in h.played[h.mano], "la primera es del mano")
+	assert_true(order[1] in h.cards[1 - h.mano] or order[1] in h.played[1 - h.mano], "la segunda del pie")
+
+
+func test_la_mano_nueva_espera_el_reparto() -> void:
+	Table3D.animate_deals = true
+	var s := _setup()
+	Table3D.animate_deals = false
+	var table: Table3D = s[2]
+	assert_true(table.dealing(), "arranca mezclando")
+	for c in table.card_nodes():
+		assert_false(c.visible, "nadie tiene cartas hasta que se reparten")
+	await wait_seconds(Table3D.SHUFFLE_RISE + Table3D.SHUFFLE_SECONDS + Table3D.SHUFFLE_DROP + 8 * Table3D.DEAL_STEP + 0.5)
+	assert_false(table.dealing())
+	for c in table.card_nodes():
+		assert_true(c.visible)

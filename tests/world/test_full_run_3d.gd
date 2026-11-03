@@ -9,6 +9,14 @@ const PRIORITY: Array[String] = ["Deck_normal", "Sit", "Skip", "Next", "Retire"]
 const P := RunController.Phase
 
 
+func before_all() -> void:
+	Table3D.animate_deals = false
+
+
+func after_all() -> void:
+	Table3D.animate_deals = true
+
+
 func after_each() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(META_PATH))
 

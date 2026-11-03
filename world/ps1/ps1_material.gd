@@ -4,6 +4,9 @@ extends RefCounted
 ## para que los modelos de Joako no necesiten nada especial (Plan 7, Tarea 6).
 
 const SHADER := preload("res://world/ps1/ps1.gdshader")
+const SINGLE_SIDE := preload("res://world/ps1/ps1_single_side.gdshader")
+## Marca de material para usar la variante de una sola cara.
+const SINGLE_SIDE_META := &"ps1_single_side"
 
 ## Grilla de los vértices: la misma resolución que la vista baja.
 static var snap_resolution := Vector2(640, 360)
@@ -11,7 +14,7 @@ static var snap_resolution := Vector2(640, 360)
 
 static func from_material(source: Material) -> ShaderMaterial:
 	var out := ShaderMaterial.new()
-	out.shader = SHADER
+	out.shader = SINGLE_SIDE if source != null and source.has_meta(SINGLE_SIDE_META) else SHADER
 	out.set_shader_parameter("snap_resolution", snap_resolution)
 	if source is BaseMaterial3D:
 		var base := source as BaseMaterial3D
@@ -21,7 +24,7 @@ static func from_material(source: Material) -> ShaderMaterial:
 			out.set_shader_parameter("has_texture", true)
 		if base.emission_enabled:
 			out.set_shader_parameter("self_light", base.emission_energy_multiplier)
-	elif source is ShaderMaterial and (source as ShaderMaterial).shader == SHADER:
+	elif source is ShaderMaterial and (source as ShaderMaterial).shader in [SHADER, SINGLE_SIDE]:
 		return source as ShaderMaterial
 	return out
 

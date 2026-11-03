@@ -30,6 +30,7 @@ func refresh() -> void:
 	for c in get_children():
 		remove_child(c)
 		c.queue_free()
+	_clear_tags()
 	if world != null and not _at_counter:
 		_draw_choice()
 		return
@@ -188,6 +189,11 @@ func _name_of(id: StringName) -> String:
 
 
 func _draw_choice() -> void:
+	_clear_tags()
+	if world.slot("bar_counter") != null:
+		world_button(UiText.t("UI_SHOP_GO"), "GoShop", _go_to_counter, world.slot("bar_counter"), Vector3(0, 1.35, 0))
+		world_button(UiText.t("UI_SHOP_STAY"), "Stay", _stay, world.slot("table"), Vector3(0, 0.86, 0.15))
+		return
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	box.offset_top = -170
