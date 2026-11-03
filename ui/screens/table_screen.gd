@@ -8,12 +8,14 @@ const DEALER := TablePresenter.DEALER
 const HIDDEN_CARD := "[ ? ]"
 ## Vista 3D: los cantos van en un arco alrededor de tu mano (centro y radios en
 ## fracción de pantalla; ángulos en grados, 270 = abajo).
-const RING_CENTER := Vector2(0.5, 0.7)
+const RING_CENTER := Vector2(0.5, 0.68)
 const RING_RADII := Vector2(0.2, 0.17)
 const RING_FROM := 160.0
 const RING_TO := 380.0
 ## Margen alrededor de un botón dentro del cual la cabeza se queda quieta.
 const HOLD_MARGIN := 14.0
+## Si tu mano queda más abajo que esto (fracción de pantalla), los cantos no se ven.
+const HIDE_BELOW := 0.95
 
 var presenter: TablePresenter
 
@@ -95,9 +97,31 @@ func _process(delta: float) -> void:
 	if world == null or world.camera == null:
 		return
 	world.camera.ui_hold = _mouse_on_button()
+	follow_hand()
 	# Sin mirar tus cartas los cantos se apagan un poco, pero se pueden apretar igual.
 	var wanted := 1.0 if _table3d.hand_raised() or world.camera.ui_hold else 0.4
 	_ring.modulate.a = move_toward(_ring.modulate.a, wanted, delta * 4.0)
+
+
+## Los cantos están pegados a tu mano en el mundo: si subís la mirada se van con ella
+## hacia abajo y salen de la pantalla.
+func follow_hand() -> void:
+	var cam := world.camera
+	var anchor := world.marker("PlayerHand")
+	if cam == null or anchor == null or not cam.is_inside_tree():
+		return
+	var spot := anchor.global_position
+	if cam.is_position_behind(spot):
+		_ring.visible = false
+		return
+	_ring.visible = true
+	var view := cam.get_viewport().get_visible_rect().size
+	if view.x <= 0.0 or view.y <= 0.0:
+		return
+	var frac := cam.unproject_position(spot) / view
+	# Con la mano fuera de cuadro no asoma ni el borde de un canto.
+	_ring.visible = frac.y < HIDE_BELOW
+	_ring.position = (frac - RING_CENTER) * get_viewport_rect().size
 
 
 func _mouse_on_button() -> bool:

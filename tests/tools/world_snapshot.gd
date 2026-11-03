@@ -1,6 +1,6 @@
 extends SceneTree
 ## Captura la mesa 3D en un PNG para revisarla sin jugar.
-## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: match|bar] [vista: hand|rival|left|right|back] [puntos: 4,7]
+## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: match|bar] [vista: hand|rival|left|right|back] [puntos: 4,7] [habla: 1]
 
 const MAIN := "res://ui/main.tscn"
 
@@ -29,6 +29,8 @@ func _initialize() -> void:
 		rc.table().truco_match.scores[0] = int(pts[0])
 		rc.table().truco_match.scores[1] = int(pts[1])
 	main.router.refresh()
+	if args.size() > 5 and args[5] == "1":
+		_force_speech(main.router)
 	await create_timer(1.2).timeout
 	if args.size() > 3:
 		# Dónde queda el mouse para cada vista; back = mantenerlo en el borde derecho.
@@ -40,3 +42,18 @@ func _initialize() -> void:
 		await process_frame
 	root.get_texture().get_image().save_png(out)
 	quit()
+
+
+## Hace que el rival murmure y cante algo, para ver los diálogos en la captura.
+func _force_speech(node: Node) -> void:
+	for c in node.get_children():
+		if c is Table3D:
+			var p: TablePresenter = (c as Table3D).presenter
+			p.rival_line = "«Hmm… a ver qué sale.»"
+			p.rival_line_id += 1
+			p.rival_call = "¡Falta envido!"
+			p.rival_call_id += 1
+			p.rival_waiting = true
+			(c as Table3D).sync()
+			return
+		_force_speech(c)

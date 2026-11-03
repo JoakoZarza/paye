@@ -25,6 +25,8 @@ signal letter_typed(ch: String)
 var text := ""
 ## Un canto que espera tu respuesta no se apaga solo.
 var persistent := false
+## false: queda fijo como lo dejó su padre (los diálogos del rival, en perspectiva).
+var face_camera := true
 var _glyphs: Array[Label3D] = []
 var _homes: Array[Vector3] = []
 var _age := 0.0
@@ -108,7 +110,8 @@ func _wrap(font: Font, s: String) -> Array[String]:
 
 func _process(delta: float) -> void:
 	step(delta)
-	_face_camera()
+	if face_camera:
+		_face_camera()
 
 
 ## Avanza la escritura, el temblor y el apagado (separado para los tests).

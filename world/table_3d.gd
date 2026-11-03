@@ -64,9 +64,11 @@ func _ready() -> void:
 	bar.add_child(_root)
 	_speech = Subtitle3D.new()
 	_speech.name = "RivalSpeech"
+	_speech.face_camera = false
 	bar.marker("SpeechAnchor").add_child(_speech)
 	_call = Subtitle3D.new()
 	_call.name = "RivalCall"
+	_call.face_camera = false
 	_call.position = CALL_OFFSET
 	bar.marker("SpeechAnchor").add_child(_call)
 	_babble = Babble.new()

@@ -13,13 +13,15 @@ const MARKER_POSITIONS: Dictionary = {
 	"Deck": Vector3(-0.36, 0.77, -0.32), "AmuletTray": Vector3(-0.3, 0.76, 0.3),
 	"DealerItems": Vector3(-0.24, 0.7505, -0.16),
 	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7),
-	"SpeechAnchor": Vector3(-0.5, 1.05, -0.5),
-	"ScoreSheet": Vector3(0.27, 0.7505, -0.1),
+	"SpeechAnchor": Vector3(-0.55, 1.5, -0.6),
+	"ScoreSheet": Vector3(0.32, 0.7505, -0.08),
 	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathCounter": Vector3(0.9, 1.6, -1.6),
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
 const MARKER_ROTATIONS: Dictionary = {
 	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-20, 0),
+	# Los diálogos del rival, como un cartel un poco girado hacia vos.
+	"SpeechAnchor": Vector2(6, 25),
 	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathCounter": Vector2(-12, 10),
 }
 

@@ -437,3 +437,24 @@ func test_fichas_por_rival_vencido_y_porotos_del_truco() -> void:
 func test_tus_amuletos_van_de_tu_lado() -> void:
 	for spot: Vector3 in Table3D.AMULET_SPOTS:
 		assert_gt(spot.z, 0.0)
+
+
+func test_los_cantos_se_quedan_con_tu_mano() -> void:
+	var s := _setup()
+	var screen: BaseScreen = s[1]
+	var bar: Bar3D = s[3]
+	var cam := CameraRig.new()
+	cam.mouse_look = false
+	bar.add_child(cam)
+	cam.setup(bar)
+	bar.camera = cam
+	cam.go_to(&"CamSeat", true)
+	cam._apply()
+	screen.follow_hand()
+	var ring := screen.find_child("Ring", true, false) as Control
+	var at_cards := ring.position.y
+	_hold(cam, Vector2(0.5, 0.1), 3.0)
+	cam._apply()
+	screen.follow_hand()
+	assert_gt(ring.position.y, at_cards + 150.0, "mirando arriba los cantos bajan con la mano")
+	assert_false(ring.visible, "y no se ven")
