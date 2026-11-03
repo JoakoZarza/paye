@@ -53,6 +53,10 @@ UI_DECK_WIDOW_DESC,Doble premio y doble presupuesto de trampas.
 UI_BAR_INFO,"Ronda %d · %s · Entrada $%d · Propina $%d · Objetivo %d · Plata $%d · Fiado $%d · Deuda $%d"
 UI_BAR_SIT,Sentarse
 UI_BAR_CANT_PAY,No te alcanza: morís
+UI_BAR_PLAY,Jugar
+UI_BAR_ENTRY,Entrada $%d
+UI_BAR_TIP,Propina $%d
+UI_HUD_MONEY,"$%d · fiado $%d · deuda $%d"
 UI_DEATH_INFO,"Llegaste a la ronda %d · Deuda que pasa: $%d"
 UI_ONE_MORE_PRIZE,"Premio: $%d · Fiado: $%d"
 UI_ONE_MORE_STAKE,Arriesgar $%d

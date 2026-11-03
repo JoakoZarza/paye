@@ -574,3 +574,34 @@ func test_la_mano_nueva_espera_el_reparto() -> void:
 	assert_false(table.dealing())
 	for c in table.card_nodes():
 		assert_true(c.visible)
+
+
+func test_textos_largos_vecinos_se_intercalan() -> void:
+	assert_true(BaseScreen.too_close("Arriesgar $112", "Arriesgar $225"))
+	assert_false(BaseScreen.too_close("Truco", "Arriesgar $225"))
+	var spots := BaseScreen.row_spots(["Arriesgar $112", "Arriesgar $225", "Arriesgar $450"] as Array[String], 0.2, 0.1)
+	assert_ne(spots[0].z, spots[1].z, "uno más atrás que el otro")
+	assert_ne(spots[1].z, spots[2].z)
+
+
+func test_quedarte_sentado_el_bar_te_deja_jugar_desde_la_mesa() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	router.stay_seated = true
+	add_child_autofree(router)
+	router.setup(rc)
+	assert_eq(router.camera_marker(), &"CamSeat")
+	var screen := router.get_child(router.get_child_count() - 2) as Control
+	for c in router.get_children():
+		if c is BaseScreen:
+			screen = c
+	assert_eq(screen.mouse_filter, Control.MOUSE_FILTER_IGNORE, "la pantalla no le tapa el mouse a la cámara")
+	var sit := router.find_child("Sit", true, false) as Button
+	assert_not_null(sit)
+	assert_eq(sit.text, UiText.t("UI_BAR_PLAY"))
+	assert_string_contains(router.hud_text(), "deuda")
+	sit.pressed.emit()
+	assert_eq(rc.phase, RunController.Phase.MATCH)

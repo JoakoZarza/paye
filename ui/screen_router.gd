@@ -25,6 +25,8 @@ var stay_seated := false
 var _screen: BaseScreen
 var _screen_name: StringName = &""
 var _backdrop: ColorRect
+## Vista 3D: la plata, el fiado y la deuda en una esquina, chiquitos.
+var _hud: Label
 
 
 func setup(p_rc: RunController) -> void:
@@ -92,6 +94,37 @@ func _update_backdrop() -> void:
 		add_child(_backdrop)
 	_backdrop.visible = _screen.wants_backdrop()
 	move_child(_backdrop, 0)
+	# Sin fondo, la pantalla no ataja el mouse: la cámara lo sigue y los clics llegan al bar.
+	if not _screen.wants_backdrop():
+		_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_update_hud()
+
+
+func _update_hud() -> void:
+	if _hud == null:
+		_hud = Label.new()
+		_hud.name = "Hud"
+		_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hud.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		_hud.offset_left = -360
+		_hud.offset_right = -16
+		_hud.offset_top = 12
+		_hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		_hud.add_theme_font_size_override("font_size", 16)
+		_hud.add_theme_color_override("font_color", RingStyle.COLOR)
+		_hud.add_theme_constant_override("outline_size", 6)
+		_hud.add_theme_color_override("font_outline_color", Color.BLACK)
+		_hud.modulate.a = 0.75
+		add_child(_hud)
+	move_child(_hud, get_child_count() - 1)
+	var s := rc.state if rc != null else null
+	_hud.visible = s != null
+	if s != null:
+		_hud.text = UiText.t("UI_HUD_MONEY") % [s.money, s.fiado, s.debt]
+
+
+func hud_text() -> String:
+	return _hud.text if _hud != null else ""
 
 
 func camera_marker() -> StringName:

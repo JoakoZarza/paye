@@ -50,11 +50,14 @@ func _draw_world() -> void:
 	for i in options.size():
 		if options[i] > 0:
 			shown.append(i)
+	var texts: Array[String] = []
+	for i in shown:
+		texts.append(UiText.t("UI_ONE_MORE_STAKE") % options[i])
+	var spots := row_spots(texts, 0.22, 0.12)
 	for k in shown.size():
 		var i := shown[k]
-		var x := (k - (shown.size() - 1) * 0.5) * 0.22
-		world_button(UiText.t("UI_ONE_MORE_STAKE") % options[i], "Stake%d" % i,
-			_stake.bind(rc.economy.one_more_fractions[i]), table, Vector3(x, 0.8, 0.0))
+		world_button(texts[k], "Stake%d" % i, _stake.bind(rc.economy.one_more_fractions[i]), table,
+			Vector3(0, 0.8, 0.0) + spots[k])
 	world_button(UiText.t("UI_ONE_MORE_SKIP"), "Skip", _skip, table, Vector3(0, 0.78, 0.28))
 
 

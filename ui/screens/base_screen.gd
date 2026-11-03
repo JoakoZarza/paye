@@ -9,6 +9,8 @@ var rc: RunController
 var world: Bar3D
 var ps1 := false
 var router: ScreenRouter
+## Espacio mínimo entre dos textos escritos en el mundo (píxeles).
+const TAG_GAP := 4.0
 ## Vista 3D: textos y botones escritos sobre los objetos del bar ([control, nodo, desplazamiento]).
 var _tags: Array = []
 
@@ -73,6 +75,7 @@ func place_tags() -> void:
 	if view.x <= 0.0 or view.y <= 0.0:
 		return
 	var screen := get_viewport_rect().size
+	var placed: Array[Rect2] = []
 	for t in _tags:
 		var c: Control = t[0]
 		var anchor: Node3D = t[1]
@@ -83,3 +86,35 @@ func place_tags() -> void:
 		var size := c.get_combined_minimum_size()
 		c.size = size
 		c.position = cam.unproject_position(at) / view * screen - size * 0.5
+		# Si pisa a otro texto ya puesto, baja hasta quedar intercalado debajo.
+		for k in 6:
+			var hit := -1
+			for i in placed.size():
+				if placed[i].grow(TAG_GAP).intersects(Rect2(c.position, size)):
+					hit = i
+					break
+			if hit < 0:
+				break
+			c.position.y = placed[hit].end.y + TAG_GAP
+		if c.visible:
+			placed.append(Rect2(c.position, size))
+
+
+## Desplazamientos (en el mundo) para poner textos en fila: separados por gap a lo
+## ancho y, si dos vecinos son largos, intercalados uno más atrás que el otro (depth).
+static func row_spots(texts: Array[String], gap: float, depth: float) -> Array[Vector3]:
+	var out: Array[Vector3] = []
+	var back := false
+	for i in texts.size():
+		var x := (i - (texts.size() - 1) * 0.5) * gap
+		if i > 0 and too_close(texts[i - 1], texts[i]):
+			back = not back
+		else:
+			back = false
+		out.append(Vector3(x, 0, -depth if back else 0.0))
+	return out
+
+
+## Dos textos vecinos se pisan si uno pasa de 10 caracteres y el otro de 6.
+static func too_close(a: String, b: String) -> bool:
+	return (a.length() > 10 and b.length() > 6) or (b.length() > 10 and a.length() > 6)
