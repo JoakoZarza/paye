@@ -59,7 +59,7 @@ Con la niebla y la luz de la lámpara casi no se ven: poco detalle alcanza.
 | Archivo | Qué es | Medida aproximada | Triángulos máx. | Textura máx. |
 |---|---|---|---|---|
 | `room.glb` | Piso, paredes y techo del bar (una caja con huecos para puerta y ventana) | 8 × 3 × 8 m | 1.500 | 256 |
-| `bar_counter.glb` | Barra con estantes y botellas | 3 × 1,1 × 0,6 m | 1.500 | 256 |
+| `bar_counter.glb` | Barra con estantes y botellas (la tienda se apoya encima) | 3 × 1,1 × 0,9 m | 1.500 | 256 |
 | `door.glb` | Puerta de entrada | 0,9 × 2,1 × 0,1 m | 300 | 128 |
 | `window.glb` | Ventana (afuera, la ruta de noche) | 1,2 × 1 × 0,1 m | 300 | 128 |
 | `scoreboard.glb` | Pizarra para anotar los puntos, en la pared | 0,6 × 0,4 × 0,05 m | 200 | 128 |
@@ -93,3 +93,6 @@ No lo usa el juego directamente, pero ayuda a que todo tenga el mismo estilo. Co
 - `assets/audio/babble/babble.wav`: una sílaba de balbuceo (0,05–0,1 s, mono). Opcional `<rival>.wav` por rival, con el nombre en minúsculas (por ejemplo `la ira.wav`). El juego le cambia el tono en cada sílaba; mientras no exista usa uno generado.
 
 - `deck.glb` (el mazo apoyado, 0,063 × 0,014 × 0,095 m). Las fichas y porotos por ahora son formas simples.
+
+- ``bartender.glb``: el cantinero detrás de la barra (0,5 × 1,75 × 0,25 m). Si trae una animación, que se llame ``idle``.
+- ``soul.glb``: un alma perdida que camina por el bar (0,38 × 1,6 × 0,28 m). Hay tres.

@@ -14,6 +14,8 @@ const T := TrucoAction.Type
 const PLAYER := 0
 const DEALER := 1
 const LOG_LINES := 14
+## Puntos de diferencia para que el rival hable como quien va ganando o perdiendo.
+const SITUATION_MARGIN := 3
 ## Lo que dice el rival y se queda escrito hasta que respondas.
 const WAITING_EVENTS := [&"call_made", &"tanto_declared", &"show_demanded"]
 const ICONS := {&"calm": "😐 tranquilo", &"nervous": "😬 nervioso",
@@ -293,7 +295,7 @@ func tell() -> Dictionary:
 	var t := rc.table().brain.last_tell
 	if t == null:
 		return {}
-	return {"text": _tells.get(String(t.text_key), String(t.text_key)), "icon": ICONS.get(t.icon, ""), "kind": t.icon}
+	return {"text": tell_line(t), "icon": ICONS.get(t.icon, ""), "kind": t.icon}
 
 
 func tell_text() -> String:
@@ -336,8 +338,8 @@ func _apply(events: Array[GameEvent]) -> void:
 	var said: Array[String] = []
 	var show_rival := false
 	var t := rc.table().brain.last_tell
-	if t != null and t != _seen_tell:
-		said.append("«%s»" % _tells.get(String(t.text_key), String(t.text_key)))
+	if t != null and t != _seen_tell and not tell_contradicts(t, events):
+		said.append("«%s»" % tell_line(t))
 	_seen_tell = t
 	for e in events:
 		var text := describe(e)
@@ -522,3 +524,35 @@ static func envido_cards(cards: Array[Card]) -> Array[Card]:
 				best_value = v
 				best = [a, b]
 	return best
+
+
+## La frase de la pista según cómo va el partido para el rival: no dice "andá
+## contando la plata" perdiendo por diez. La categoría (fuerte o débil, con sus
+## mentiras) no cambia; solo las palabras.
+func tell_line(t: Tell) -> String:
+	var key := String(t.text_key)
+	var variant := key.get_slice("_", key.get_slice_count("_") - 1)
+	var cat := "STRONG" if t.category == &"strong" else "WEAK"
+	var situated := "TELL_%s_%s_%s" % [cat, situation(), variant]
+	return _tells.get(situated, _tells.get(key, key))
+
+
+## "AHEAD", "EVEN" o "BEHIND" para el rival, con tres puntos de margen.
+func situation() -> String:
+	var m := rc.table().truco_match
+	var diff: int = m.scores[DEALER] - m.scores[PLAYER]
+	if diff >= SITUATION_MARGIN:
+		return "AHEAD"
+	if diff <= -SITUATION_MARGIN:
+		return "BEHIND"
+	return "EVEN"
+
+
+## Una pista de mano fuerte no se dice si en el mismo momento no quiere o se va al mazo.
+static func tell_contradicts(t: Tell, events: Array[GameEvent]) -> bool:
+	if t.category != &"strong":
+		return false
+	for e in events:
+		if int(e.data.get("player", -1)) == DEALER and e.type in [&"call_rejected", &"mazo", &"son_buenas"]:
+			return true
+	return false

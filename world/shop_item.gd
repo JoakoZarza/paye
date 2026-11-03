@@ -5,6 +5,7 @@ extends Node3D
 ## verlo de cerca: se levanta, va a la izquierda de la pantalla y levita girando.
 
 signal inspect_requested(item: ShopItem)
+signal hovered(item: ShopItem, on: bool)
 
 const SIZE := Vector3(0.075, 0.035, 0.075)
 const TAG_SIZE := Vector2(0.1, 0.055)
@@ -16,6 +17,8 @@ const SPIN := 0.9
 const BOB := 0.012
 const BOB_SPEED := 1.6
 const MOVE_SECONDS := 0.35
+## Dónde queda la luz que lo alumbra de cerca, respecto de donde flota.
+const LIGHT_OFFSET := Vector3(0.12, 0.14, 0.18)
 
 var def: AmuletDef
 var owned := false
@@ -50,6 +53,8 @@ func setup(p_def: AmuletDef, p_tag: String, p_owned: bool, color: Color) -> void
 	area.add_child(shape)
 	model.add_child(area)
 	area.input_event.connect(_on_input)
+	area.mouse_entered.connect(func() -> void: hovered.emit(self, true))
+	area.mouse_exited.connect(func() -> void: hovered.emit(self, false))
 	_add_tag()
 
 
@@ -99,8 +104,9 @@ func lift_to(at: Vector3) -> void:
 	_light.light_color = Color("#ffd9a0")
 	_light.light_energy = 1.4
 	_light.omni_range = 0.5
-	_light.position = Vector3(0.1, 0.12, 0.15)
-	model.add_child(_light)
+	# Colgada del cartel, no del objeto: así no gira con él.
+	add_child(_light)
+	_light.global_position = at + LIGHT_OFFSET
 	_levitating = true
 	_time = 0.0
 	_base_y = at.y

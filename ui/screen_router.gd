@@ -15,6 +15,10 @@ const SCREENS := {
 
 ## Fondo oscuro para leer las pantallas que no son la mesa sobre el bar 3D.
 const BACKDROP := Color(0.03, 0.03, 0.03, 0.78)
+## Parpadeo al salir del menú: cerrar, quedarse cerrado y abrir (segundos).
+const BLINK_CLOSE := 0.09
+const BLINK_HOLD := 0.08
+const BLINK_OPEN := 0.3
 
 var rc: RunController
 ## El bar 3D de fondo; null en la vista 2D.
@@ -59,6 +63,8 @@ func screen_for_phase() -> StringName:
 func refresh() -> void:
 	var next_name := screen_for_phase()
 	if _screen_name != next_name:
+		if _screen_name == &"start" and world != null:
+			blink()
 		if _screen != null:
 			_screen.queue_free()
 		_screen = null
@@ -94,7 +100,9 @@ func _update_backdrop() -> void:
 		_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_backdrop)
 	_backdrop.visible = _screen.wants_backdrop()
+	_backdrop.color.a = _screen.backdrop_alpha()
 	move_child(_backdrop, 0)
+	world.set_rival_pose(_screen.rival_pose())
 	# Sin fondo, la pantalla no ataja el mouse: la cámara lo sigue y los clics llegan al bar.
 	if not _screen.wants_backdrop():
 		_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -125,3 +133,21 @@ func hud_text() -> String:
 
 func camera_marker() -> StringName:
 	return &"CamBar" if _screen == null else _screen.camera_marker()
+
+
+## Un parpadeo: la pantalla se apaga un instante y vuelve.
+func blink() -> void:
+	var lid := ColorRect.new()
+	lid.name = "Blink"
+	lid.color = Color(0, 0, 0, 0)
+	lid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lid.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(lid)
+	if not is_inside_tree():
+		lid.queue_free()
+		return
+	var t := create_tween()
+	t.tween_property(lid, "color:a", 1.0, BLINK_CLOSE)
+	t.tween_interval(BLINK_HOLD)
+	t.tween_property(lid, "color:a", 0.0, BLINK_OPEN)
+	t.tween_callback(lid.queue_free)

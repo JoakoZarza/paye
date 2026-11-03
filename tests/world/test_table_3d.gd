@@ -293,6 +293,10 @@ func test_al_ganar_ir_a_la_barra_abre_la_tienda() -> void:
 	var items: Array = shop.shop_items()
 	assert_eq(items.size(), rc.shop.offers.size(), "las ofertas están en el mantel")
 	assert_null(router.find_child("Buy0", true, false), "se compra desde la vista de cerca")
+	items[0].hovered.emit(items[0], true)
+	assert_eq(shop.hover_text(), shop._name_of(items[0].def.id), "al pasar el mouse dice qué es")
+	items[0].hovered.emit(items[0], false)
+	assert_eq(shop.hover_text(), "")
 	shop.inspect(items[0])
 	assert_eq(shop.inspected(), items[0])
 	assert_true(items[0].inspecting(), "levita")
@@ -650,3 +654,40 @@ func test_las_pantallas_del_bar_se_escriben_sobre_los_objetos() -> void:
 	assert_null(router.find_child("*DeckPicker*", true, false), "sin la lista 2D")
 	deck.pressed.emit()
 	assert_eq(rc.phase, RunController.Phase.BAR)
+
+
+func test_el_bar_esta_vivo_y_el_rival_te_espera() -> void:
+	var bar: Bar3D = BAR.instantiate()
+	add_child_autofree(bar)
+	var life := bar.life
+	assert_not_null(life.bartender, "hay cantinero")
+	assert_eq(life.souls.size(), BarLife.SOUL_COUNT)
+	var start := life.souls[0].position
+	for i in 600:
+		life.step(1.0 / 30.0)
+	assert_ne(life.souls[0].position, start, "las almas caminan")
+	for soul in life.souls:
+		assert_gt(Vector2(soul.position.x, soul.position.z).length(), 1.2, "lejos de la mesa")
+	bar.set_rival_pose(&"away", true)
+	assert_false(bar.slot("rival_base").visible, "en el menú la mesa está vacía")
+	bar.set_rival_pose(&"waiting", true)
+	assert_true(bar.slot("rival_base").visible)
+	assert_gt(bar.slot("rival_base").position.x, 0.3, "parado al lado de su silla")
+	bar.set_rival_pose(&"seated", true)
+	assert_almost_eq(bar.slot("rival_base").position.x, 0.0, 0.001)
+
+
+func test_el_menu_de_inicio_tiene_velo_y_panel() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	assert_not_null(router.find_child("MenuPanel", true, false), "el menú a la izquierda")
+	assert_not_null(router.find_child("MenuInfo", true, false), "tus datos a la derecha")
+	assert_true(router._backdrop.visible, "velo negro entre el menú y el bar")
+	assert_lt(router._backdrop.color.a, 0.7, "translúcido: el bar se ve detrás")
+	assert_eq((r[0] as Bar3D).rival_pose(), &"away")
+	(router.find_child("Deck_normal", true, false) as Button).pressed.emit()
+	assert_eq((r[0] as Bar3D).rival_pose(), &"waiting", "el rival ya está, a medio sentarse")

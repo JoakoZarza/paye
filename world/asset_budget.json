@@ -15,7 +15,7 @@
     "head_alma": {"triangles": 1000, "texture": 128},
     "head_gualicho": {"triangles": 2000, "texture": 256},
     "room": {"triangles": 1500, "texture": 256, "size": [8, 3, 8]},
-    "bar_counter": {"triangles": 1500, "texture": 256, "size": [3, 1.1, 0.6]},
+    "bar_counter": {"triangles": 1500, "texture": 256, "size": [3, 1.1, 0.9]},
     "door": {"triangles": 300, "texture": 128, "size": [0.9, 2.1, 0.1]},
     "window": {"triangles": 300, "texture": 128, "size": [1.2, 1, 0.1]},
     "scoreboard": {"triangles": 200, "texture": 128, "size": [0.6, 0.4, 0.05]},

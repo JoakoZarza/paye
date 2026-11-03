@@ -50,3 +50,7 @@ func _draw_world() -> void:
 
 func wants_backdrop() -> bool:
 	return world == null
+
+
+func rival_pose() -> StringName:
+	return &"away"

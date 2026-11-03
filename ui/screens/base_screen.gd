@@ -25,6 +25,16 @@ func wants_backdrop() -> bool:
 	return true
 
 
+## Qué tan oscuro es ese fondo (0 a 1).
+func backdrop_alpha() -> float:
+	return 0.78
+
+
+## Dónde está el rival mientras se ve esta pantalla: &"seated", &"waiting" o &"away".
+func rival_pose() -> StringName:
+	return &"seated"
+
+
 func setup(p_rc: RunController) -> void:
 	rc = p_rc
 	refresh()

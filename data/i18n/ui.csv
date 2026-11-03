@@ -45,6 +45,7 @@ UI_AMULET_TRAIN_COIN,Moneda aplastada por el tren
 UI_AMULET_TRAIN_COIN_DESC,Aumenta el premio si ganás sin cantar envido.
 UI_START_META,"Deuda: $%d · Legado: %s · Runs: %d · Mejor ronda: %d"
 UI_START_NONE,Ninguno
+UI_GAME_TITLE,Payé
 UI_BOARD_DEBT,Debés $%d
 UI_BOARD_LEGACY,Legado: %s
 UI_BOARD_BEST,Mejor ronda: %d

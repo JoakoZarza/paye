@@ -87,3 +87,20 @@ func test_lo_que_dice_el_rival_en_voz_alta() -> void:
 	p._apply([GameEvent.make(&"call_rejected", {"player": D})] as Array[GameEvent])
 	assert_eq(p.rival_line, "No quiero.")
 	assert_eq(p.rival_line_id, id + 1)
+
+
+func test_las_frases_del_rival_van_con_como_viene_el_partido() -> void:
+	var p := _presenter()
+	var t := Tell.new()
+	t.category = &"strong"
+	t.text_key = &"TELL_STRONG_4"
+	var m := p.rc.table().truco_match
+	m.scores[0] = 12
+	m.scores[1] = 2
+	assert_eq(p.situation(), "BEHIND")
+	assert_eq(p.tell_line(t), "Esta es mía.", "perdiendo no se agranda como ganador")
+	m.scores[0] = 2
+	m.scores[1] = 12
+	assert_eq(p.tell_line(t), "Ni te gastes.")
+	var rejected: Array[GameEvent] = [GameEvent.make(&"call_rejected", {"player": TablePresenter.DEALER})]
+	assert_true(TablePresenter.tell_contradicts(t, rejected), "mano fuerte y no quiero no van juntos")

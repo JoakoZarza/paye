@@ -22,15 +22,17 @@ var _counter_items: Array[Node3D] = []
 ## El mantel sobre la barra: ofertas atrás, lo tuyo adelante a la izquierda y los
 ## botones de cambiar ofertas y volver adelante a la derecha (metros, respecto de la barra).
 const COUNTER_TOP := 1.1
-const CLOTH_SIZE := Vector2(1.3, 0.52)
-const OFFER_X := [-0.4, 0.0, 0.4, -0.2, 0.2]
-const OWNED_X := [-0.4, -0.12]
-const BACK_Z := -0.1
-const FRONT_Z := 0.12
+const CLOTH_SIZE := Vector2(1.15, 0.78)
+const OFFER_X := [-0.36, 0.0, 0.36, -0.18, 0.18]
+const OWNED_X := [-0.36, 0.0]
+const BACK_Z := -0.17
+const FRONT_Z := 0.16
 const RIGHT_X := 0.36
 const WRAP := 24
 ## Viendo un objeto de cerca: dónde flota (respecto de la cámara) y cuánto se apaga el bar.
-const INSPECT_AT := Vector3(-0.27, -0.02, -0.55)
+## Dónde flota (fracción de pantalla: el medio de la mitad izquierda) y a qué distancia.
+const INSPECT_SCREEN := Vector2(0.25, 0.5)
+const INSPECT_DEPTH := 0.5
 const DIM := 0.15
 const CATEGORY_NAMES := {
 	AmuletDef.Category.CARDS: "Cartas", AmuletDef.Category.TANTO: "Tanto",
@@ -39,6 +41,7 @@ const CATEGORY_NAMES := {
 }
 
 var _inspected: ShopItem
+var _hover_label: Control
 var _details: Control
 
 
@@ -368,6 +371,7 @@ func _put_item(def: AmuletDef, tag: String, is_owned: bool, at: Vector3) -> Shop
 	world.add_child(item)
 	item.setup(def, tag, is_owned, RARITY_COLORS[def.rarity])
 	item.inspect_requested.connect(inspect)
+	item.hovered.connect(_on_item_hover)
 	_counter_items.append(item)
 	return item
 
@@ -389,10 +393,12 @@ func inspect(item: ShopItem) -> void:
 		return
 	_end_inspect(true)
 	_inspected = item
+	_on_item_hover(item, false)
 	var cam := world.camera
 	var at := item.global_position + Vector3(0, 0.25, 0)
-	if cam != null:
-		at = cam.global_transform * INSPECT_AT
+	if cam != null and cam.is_inside_tree():
+		var view := cam.get_viewport().get_visible_rect().size
+		at = cam.project_position(view * INSPECT_SCREEN, INSPECT_DEPTH)
 	item.lift_to(at)
 	_dim(true)
 	for t in _tags:
@@ -553,3 +559,32 @@ static func _wrap(text: String) -> String:
 	if line != "":
 		lines.append(line)
 	return "\n".join(lines)
+
+
+## El rival que le ganaste se fue; mientras elegís todavía está sentado.
+func rival_pose() -> StringName:
+	return &"away" if _at_counter else &"seated"
+
+
+## Al pasar el mouse sobre un objeto se escribe su nombre arriba.
+func _on_item_hover(item: ShopItem, on: bool) -> void:
+	if is_instance_valid(_hover_label):
+		for t in _tags.duplicate():
+			if t[0] == _hover_label:
+				_tags.erase(t)
+		_hover_label.queue_free()
+	_hover_label = null
+	if not on or _inspected != null or not is_instance_valid(item):
+		return
+	_hover_label = world_label(_name_of(item.def.id), item.model, Vector3(0, 0.1, 0), 20)
+
+
+func hover_text() -> String:
+	return "" if not is_instance_valid(_hover_label) else _name_of(_hovered_id())
+
+
+func _hovered_id() -> StringName:
+	for t in _tags:
+		if t[0] == _hover_label and t[1].get_parent() is ShopItem:
+			return (t[1].get_parent() as ShopItem).def.id
+	return &""

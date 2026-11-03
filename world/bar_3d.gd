@@ -5,7 +5,7 @@ extends Node3D
 const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
 const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
 const MARKER_POSITIONS: Dictionary = {
-	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.72, -2.92),
+	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.86, -2.9),
 	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.95, -0.42),
 	"Baza1_Player": Vector3(-0.12, 0.755, 0.08), "Baza1_Dealer": Vector3(-0.12, 0.755, -0.08),
 	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
@@ -19,7 +19,7 @@ const MARKER_POSITIONS: Dictionary = {
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
 const MARKER_ROTATIONS: Dictionary = {
-	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-55, 0),
+	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-62, 0),
 	# Los diálogos del rival, como un cartel un poco girado hacia vos.
 	"SpeechAnchor": Vector2(6, 25),
 	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathCounter": Vector2(-12, 10),
@@ -30,6 +30,18 @@ var ps1 := false
 ## La cámara del jugador, para que la mesa sepa hacia dónde mira.
 var camera: CameraRig
 var _slots: Dictionary = {}
+var life: BarLife
+var _rival_pose := &"seated"
+var _rival_tween: Tween
+
+## El rival: sentado a la mesa, parado al lado de su silla a medio sentarse (esperándote)
+## o fuera de la escena. Desplazamiento y cabeceo respecto de sentado.
+const RIVAL_POSES := {
+	&"seated": [Vector3.ZERO, 0.0],
+	&"waiting": [Vector3(0.52, 0.12, 0.08), -0.18],
+}
+const RIVAL_PARTS := ["rival_base", "rival_head"]
+const RIVAL_SIT_SECONDS := 0.8
 
 
 func _ready() -> void:
@@ -70,6 +82,10 @@ func _build() -> void:
 		asset_slot.visible = not bool(data.get("hidden", false))
 		add_child(asset_slot)
 		_slots[asset_key] = asset_slot
+	life = BarLife.new()
+	life.name = "BarLife"
+	life.ps1 = ps1
+	add_child(life)
 	_add_floor()
 	_add_lights()
 	_add_environment()
@@ -140,3 +156,42 @@ func _add_environment() -> void:
 	environment.fog_density = 0.035
 	environment_node.environment = environment
 	add_child(environment_node)
+
+
+func rival_pose() -> StringName:
+	return _rival_pose
+
+
+## Mueve al rival a una pose: &"seated", &"waiting" o &"away" (no está).
+func set_rival_pose(pose: StringName, instant := false) -> void:
+	if pose == _rival_pose:
+		return
+	var from := _rival_pose
+	_rival_pose = pose
+	if _rival_tween != null:
+		_rival_tween.kill()
+	for part in RIVAL_PARTS:
+		var s := slot(part)
+		if s == null:
+			continue
+		if not s.has_meta("home"):
+			s.set_meta("home", s.position)
+		s.visible = pose != &"away"
+	if pose == &"away":
+		return
+	var p: Array = RIVAL_POSES[pose]
+	# Aparece ya en su pose; de esperar a sentado, se sienta despacio.
+	var animate := not instant and is_inside_tree() and from == &"waiting" and pose == &"seated"
+	if animate:
+		_rival_tween = create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	for part in RIVAL_PARTS:
+		var s := slot(part)
+		if s == null:
+			continue
+		var at: Vector3 = (s.get_meta("home") as Vector3) + (p[0] as Vector3)
+		if animate:
+			_rival_tween.tween_property(s, "position", at, RIVAL_SIT_SECONDS)
+			_rival_tween.tween_property(s, "rotation:x", float(p[1]), RIVAL_SIT_SECONDS)
+		else:
+			s.position = at
+			s.rotation.x = p[1]

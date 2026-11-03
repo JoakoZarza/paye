@@ -6,7 +6,7 @@
   "rival_head": {"asset_name": "head_alma", "position": [0, 1.3, -0.7], "size": [0.26, 0.3, 0.26], "color": "#B8AE98", "rotation_y": 0},
   "lamp": {"position": [0, 1.55, 0], "size": [0.4, 0.25, 0.4], "color": "#D9A54A", "rotation_y": 0},
   "room": {"position": [0, 0, 0], "size": [8, 3, 8], "color": "#2A1A12", "rotation_y": 0, "inside": true},
-  "bar_counter": {"position": [0, 0, -3.4], "size": [3, 1.1, 0.6], "color": "#5C3A22", "rotation_y": 0},
+  "bar_counter": {"position": [0, 0, -3.3], "size": [3, 1.1, 0.9], "color": "#5C3A22", "rotation_y": 0},
   "door": {"position": [3.95, 0, 0.5], "size": [0.9, 2.1, 0.1], "color": "#2A1A12", "rotation_y": 90},
   "window": {"position": [-3.95, 1.0, -1.5], "size": [1.2, 1, 0.1], "color": "#1B2738", "rotation_y": 90},
   "scoreboard": {"position": [1.4, 1.6, -3.95], "size": [0.6, 0.4, 0.05], "color": "#0E0C0B", "rotation_y": 0},
