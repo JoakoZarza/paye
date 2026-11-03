@@ -26,7 +26,8 @@ var _screen: BaseScreen
 var _screen_name: StringName = &""
 var _backdrop: ColorRect
 ## Vista 3D: la plata, el fiado y la deuda en una esquina, chiquitos.
-var _hud: Label
+var _hud: RichTextLabel
+var _hud_plain := ""
 
 
 func setup(p_rc: RunController) -> void:
@@ -102,29 +103,24 @@ func _update_backdrop() -> void:
 
 func _update_hud() -> void:
 	if _hud == null:
-		_hud = Label.new()
+		_hud = RingStyle.shaky_label("", 16)
 		_hud.name = "Hud"
-		_hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_hud.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		_hud.offset_left = -360
+		_hud.offset_left = -380
 		_hud.offset_right = -16
 		_hud.offset_top = 12
-		_hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		_hud.add_theme_font_size_override("font_size", 16)
-		_hud.add_theme_color_override("font_color", RingStyle.COLOR)
-		_hud.add_theme_constant_override("outline_size", 6)
-		_hud.add_theme_color_override("font_outline_color", Color.BLACK)
-		_hud.modulate.a = 0.75
+		_hud.modulate.a = 0.8
 		add_child(_hud)
 	move_child(_hud, get_child_count() - 1)
 	var s := rc.state if rc != null else null
 	_hud.visible = s != null
 	if s != null:
-		_hud.text = UiText.t("UI_HUD_MONEY") % [s.money, s.fiado, s.debt]
+		_hud_plain = UiText.t("UI_HUD_MONEY") % [s.money, s.fiado, s.debt]
+		_hud.text = "[right]" + RingStyle.SHAKE % _hud_plain + "[/right]"
 
 
 func hud_text() -> String:
-	return _hud.text if _hud != null else ""
+	return _hud_plain
 
 
 func camera_marker() -> StringName:

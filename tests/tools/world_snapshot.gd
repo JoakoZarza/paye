@@ -1,6 +1,6 @@
 extends SceneTree
 ## Captura la mesa 3D en un PNG para revisarla sin jugar.
-## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: match|bar] [vista: hand|rival|left|right|back] [puntos: 4,7] [habla: 1]
+## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: match|bar|shop] [vista: hand|rival|left|right|back] [puntos: 4,7] [habla: 1]
 
 const MAIN := "res://ui/main.tscn"
 
@@ -23,12 +23,21 @@ func _initialize() -> void:
 	rc.start_run(&"normal")
 	if phase == "match":
 		rc.enter_match()
+	elif phase == "shop":
+		rc.enter_match()
+		var m := rc.table().truco_match
+		m.start_hand()
+		m.award(0, m.target)
+		rc.finish_match()
+		rc.skip_one_more()
 	main.camera.mouse_look = false
 	if args.size() > 4 and phase == "match":
 		var pts := args[4].split(",")
 		rc.table().truco_match.scores[0] = int(pts[0])
 		rc.table().truco_match.scores[1] = int(pts[1])
 	main.router.refresh()
+	if phase == "shop":
+		main.router.find_child("GoShop", true, false).pressed.emit()
 	if args.size() > 5 and args[5] == "1":
 		_force_speech(main.router)
 	await create_timer(1.2).timeout

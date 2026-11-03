@@ -46,6 +46,8 @@ const TWIST_RAMP := 1.2
 const LEAN_OFFSET := Vector3(0, -0.1, -0.24)
 const LEAN_PITCH := -24.0
 const LEAN_SPEED := 4.0
+## Cuánto hay que mover el mouse (fracción) después de enderezarte para mirar otra cosa.
+const SETTLE_MOVE := 0.06
 ## Cuello y torso juntos: más que esto una persona no gira.
 const MAX_YAW := 140.0
 ## Mirando hacia abajo y al frente se levantan las cartas.
@@ -85,6 +87,9 @@ var _twist_hold := 0.0
 var _lean := 0.0
 ## true con el mouse sobre un botón: la cabeza no sigue al mouse.
 var ui_hold := false
+## Recién te enderezaste: miras tus cartas hasta que el mouse se mueva un poco.
+var _back_to_cards := false
+var _settle_mouse := Vector2.ZERO
 
 
 func setup(p_bar: Bar3D) -> void:
@@ -178,7 +183,17 @@ func look(m: Vector2, delta: float, turn := 0, lean := false) -> void:
 		return
 	if _turn_tween != null and _turn_tween.is_running():
 		_turn_tween.kill()
+	var was_leaning := _lean > 0.0
 	_lean = move_toward(_lean, 1.0 if lean else 0.0, LEAN_SPEED * delta)
+	if lean:
+		_back_to_cards = false
+	elif was_leaning and not _back_to_cards and _lean < 1.0:
+		_back_to_cards = true
+		_settle_mouse = m
+	if _back_to_cards and m.distance_to(_settle_mouse) > SETTLE_MOVE:
+		_back_to_cards = false
+	if _back_to_cards:
+		m = Vector2(0.5, CARDS_CENTER.y)
 	if ui_hold:
 		_last_mouse = Vector2(-1, -1)
 		_twist_hold = 0.0

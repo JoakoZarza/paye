@@ -116,6 +116,14 @@ func _add_lights() -> void:
 	fill.light_energy = 0.35
 	fill.omni_range = 7.0
 	add_child(fill)
+	# Una luz baja sobre la barra, para ver lo que se vende.
+	var counter := OmniLight3D.new()
+	counter.name = "CounterLight"
+	counter.position = Vector3(0, 2.0, -3.0)
+	counter.light_color = Color("#ffc77a")
+	counter.light_energy = 1.3
+	counter.omni_range = 2.6
+	add_child(counter)
 
 
 func _add_environment() -> void:

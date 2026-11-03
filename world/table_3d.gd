@@ -128,7 +128,7 @@ func _ready() -> void:
 ## La mano se levanta cuando la cabeza mira tus cartas; si mirás para otro lado
 ## la bajás un poco, sin apoyarla.
 func _process(_delta: float) -> void:
-	if _peeked != null and (not is_instance_valid(_peeked) or not _leaning()):
+	if _peeked != null and (not is_instance_valid(_peeked) or (not _leaning() and not _peeked_shown())):
 		_end_peek()
 	if not _showing.is_empty() and Time.get_ticks_msec() / 1000.0 > _show_until:
 		_showing.clear()
@@ -370,7 +370,8 @@ func _on_card_hover(on: bool, card: Card, node: Card3D) -> void:
 		if node == _peeked:
 			_end_peek()
 		return
-	if not _on_table.has(card) or not _leaning():
+	var shown := card in _showing
+	if not shown and (not _on_table.has(card) or not _leaning()):
 		return
 	if _peeked != null and _peeked != node and is_instance_valid(_peeked):
 		_peeked.peek(false)
@@ -459,3 +460,10 @@ static func deal_order(h: TrucoHand) -> Array[Card]:
 		if i < second.size():
 			out.append(second[i])
 	return out
+
+
+func _peeked_shown() -> bool:
+	for c in _showing:
+		if _cards.get(c) == _peeked:
+			return true
+	return false

@@ -286,6 +286,8 @@ func test_al_ganar_ir_a_la_barra_abre_la_tienda() -> void:
 	router.find_child("GoShop", true, false).pressed.emit()
 	assert_eq(router.camera_marker(), &"CamShop")
 	assert_not_null(router.find_child("Next", true, false))
+	assert_not_null(router.find_child("Buy0", true, false), "las ofertas están en la barra")
+	assert_null(router.find_child("*ScrollContainer*", true, false), "sin el panel de la tienda 2D")
 
 func test_los_puntos_se_tallan_en_palitos_de_a_cinco() -> void:
 	var tally := ScoreTally.new()
@@ -545,6 +547,9 @@ func test_el_rival_muestra_las_cartas_del_tanto() -> void:
 	var shown: Card = table.showing()[0]
 	var node: Card3D = table._cards[shown]
 	assert_true(node.get_node("Face").visible, "boca arriba")
+	node.set_hover(true)
+	assert_eq(table.peeked_text(), TablePresenter.card_text(shown), "sin inclinarte, dice qué carta mostró")
+	node.set_hover(false)
 	table._show_until = 0.0
 	table._process(0.0)
 	assert_true(table.showing().is_empty())
@@ -605,3 +610,15 @@ func test_quedarte_sentado_el_bar_te_deja_jugar_desde_la_mesa() -> void:
 	assert_string_contains(router.hud_text(), "deuda")
 	sit.pressed.emit()
 	assert_eq(rc.phase, RunController.Phase.MATCH)
+
+
+func test_al_enderezarte_vuelven_tus_cartas() -> void:
+	var cam: CameraRig = _rig()[1]
+	cam.go_to(&"CamSeat", true)
+	for i in 60:
+		cam.look(Vector2(0.5, 0.35), 1.0 / 60.0, 0, true)
+	for i in 120:
+		cam.look(Vector2(0.5, 0.35), 1.0 / 60.0, 0, false)
+	assert_true(cam.looking_at_hand(), "sin bajar el mouse, la cabeza vuelve a las cartas")
+	_hold(cam, Vector2(0.5, 0.2), 3.0)
+	assert_false(cam.looking_at_hand(), "moviendo el mouse se mira otra cosa")

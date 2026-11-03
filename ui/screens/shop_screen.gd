@@ -16,6 +16,17 @@ var _message := ""
 var _message_bad := false
 ## Vista 3D: primero elegís si te levantás a la barra o te quedás en la mesa.
 var _at_counter := false
+## Vista 3D en la barra: los amuletos apoyados (ofertas y los tuyos).
+var _counter_items: Array[Node3D] = []
+
+## Sobre la barra: ofertas en el medio, los tuyos a la izquierda y los botones de
+## cambiar ofertas y volver a la derecha (en metros, respecto de la barra).
+const COUNTER_TOP := 1.1
+const OFFER_X := [-0.5, 0.0, 0.5, 0.25, -0.25]
+const OWNED_X := [-1.15, -0.85]
+const OFFER_Z := 0.12
+const RIGHT_X := 0.88
+const WRAP := 24
 
 
 func camera_marker() -> StringName:
@@ -23,7 +34,7 @@ func camera_marker() -> StringName:
 
 
 func wants_backdrop() -> bool:
-	return _at_counter or world == null
+	return world == null
 
 
 func refresh() -> void:
@@ -31,8 +42,12 @@ func refresh() -> void:
 		remove_child(c)
 		c.queue_free()
 	_clear_tags()
+	_clear_counter()
 	if world != null and not _at_counter:
 		_draw_choice()
+		return
+	if world != null and world.slot("bar_counter") != null:
+		_draw_counter()
 		return
 	var outer := VBoxContainer.new()
 	outer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -273,3 +288,96 @@ func _reason(reason: StringName) -> String:
 		&"already_upgraded":
 			return UiText.t("UI_SHOP_WHY_UPGRADED")
 	return UiText.t("UI_SHOP_FAILED")
+
+
+func _exit_tree() -> void:
+	_clear_counter()
+
+
+func _clear_counter() -> void:
+	for n in _counter_items:
+		if is_instance_valid(n):
+			n.queue_free()
+	_counter_items.clear()
+
+
+## Vista 3D: la tienda apoyada sobre la barra, con el texto escrito arriba de cada cosa.
+func _draw_counter() -> void:
+	var counter := world.slot("bar_counter")
+	var s := rc.state
+	var slots_full := s.loadout.equipped().size() >= Loadout.SLOTS
+	if _message != "":
+		world_label(_message, counter, Vector3(0, COUNTER_TOP + 0.55, OFFER_Z), 20) \
+			.add_theme_color_override("default_color", WARN if _message_bad else GOOD)
+	for i in rc.shop.offers.size():
+		var def: AmuletDef = rc.shop.offers[i]
+		var x: float = OFFER_X[i % OFFER_X.size()]
+		_put_amulet(counter, def, Vector3(x, COUNTER_TOP, OFFER_Z))
+		var price := rc.shop.price_of(def, s)
+		var quote := rc.shop.quote(price, s)
+		var text := _name_of(def.id) + "\n" + _wrap(UiText.t("UI_AMULET_" + String(def.id).to_upper() + "_DESC"))
+		var why := ""
+		if slots_full:
+			why = UiText.t("UI_SHOP_WHY_FULL")
+		elif not quote["ok"]:
+			why = UiText.t("UI_SHOP_WHY_MONEY")
+		elif int(quote["fiado"]) > 0:
+			why = UiText.t("UI_SHOP_SPLIT") % [int(quote["paid"]), int(quote["fiado"])]
+		world_label(text, counter, Vector3(x, COUNTER_TOP + 0.42, OFFER_Z), 16) \
+			.add_theme_color_override("default_color", RARITY_COLORS[def.rarity].lerp(Color.WHITE, 0.35))
+		var buy := UiText.t("UI_SHOP_BUY") + " " + UiText.t("UI_SHOP_PRICE") % price
+		world_button(buy, "Buy%d" % i, _buy.bind(i), counter, Vector3(x, COUNTER_TOP + 0.1, OFFER_Z + 0.05),
+			quote["ok"] and not slots_full)
+		if why != "":
+			world_label(_wrap(why), counter, Vector3(x, COUNTER_TOP + 0.02, OFFER_Z + 0.1), 14) \
+				.add_theme_color_override("default_color", WARN)
+	if rc.shop.offers.is_empty():
+		world_label(UiText.t("UI_SHOP_SOLD_OUT"), counter, Vector3(0, COUNTER_TOP + 0.2, OFFER_Z), 18)
+	var owned := s.loadout.equipped()
+	for k in owned.size():
+		var def: AmuletDef = owned[k]
+		var x: float = OWNED_X[k % OWNED_X.size()]
+		var id: StringName = def.id
+		_put_amulet(counter, def, Vector3(x, COUNTER_TOP, OFFER_Z))
+		var level := s.loadout.level(id)
+		world_label(_name_of(id) + "\n" + UiText.t("UI_LEVEL_N") % ROMAN[level], counter,
+			Vector3(x, COUNTER_TOP + 0.3, OFFER_Z), 16)
+		var up := rc.shop.upgrade_price(id, s)
+		if up >= 0:
+			var can := bool(rc.shop.quote(up, s)["ok"]) and rc.shop.can_upgrade_now()
+			world_button(UiText.t("UI_SHOP_UPGRADE") % [ROMAN[level + 1], up], "Upgrade_" + String(id),
+				_upgrade.bind(id), counter, Vector3(x, COUNTER_TOP + 0.12, OFFER_Z + 0.05), can)
+		var value := rc.economy.sell_value(int(s.paid_for.get(id, 0)))
+		world_button(UiText.t("UI_SHOP_SELL") % value, "Sell_" + String(id), _sell.bind(id), counter,
+			Vector3(x, COUNTER_TOP + 0.04, OFFER_Z + 0.1))
+	var cost := rc.economy.reroll_cost(s.round, rc.shop.rerolls)
+	world_button(UiText.t("UI_SHOP_REROLL") % cost, "Reroll", _reroll, counter,
+		Vector3(RIGHT_X, COUNTER_TOP + 0.25, OFFER_Z), s.money >= cost)
+	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(RIGHT_X, COUNTER_TOP + 0.08, OFFER_Z + 0.05))
+
+
+## Un amuleto apoyado en la barra: su modelo amulet_<id>.glb o un cubito del color de su rareza.
+func _put_amulet(counter: Node3D, def: AmuletDef, at: Vector3) -> void:
+	var item := AssetSlot.new()
+	item.asset_name = "amulet_" + String(def.id)
+	item.placeholder_size = AmuletToken.SIZE * 1.5
+	item.placeholder_color = RARITY_COLORS[def.rarity]
+	item.ps1 = ps1
+	item.position = counter.position + at
+	world.add_child(item)
+	_counter_items.append(item)
+
+
+## Corta el texto en renglones de a lo sumo WRAP letras, por palabras.
+static func _wrap(text: String) -> String:
+	var lines: Array[String] = []
+	var line := ""
+	for word in text.split(" ", false):
+		if line != "" and (line + " " + word).length() > WRAP:
+			lines.append(line)
+			line = word
+		else:
+			line = word if line == "" else line + " " + word
+	if line != "":
+		lines.append(line)
+	return "\n".join(lines)
