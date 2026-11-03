@@ -1,8 +1,8 @@
 class_name TableProps
 extends Node3D
-## Lo que hay sobre la mesa ademÃ¡s de las cartas y la planilla:
+## Lo que hay sobre la mesa además de las cartas y la planilla:
 ## - el mazo, a la derecha del que es pie (cambia de lado con cada mano);
-## - porotos en el medio con lo que vale la mano cuando se cantÃ³ truco;
+## - porotos en el medio con lo que vale la mano cuando se cantó truco;
 ## - una ficha por cada rival que ya le ganaste en esta corrida, al lado de la planilla.
 
 ## Mazo: si sos mano el pie es el rival y va a su derecha (tu izquierda, lejos);
@@ -38,7 +38,7 @@ func _ready() -> void:
 	add_child(deck)
 
 
-## Lugar del mazo segÃºn quiÃ©n es mano (0 = vos, 1 = el rival).
+## Lugar del mazo según quién es mano (0 = vos, 1 = el rival).
 static func deck_spot(mano: int) -> Vector3:
 	return DECK_WHEN_PLAYER_MANO if mano == 0 else DECK_WHEN_DEALER_MANO
 
