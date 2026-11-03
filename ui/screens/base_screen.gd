@@ -25,6 +25,11 @@ func wants_backdrop() -> bool:
 	return true
 
 
+## Si se ve la plata en la esquina (en la tienda va sobre la barra).
+func wants_hud() -> bool:
+	return true
+
+
 ## Qué tan oscuro es ese fondo (0 a 1).
 func backdrop_alpha() -> float:
 	return 0.78
@@ -91,7 +96,7 @@ func place_tags() -> void:
 		var anchor: Node3D = t[1]
 		if not is_instance_valid(c) or not is_instance_valid(anchor):
 			continue
-		var at: Vector3 = anchor.global_position + (t[2] as Vector3)
+		var at: Vector3 = anchor.global_transform * (t[2] as Vector3)
 		# Detrás de la cámara (o pegado a ella) no se ve.
 		c.visible = (cam.global_transform.affine_inverse() * at).z < -0.05
 		if not c.visible:

@@ -12,9 +12,9 @@ const PAUSE := Vector2(2.0, 6.0)
 ## Distancia a la que dos almas que se cruzan se quedan mirando.
 const MEET := 1.3
 ## Recorrido por las orillas del bar, lejos de la mesa.
-const WAYPOINTS := [Vector3(-2.6, 0, 1.6), Vector3(-2.9, 0, -0.9), Vector3(-1.6, 0, -2.6),
+const WAYPOINTS := [Vector3(-2.2, 0, 1.9), Vector3(-2.2, 0, -1.6), Vector3(-1.6, 0, -2.7),
 	Vector3(1.9, 0, -2.5), Vector3(2.8, 0, 1.4), Vector3(1.2, 0, 3.1), Vector3(-1.0, 0, 3.2)]
-const BARTENDER_AT := Vector3(0.5, 0, -3.88)
+const BARTENDER_AT := Vector3(-3.88, 0, -0.3)
 const BARTENDER_SIZE := Vector3(0.5, 1.75, 0.25)
 const BARTENDER_SWAY := 0.45
 const BARTENDER_PERIOD := 7.0
@@ -31,7 +31,7 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	_rng.seed = 2718
 	bartender = _figure("bartender", "Bartender", BARTENDER_SIZE, Color("#5C3A22"), BARTENDER_AT)
-	bartender.rotation.y = PI
+	bartender.rotation.y = PI * 0.5
 	for i in SOUL_COUNT:
 		var start: Vector3 = WAYPOINTS[(i * 2) % WAYPOINTS.size()]
 		var soul := _figure("soul", "Soul%d" % i, SOUL_SIZE, SOUL_COLOR, start)
@@ -69,7 +69,7 @@ func _process(delta: float) -> void:
 ## Un paso de vida del bar (separado para los tests).
 func step(delta: float) -> void:
 	_time += delta
-	bartender.position.x = BARTENDER_AT.x + sin(_time * TAU / BARTENDER_PERIOD) * BARTENDER_SWAY
+	bartender.position.z = BARTENDER_AT.z + sin(_time * TAU / BARTENDER_PERIOD) * BARTENDER_SWAY
 	for i in souls.size():
 		var soul := souls[i]
 		if _wait[i] > 0.0:

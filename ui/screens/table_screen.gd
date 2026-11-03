@@ -17,6 +17,10 @@ const RING_GAP := 6.0
 const RING_MAX_GROW := 1.8
 ## Margen alrededor de un botón dentro del cual la cabeza se queda quieta.
 const HOLD_MARGIN := 14.0
+## La flor de acusar: radio (píxeles), cuánto tarda en abrirse cada pétalo y el desfase entre ellos.
+const PETAL_RADIUS := 190.0
+const PETAL_SECONDS := 0.25
+const PETAL_STAGGER := 0.04
 ## Si tu mano queda más abajo que esto (fracción de pantalla), los cantos no se ven.
 const HIDE_BELOW := 0.95
 
@@ -42,6 +46,8 @@ var _table_title: Label
 var _player_title: Label
 var _built := false
 var _ring: Control
+## Vista 3D: las opciones de acusar abiertas como una flor alrededor de tus cartas.
+var _flower: Control
 ## Cuánto se abrió el arco para que no se pisen los cantos (1 = nada).
 var ring_grow := 1.0
 var _table3d: Table3D
@@ -472,6 +478,9 @@ func _on_continue() -> void:
 
 func _show_accuse() -> void:
 	_popup_close()
+	if _ring != null:
+		bloom(presenter.accuse_options())
+		return
 	_label(_popup_box).text = "¿De qué lo acusás?"
 	var row := HFlowContainer.new()
 	_popup_box.add_child(row)
@@ -564,6 +573,7 @@ func _popup_built() -> void:
 func _popup_close() -> void:
 	if _popup_box != null:
 		_clear(_popup_box)
+	_close_flower()
 
 
 func camera_marker() -> StringName:
@@ -572,3 +582,54 @@ func camera_marker() -> StringName:
 
 func wants_backdrop() -> bool:
 	return false
+
+
+# --- Flor de acusar (vista 3D) ---
+
+## Los cantos se esconden y las acusaciones se abren como pétalos desde el centro de
+## tus cartas; en el medio queda "Cancelar".
+func bloom(options: Array) -> void:
+	_close_flower()
+	for c in _ring.get_children():
+		(c as Control).visible = false
+	_flower = Control.new()
+	_flower.name = "Flower"
+	_flower.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_flower.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ring.add_child(_flower)
+	var center := RING_CENTER * get_viewport_rect().size
+	for i in options.size():
+		var o: Dictionary = options[i]
+		var a := -PI * 0.5 + TAU * i / options.size()
+		_petal(o["text"], o["name"], _accuse.bind(o["accusation"]), center,
+			center + Vector2(cos(a), sin(a) * 0.75) * PETAL_RADIUS, i * PETAL_STAGGER)
+	_petal("Cancelar", "CancelAccuse", _close_flower, center, center, 0.0)
+
+
+func _petal(text: String, node_name: String, callback: Callable, from: Vector2, to: Vector2, delay: float) -> void:
+	var b := ScreenTools.button(_flower, text, node_name, callback)
+	RingStyle.shakify(b)
+	var size := b.get_combined_minimum_size()
+	b.size = size
+	b.pivot_offset = size * 0.5
+	b.position = to - size * 0.5
+	if not is_inside_tree():
+		return
+	b.position = from - size * 0.5
+	b.scale = Vector2.ONE * 0.2
+	b.modulate.a = 0.0
+	var t := create_tween().set_parallel().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	t.tween_property(b, "position", to - size * 0.5, PETAL_SECONDS).set_delay(delay)
+	t.tween_property(b, "scale", Vector2.ONE, PETAL_SECONDS).set_delay(delay)
+	t.tween_property(b, "modulate:a", 1.0, PETAL_SECONDS * 0.6).set_delay(delay)
+
+
+func _close_flower() -> void:
+	if not is_instance_valid(_flower):
+		_flower = null
+		return
+	_flower.queue_free()
+	_ring.remove_child(_flower)
+	_flower = null
+	for c in _ring.get_children():
+		(c as Control).visible = true

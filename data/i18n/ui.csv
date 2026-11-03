@@ -94,6 +94,9 @@ UI_SHOP_SELL,Vender ($%d)
 UI_SHOP_REROLL,Cambiar las ofertas ($%d)
 UI_SHOP_NEXT,Seguir al bar
 UI_SHOP_BACK,Volver a la mesa
+UI_SHOP_CASH,Tenés $%d
+UI_SHOP_OWED,Debés $%d fiado
+UI_SHOP_NEXT_ENTRY,Próxima entrada $%d
 UI_DETAIL_ACTIVE,Se usa: %d por partido
 UI_DETAIL_PASSIVE,Funciona solo todo el tiempo
 UI_DETAIL_LEVEL,Nivel %s de %s

@@ -23,8 +23,10 @@ var _counter_items: Array[Node3D] = []
 ## botones de cambiar ofertas y volver adelante a la derecha (metros, respecto de la barra).
 const COUNTER_TOP := 1.1
 const CLOTH_SIZE := Vector2(1.15, 0.78)
-const OFFER_X := [-0.36, 0.0, 0.36, -0.18, 0.18]
-const OWNED_X := [-0.36, 0.0]
+const OFFER_X := [-0.36, 0.0, 0.36]
+const OWNED_X := [-0.18, 0.18]
+## Afuera del mantel, a cada costado sobre la barra.
+const SIDE_X := 0.85
 const BACK_Z := -0.17
 const FRONT_Z := 0.16
 const RIGHT_X := 0.36
@@ -325,28 +327,46 @@ func _draw_counter() -> void:
 	var counter := world.slot("bar_counter")
 	var s := rc.state
 	var top := counter.position + Vector3(0, COUNTER_TOP, 0)
-	_add_cloth(top)
-	if _message != "":
-		world_label(_message, counter, Vector3(0, COUNTER_TOP + 0.02, CLOTH_SIZE.y * 0.5 + 0.06), 18) \
-			.add_theme_color_override("default_color", WARN if _message_bad else GOOD)
+	var flat := Basis(Vector3.UP, counter.rotation.y)
+	_add_cloth(top, counter.rotation.y)
+	# Cinco lugares: tres ofertas atrás y tus dos lugares adelante (los vacíos, marcados).
 	for i in rc.shop.offers.size():
 		var def: AmuletDef = rc.shop.offers[i]
 		var price := rc.shop.price_of(def, s)
-		_put_item(def, "$%d" % price, false, top + Vector3(OFFER_X[i % OFFER_X.size()], 0, BACK_Z)).set_meta("offer", i)
+		var at := top + flat * Vector3(OFFER_X[i % OFFER_X.size()], 0, BACK_Z)
+		var item := _put_item(def, "$%d" % price, false, at, counter.rotation.y)
+		item.set_meta("offer", i)
 	if rc.shop.offers.is_empty():
 		world_label(UiText.t("UI_SHOP_SOLD_OUT"), counter, Vector3(0, COUNTER_TOP, BACK_Z), 18)
 	var owned := s.loadout.equipped()
-	for k in owned.size():
-		var def: AmuletDef = owned[k]
-		_put_item(def, ROMAN[s.loadout.level(def.id)], true, top + Vector3(OWNED_X[k % OWNED_X.size()], 0, FRONT_Z))
+	for k in Loadout.SLOTS:
+		var at := top + flat * Vector3(OWNED_X[k % OWNED_X.size()], 0, FRONT_Z)
+		if k < owned.size():
+			_put_item(owned[k], ROMAN[s.loadout.level(owned[k].id)], true, at, counter.rotation.y)
+		else:
+			_add_empty_spot(at, counter.rotation.y)
+	# A la izquierda del mantel, sobre la barra: tu plata. A la derecha: los botones.
+	var money: Array[String] = [UiText.t("UI_SHOP_CASH") % s.money]
+	if s.fiado > 0:
+		money.append(UiText.t("UI_SHOP_OWED") % s.fiado)
+	money.append(UiText.t("UI_SHOP_NEXT_ENTRY") % rc.economy.entry(s.round + 1))
+	world_label("\n".join(money), counter, Vector3(-SIDE_X, COUNTER_TOP, 0), 20).name = "ShopMoney"
+	if _message != "":
+		world_label(_wrap(_message), counter, Vector3(-SIDE_X, COUNTER_TOP, 0.3), 16) \
+			.add_theme_color_override("default_color", WARN if _message_bad else GOOD)
 	var cost := rc.economy.reroll_cost(s.round, rc.shop.rerolls)
 	world_button(UiText.t("UI_SHOP_REROLL") % cost, "Reroll", _reroll, counter,
-		Vector3(RIGHT_X, COUNTER_TOP, FRONT_Z - 0.03), s.money >= cost)
-	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(RIGHT_X, COUNTER_TOP, FRONT_Z + 0.08))
+		Vector3(SIDE_X, COUNTER_TOP, -0.06), s.money >= cost)
+	world_button(UiText.t("UI_SHOP_BACK"), "Next", _next, counter, Vector3(SIDE_X, COUNTER_TOP, 0.12))
+
+
+## En la barra la plata se ve sobre la barra, no en la esquina.
+func wants_hud() -> bool:
+	return world == null or not _at_counter
 
 
 ## El mantel oscuro sobre la barra.
-func _add_cloth(top: Vector3) -> void:
+func _add_cloth(top: Vector3, yaw: float) -> void:
 	var cloth := MeshInstance3D.new()
 	cloth.name = "ShopCloth"
 	var quad := QuadMesh.new()
@@ -356,7 +376,7 @@ func _add_cloth(top: Vector3) -> void:
 	material.albedo_color = Color("#1E1B18")
 	material.roughness = 1.0
 	cloth.material_override = material
-	cloth.rotation.x = -PI * 0.5
+	cloth.rotation = Vector3(-PI * 0.5, yaw, 0)
 	cloth.position = top + Vector3(0, 0.001, 0)
 	world.add_child(cloth)
 	if ps1:
@@ -364,10 +384,27 @@ func _add_cloth(top: Vector3) -> void:
 	_counter_items.append(cloth)
 
 
-func _put_item(def: AmuletDef, tag: String, is_owned: bool, at: Vector3) -> ShopItem:
+## Un lugar tuyo vacío: un recuadro apenas marcado en el mantel.
+func _add_empty_spot(at: Vector3, yaw: float) -> void:
+	var spot := MeshInstance3D.new()
+	spot.name = "EmptySpot"
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.14, 0.14)
+	spot.mesh = quad
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color("#2E2A25")
+	spot.material_override = material
+	spot.rotation = Vector3(-PI * 0.5, yaw, 0)
+	spot.position = at + Vector3(0, 0.002, 0)
+	world.add_child(spot)
+	_counter_items.append(spot)
+
+
+func _put_item(def: AmuletDef, tag: String, is_owned: bool, at: Vector3, yaw := 0.0) -> ShopItem:
 	var item := ShopItem.new()
 	item.ps1 = ps1
 	item.position = at + Vector3(0, 0.002, 0)
+	item.rotation.y = yaw
 	world.add_child(item)
 	item.setup(def, tag, is_owned, RARITY_COLORS[def.rarity])
 	item.inspect_requested.connect(inspect)
@@ -399,7 +436,7 @@ func inspect(item: ShopItem) -> void:
 	if cam != null and cam.is_inside_tree():
 		var view := cam.get_viewport().get_visible_rect().size
 		at = cam.project_position(view * INSPECT_SCREEN, INSPECT_DEPTH)
-	item.lift_to(at)
+	item.lift_to(at, cam.global_basis if cam != null else Basis.IDENTITY)
 	_dim(true)
 	for t in _tags:
 		(t[0] as Control).modulate.a = 0.0

@@ -57,10 +57,10 @@ const HAND_YAW_WITHIN := 18.0
 const ROUTES := {
 	[&"CamBar", &"CamSeat"]: [&"PathSide", &"PathStand"],
 	[&"CamSeat", &"CamBar"]: [&"PathStand", &"PathSide"],
-	[&"CamSeat", &"CamShop"]: [&"PathStand", &"PathSide", &"PathCounter"],
-	[&"CamShop", &"CamSeat"]: [&"PathCounter", &"PathSide", &"PathStand"],
-	[&"CamShop", &"CamBar"]: [&"PathCounter", &"PathSide"],
-	[&"CamBar", &"CamShop"]: [&"PathSide", &"PathCounter"],
+	[&"CamSeat", &"CamShop"]: [&"PathStand", &"PathLeft"],
+	[&"CamShop", &"CamSeat"]: [&"PathLeft", &"PathStand"],
+	[&"CamShop", &"CamBar"]: [&"PathLeft", &"PathStand"],
+	[&"CamBar", &"CamShop"]: [&"PathStand", &"PathLeft"],
 }
 
 var bar: Bar3D

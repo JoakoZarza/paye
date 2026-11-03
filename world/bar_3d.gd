@@ -5,7 +5,7 @@ extends Node3D
 const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
 const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
 const MARKER_POSITIONS: Dictionary = {
-	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(0, 1.86, -2.9),
+	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(-2.9, 1.86, -0.3),
 	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.95, -0.42),
 	"Baza1_Player": Vector3(-0.12, 0.755, 0.08), "Baza1_Dealer": Vector3(-0.12, 0.755, -0.08),
 	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
@@ -13,16 +13,16 @@ const MARKER_POSITIONS: Dictionary = {
 	"Deck": Vector3(-0.36, 0.77, -0.32), "AmuletTray": Vector3(-0.3, 0.76, 0.3),
 	"DealerItems": Vector3(-0.24, 0.7505, -0.16),
 	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7),
-	"SpeechAnchor": Vector3(-0.55, 1.5, -0.6),
+	"SpeechAnchor": Vector3(-0.45, 1.18, -0.55),
 	"ScoreSheet": Vector3(0.32, 0.7505, -0.08),
-	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathCounter": Vector3(0.9, 1.6, -1.6),
+	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathLeft": Vector3(-1.3, 1.65, 0.55),
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.
 const MARKER_ROTATIONS: Dictionary = {
-	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-62, 0),
+	"CamSeat": Vector2(-17, 0), "CamBar": Vector2(-18, 25), "CamShop": Vector2(-62, 90),
 	# Los diálogos del rival, como un cartel un poco girado hacia vos.
 	"SpeechAnchor": Vector2(6, 25),
-	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathCounter": Vector2(-12, 10),
+	"PathStand": Vector2(-15, 0), "PathSide": Vector2(-10, 20), "PathLeft": Vector2(-20, 70),
 }
 
 ## Se fija antes de entrar al árbol: los huecos aplican el filtro PS1 al cargar.
@@ -135,7 +135,7 @@ func _add_lights() -> void:
 	# Una luz baja sobre la barra, para ver lo que se vende.
 	var counter := OmniLight3D.new()
 	counter.name = "CounterLight"
-	counter.position = Vector3(0, 2.0, -3.0)
+	counter.position = Vector3(-2.9, 2.0, -0.3)
 	counter.light_color = Color("#ffc77a")
 	counter.light_energy = 1.3
 	counter.omni_range = 2.6

@@ -169,7 +169,7 @@ func test_camina_rodeando_la_mesa() -> void:
 	assert_false(cam.seated())
 	assert_eq(cam.target_marker, &"CamShop")
 	var route: Array = CameraRig.ROUTES[[&"CamSeat", &"CamShop"]]
-	assert_has(route, &"PathSide", "pasa por el costado de la mesa")
+	assert_has(route, &"PathLeft", "pasa por el costado de la mesa, hacia la barra")
 	for stop: StringName in route:
 		assert_not_null(bar.marker(String(stop)))
 	var before := cam.turn_degrees()
@@ -300,6 +300,7 @@ func test_al_ganar_ir_a_la_barra_abre_la_tienda() -> void:
 	shop.inspect(items[0])
 	assert_eq(shop.inspected(), items[0])
 	assert_true(items[0].inspecting(), "levita")
+	assert_true(items[0].facing().is_equal_approx((r[1] as CameraRig).global_basis.orthonormalized()), "de frente a la vista")
 	assert_not_null(router.find_child("Buy0", true, false))
 	assert_lt((r[0] as Bar3D).get_node("LampLight").light_energy, 1.0, "el bar se oscurece")
 	shop.close_inspect()
@@ -691,3 +692,19 @@ func test_el_menu_de_inicio_tiene_velo_y_panel() -> void:
 	assert_eq((r[0] as Bar3D).rival_pose(), &"away")
 	(router.find_child("Deck_normal", true, false) as Button).pressed.emit()
 	assert_eq((r[0] as Bar3D).rival_pose(), &"waiting", "el rival ya está, a medio sentarse")
+
+
+func test_acusar_abre_una_flor() -> void:
+	var s := _setup()
+	var screen: BaseScreen = s[1]
+	var options := [{"text": "Carta de más", "name": "Acc_A", "accusation": null},
+		{"text": "Cartas marcadas", "name": "Acc_B", "accusation": null},
+		{"text": "Cómplice", "name": "Acc_C", "accusation": null}]
+	screen.bloom(options)
+	assert_not_null(screen.find_child("Flower", true, false))
+	assert_not_null(screen.find_child("Acc_B", true, false), "cada acusación es un pétalo")
+	for c in screen._ring.get_children():
+		if c.name != "Flower":
+			assert_false((c as Control).visible, "los cantos se esconden")
+	(screen.find_child("CancelAccuse", true, false) as Button).pressed.emit()
+	assert_null(screen._flower, "cancelar cierra la flor")

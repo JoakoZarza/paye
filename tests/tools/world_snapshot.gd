@@ -56,6 +56,13 @@ func _initialize() -> void:
 	for i in 5:
 		await process_frame
 	root.get_texture().get_image().save_png(out)
+	if OS.get_environment("PAYE_DEBUG") == "1":
+		for sub in root.find_children("*", "Node3D", true, false):
+			if sub is Subtitle3D:
+				var cam: Camera3D = main.camera
+				print("SUB ", sub.name, " '", sub.text, "' vis=", sub.visible_glyphs(), "/", sub.glyph_count(),
+					" pos=", sub.global_position, " behind=", cam.is_position_behind(sub.global_position),
+					" px=", cam.unproject_position(sub.global_position), " in_tree=", sub.is_visible_in_tree(), " persistent=", sub.persistent, " age=", sub._age)
 	quit()
 
 

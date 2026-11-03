@@ -27,7 +27,9 @@ var ps1 := false
 var model: AssetSlot
 var _rest: Transform3D
 var _levitating := false
-var _base_y := 0.0
+var _lift_at := Vector3.ZERO
+var _face := Basis.IDENTITY
+var _spin := 0.0
 var _time := 0.0
 var _tween: Tween
 var _light: OmniLight3D
@@ -96,8 +98,12 @@ func inspecting() -> bool:
 
 
 ## Se levanta hasta at (en el mundo) y queda levitando y girando.
-func lift_to(at: Vector3) -> void:
+## Se levanta hasta at (en el mundo), se pone de frente a la vista (face: la orientación
+## de la cámara) y queda levitando, girando sobre su propio eje vertical.
+func lift_to(at: Vector3, face := Basis.IDENTITY) -> void:
 	_rest = model.global_transform
+	_face = face.orthonormalized()
+	_spin = 0.0
 	if _tween != null:
 		_tween.kill()
 	_light = OmniLight3D.new()
@@ -106,15 +112,19 @@ func lift_to(at: Vector3) -> void:
 	_light.omni_range = 0.5
 	# Colgada del cartel, no del objeto: así no gira con él.
 	add_child(_light)
-	_light.global_position = at + LIGHT_OFFSET
+	_light.global_position = at + _face * LIGHT_OFFSET
 	_levitating = true
 	_time = 0.0
-	_base_y = at.y
+	_lift_at = at
 	if not is_inside_tree():
-		model.global_position = at
+		model.global_transform = Transform3D(_face, at)
 		return
 	_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	_tween.tween_property(model, "global_position", at, MOVE_SECONDS)
+	_tween.tween_method(_blend_to.bind(_rest, Transform3D(_face, at)), 0.0, 1.0, MOVE_SECONDS)
+
+
+func _blend_to(t: float, from: Transform3D, to: Transform3D) -> void:
+	model.global_transform = from.interpolate_with(to, t)
 
 
 ## Vuelve a apoyarse donde estaba.
@@ -129,17 +139,22 @@ func put_back(instant := false) -> void:
 	if instant or not is_inside_tree():
 		model.global_transform = _rest
 		return
-	_tween = create_tween().set_parallel().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_tween.tween_property(model, "global_position", _rest.origin, MOVE_SECONDS)
-	_tween.tween_property(model, "rotation", Vector3.ZERO, MOVE_SECONDS)
+	_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_tween.tween_method(_blend_to.bind(model.global_transform, _rest), 0.0, 1.0, MOVE_SECONDS)
+
+
+## De frente a la vista: el eje vertical del objeto es el de la cámara.
+func facing() -> Basis:
+	return _face
 
 
 func _process(delta: float) -> void:
 	if not _levitating or (_tween != null and _tween.is_running()):
 		return
 	_time += delta
-	model.rotation.y = fmod(model.rotation.y + SPIN * delta, TAU)
-	model.global_position.y = _base_y + sin(_time * BOB_SPEED) * BOB
+	_spin = fmod(_spin + SPIN * delta, TAU)
+	var bob := _face.y * sin(_time * BOB_SPEED) * BOB
+	model.global_transform = Transform3D(_face * Basis(Vector3.UP, _spin), _lift_at + bob)
 
 
 func _on_input(_camera: Node, event: InputEvent, _pos: Vector3, _normal: Vector3, _shape: int) -> void:
