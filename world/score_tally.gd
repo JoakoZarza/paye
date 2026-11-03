@@ -1,14 +1,12 @@
 class_name ScoreTally
 extends Node3D
-## Los puntos tallados en la mesa como se anotan en el truco: cada punto un palito,
-## cuatro forman un cuadrado y el quinto lo cruza en diagonal. Los nuevos se graban
-## con un tirón corto, como hechos a cuchillo.
+## Una columna de la planilla de puntos tallada en la mesa: cada punto un palito,
+## cuatro forman un cuadrado y el quinto lo cruza en diagonal; los cuadrados van uno
+## debajo del otro. Los nuevos se graban con un tirón corto, como hechos a cuchillo.
 
 const SIDE := 0.034
 const GROOVE := Vector2(0.0035, 0.0015)
 const GROUP_GAP := 0.018
-const ROW_GAP := 0.02
-const PER_ROW := 3
 const CARVE_SECONDS := 0.18
 const COLOR := Color("#1E120B")
 
@@ -41,7 +39,7 @@ func set_points(n: int) -> void:
 ## [centro, largo, ángulo sobre la mesa] del palito i.
 static func stick_shape(i: int) -> Array:
 	var group := i / 5
-	var origin := Vector3((group % PER_ROW) * (SIDE + GROUP_GAP), 0, (group / PER_ROW) * (SIDE + ROW_GAP))
+	var origin := Vector3(0, 0, group * (SIDE + GROUP_GAP))
 	var h := SIDE * 0.5
 	match i % 5:
 		0:

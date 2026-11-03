@@ -41,7 +41,9 @@ var known: Array[String] = []
 ## cada frase nueva, para que el subtítulo sepa cuándo volver a escribir.
 var rival_line := ""
 var rival_line_id := 0
-## El último canto del rival espera que respondas o juegues.
+## El canto del rival que espera que respondas o juegues: queda escrito aparte.
+var rival_call := ""
+var rival_call_id := 0
 var rival_waiting := false
 var _seen_tell: Object
 
@@ -338,15 +340,17 @@ func _apply(events: Array[GameEvent]) -> void:
 		if text != "":
 			log_lines.append(text)
 		var line := rival_says(e)
-		if line != "":
-			said.append(line)
 		if int(e.data.get("player", -1)) == PLAYER or e.type == &"hand_over":
 			rival_waiting = false
 		elif e.type in WAITING_EVENTS and int(e.data.get("player", -1)) == DEALER:
 			rival_waiting = true
+			rival_call = line
+			rival_call_id += 1
+			continue
+		if line != "":
+			said.append(line)
 	if not said.is_empty():
-		rival_line = "
-".join(said)
+		rival_line = "\n".join(said)
 		rival_line_id += 1
 	while log_lines.size() > LOG_LINES:
 		log_lines.pop_front()

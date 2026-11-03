@@ -1,6 +1,6 @@
 extends SceneTree
 ## Captura la mesa 3D en un PNG para revisarla sin jugar.
-## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: match|bar] [vista: hand|rival|left|right|back]
+## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: match|bar] [vista: hand|rival|left|right|back] [puntos: 4,7]
 
 const MAIN := "res://ui/main.tscn"
 
@@ -24,6 +24,10 @@ func _initialize() -> void:
 	if phase == "match":
 		rc.enter_match()
 	main.camera.mouse_look = false
+	if args.size() > 4 and phase == "match":
+		var pts := args[4].split(",")
+		rc.table().truco_match.scores[0] = int(pts[0])
+		rc.table().truco_match.scores[1] = int(pts[1])
 	main.router.refresh()
 	await create_timer(1.2).timeout
 	if args.size() > 3:

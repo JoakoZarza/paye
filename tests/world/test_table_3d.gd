@@ -287,7 +287,7 @@ func test_los_puntos_se_tallan_en_palitos_de_a_cinco() -> void:
 	var diagonal: Array = ScoreTally.stick_shape(4)
 	assert_almost_eq(float(diagonal[2]), PI * 0.25, 0.001, "el quinto cruza en diagonal")
 	var next_group: Array = ScoreTally.stick_shape(5)
-	assert_gt(next_group[0].x, ScoreTally.SIDE, "el sexto empieza otro cuadrado")
+	assert_gt(next_group[0].z, ScoreTally.SIDE, "el sexto empieza otro cuadrado, debajo")
 	tally.set_points(2)
 	assert_eq(tally.points(), 2, "partido nuevo: se empieza de cero")
 
@@ -300,8 +300,10 @@ func test_la_mesa_talla_los_puntos_de_cada_uno() -> void:
 	rc.table().truco_match.scores[0] = 3
 	rc.table().truco_match.scores[1] = 6
 	table.sync()
-	assert_eq((bar.marker("TallyPlayer").get_node("TallyPlayer") as ScoreTally).points(), 3)
-	assert_eq((bar.marker("TallyDealer").get_node("TallyDealer") as ScoreTally).points(), 6)
+	var sheet := bar.marker("ScoreSheet").get_node("Sheet") as ScoreSheet
+	assert_eq(sheet.tally(0).points(), 3, "NOS")
+	assert_eq(sheet.tally(1).points(), 6, "ELLOS")
+	assert_eq((sheet.get_node("HeaderNOS") as Label3D).text, "NOS")
 
 
 func test_el_canto_del_rival_espera_tu_respuesta() -> void:
@@ -309,7 +311,7 @@ func test_el_canto_del_rival_espera_tu_respuesta() -> void:
 	var table: Table3D = s[2]
 	var bar: Bar3D = s[3]
 	var p := table.presenter
-	var speech := bar.marker("SpeechAnchor").get_node("RivalSpeech") as Subtitle3D
+	var speech := bar.marker("SpeechAnchor").get_node("RivalCall") as Subtitle3D
 	p._apply([GameEvent.make(&"call_made", {"player": TablePresenter.DEALER, "call": TrucoAction.Type.TRUCO})] as Array[GameEvent])
 	assert_true(p.rival_waiting)
 	table.sync()
@@ -371,3 +373,33 @@ func test_inclinarse_sobre_la_mesa() -> void:
 	assert_true(cam.leaning())
 	assert_lt(cam.global_position.z, seat.z - 0.15, "se adelanta")
 	assert_false(cam.looking_at_hand(), "inclinado, la mano se baja")
+
+
+func test_los_amuletos_estan_sobre_la_mesa() -> void:
+	var s := _setup()
+	var rc: RunController = s[0]
+	var screen: BaseScreen = s[1]
+	var table: Table3D = s[2]
+	rc.systems.loadout.equip(AmuletDef.load_all()[&"mirror"])
+	table.sync()
+	assert_eq(table.amulet_tokens().size(), 1)
+	var amulets := screen.find_child("Amulet_mirror", true, false) as Control
+	assert_true(amulets == null or not amulets.is_visible_in_tree(), "no hay botón de amuletos en 3D")
+
+
+func test_el_tanto_se_elige_con_flechitas() -> void:
+	var dial := TantoDial.new([0, 4, 5, 20, 21, 27, 33] as Array[int], 27)
+	add_child_autofree(dial)
+	assert_eq(dial.value, 27)
+	dial.nudge(1, 1)
+	assert_eq(dial.value, 33, "salta al siguiente que se puede declarar")
+	dial.nudge(10, -1)
+	assert_eq(dial.value, 21)
+	dial.nudge(1, -1)
+	assert_eq(dial.value, 20)
+	dial.nudge(10, -1)
+	assert_eq(dial.value, 5)
+	var got := [-1]
+	dial.declared.connect(func(v: int) -> void: got[0] = v)
+	(dial.find_child("Declare", true, false) as Button).pressed.emit()
+	assert_eq(got[0], 5)

@@ -9,7 +9,7 @@ const MAX_WIDTH := 0.62
 const LINE_GAP := 1.15
 ## Letras por segundo al escribirse y cuánto queda antes de apagarse.
 const TYPE_RATE := 40.0
-const HOLD_SECONDS := 5.0
+const HOLD_SECONDS := 3.5
 const FADE_SECONDS := 0.6
 ## Temblor: cada cuánto salta, cuánto (fracción de la altura de letra) y la chance de
 ## un tirón más grande.

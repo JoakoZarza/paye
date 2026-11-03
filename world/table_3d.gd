@@ -4,6 +4,8 @@ extends Node
 ## rival boca abajo, las jugadas en su baza, lo que dice el rival al lado suyo, la luz según
 ## su humor y la pizarra. Los clics en tus cartas vuelven al presentador (Plan 7, Tarea 4).
 
+signal amulet_pressed(id: StringName, needs: StringName)
+
 const CARD_SCENE := preload("res://world/card_3d.tscn")
 const MOVE_SECONDS := 0.25
 ## Abanico como se agarran las cartas: giran alrededor del puño, la de la derecha encima.
@@ -19,6 +21,12 @@ const FACE_DOWN := deg_to_rad(90.0)
 const LAMP_COLORS := {&"calm": Color("#ffc77a"), &"nervous": Color("#e8d08a"),
 	&"smug": Color("#ffb45a"), &"angry": Color("#ff7a52")}
 const LAMP_DEFAULT := Color("#ffc77a")
+## Amuletos sobre el lado izquierdo de la mesa: el primero cerca tuyo, el segundo más
+## allá, y si hubiera más se alternan.
+const AMULET_SPOTS := [Vector3(-0.32, 0.7505, 0.3), Vector3(-0.3, 0.7505, -0.2),
+	Vector3(-0.38, 0.7505, 0.18), Vector3(-0.36, 0.7505, -0.08)]
+## El canto va debajo de lo que murmura.
+const CALL_OFFSET := Vector3(0, -0.26, 0)
 const PLAYER := TablePresenter.PLAYER
 const DEALER := TablePresenter.DEALER
 
@@ -33,7 +41,11 @@ var _cards: Dictionary = {}
 var _revealed: Dictionary = {}
 var _speech: Subtitle3D
 var _said_id := 0
-var _tallies: Array[ScoreTally] = []
+var _call: Subtitle3D
+var _call_id := 0
+var _sheet: ScoreSheet
+var _amulets: Array[AmuletToken] = []
+var _amulets_key := ""
 var _babble: Babble
 var _hand_raised := true
 
@@ -51,17 +63,20 @@ func _ready() -> void:
 	_speech = Subtitle3D.new()
 	_speech.name = "RivalSpeech"
 	bar.marker("SpeechAnchor").add_child(_speech)
+	_call = Subtitle3D.new()
+	_call.name = "RivalCall"
+	_call.position = CALL_OFFSET
+	bar.marker("SpeechAnchor").add_child(_call)
 	_babble = Babble.new()
 	_babble.name = "RivalBabble"
 	bar.marker("SpeechAnchor").add_child(_babble)
 	_babble.set_voice(presenter.sin_name())
 	_speech.letter_typed.connect(_babble.on_letter)
-	for who in [PLAYER, DEALER]:
-		var tally := ScoreTally.new()
-		tally.name = "Tally" + ("Player" if who == PLAYER else "Dealer")
-		tally.ps1 = ps1
-		bar.marker(tally.name).add_child(tally)
-		_tallies.append(tally)
+	_call.letter_typed.connect(_babble.on_letter)
+	_sheet = ScoreSheet.new()
+	_sheet.name = "Sheet"
+	_sheet.ps1 = ps1
+	bar.marker("ScoreSheet").add_child(_sheet)
 	presenter.changed.connect(sync)
 	sync()
 
@@ -87,9 +102,10 @@ func hand_raised() -> bool:
 func _exit_tree() -> void:
 	if is_instance_valid(_root):
 		_root.queue_free()
-	if is_instance_valid(_speech):
-		_speech.queue_free()
-	for n in [_babble] + _tallies:
+	for n in [_speech, _call]:
+		if is_instance_valid(n):
+			n.queue_free()
+	for n in [_babble, _sheet] + _amulets:
 		if is_instance_valid(n):
 			n.queue_free()
 	if not is_instance_valid(bar):
@@ -159,8 +175,8 @@ func sync() -> void:
 	if accomplice != null:
 		accomplice.visible = presenter.accomplice_present()
 	var m := presenter.rc.table().truco_match
-	for who in [PLAYER, DEALER]:
-		_tallies[who].set_points(m.scores[who])
+	_sheet.set_scores(m.scores)
+	_sync_amulets()
 
 
 ## [posición, rotación] de la carta i de n en un abanico centrado en center.
@@ -206,12 +222,39 @@ func _on_card_clicked(index: int) -> void:
 
 
 func _sync_tell() -> void:
+	# Lo que murmura se va solo; el canto queda abajo hasta que respondas.
 	if presenter.rival_line_id != _said_id:
 		_said_id = presenter.rival_line_id
-		_speech.say(presenter.rival_line, presenter.rival_waiting)
-	elif _speech.persistent and not presenter.rival_waiting:
-		_speech.dismiss()
+		_speech.say(presenter.rival_line)
+	if presenter.rival_call_id != _call_id:
+		_call_id = presenter.rival_call_id
+		_call.say(presenter.rival_call, presenter.rival_waiting)
+	elif _call.persistent and not presenter.rival_waiting:
+		_call.dismiss()
 	var t := presenter.tell()
 	var light := bar.get_node_or_null("LampLight") as Light3D
 	if light != null:
 		light.light_color = LAMP_COLORS.get(t.get("kind", &""), LAMP_DEFAULT)
+
+
+func amulet_tokens() -> Array[AmuletToken]:
+	return _amulets
+
+
+## Rehace los amuletos de la mesa solo si cambió algo (cargas, turno, cuáles hay).
+func _sync_amulets() -> void:
+	var infos := presenter.amulet_buttons()
+	var key := str(infos)
+	if key == _amulets_key:
+		return
+	_amulets_key = key
+	for t in _amulets:
+		t.queue_free()
+	_amulets.clear()
+	for i in infos.size():
+		var token := AmuletToken.new()
+		token.position = AMULET_SPOTS[i % AMULET_SPOTS.size()] + Vector3(0, 0, 0.12 * (i / AMULET_SPOTS.size()))
+		_root.add_child(token)
+		token.setup(infos[i], ps1)
+		token.pressed.connect(func(id: StringName, needs: StringName) -> void: amulet_pressed.emit(id, needs))
+		_amulets.append(token)

@@ -10,10 +10,10 @@ const MARKER_POSITIONS: Dictionary = {
 	"Baza1_Player": Vector3(-0.12, 0.755, 0.08), "Baza1_Dealer": Vector3(-0.12, 0.755, -0.08),
 	"Baza2_Player": Vector3(0, 0.756, 0.08), "Baza2_Dealer": Vector3(0, 0.756, -0.08),
 	"Baza3_Player": Vector3(0.12, 0.757, 0.08), "Baza3_Dealer": Vector3(0.12, 0.757, -0.08),
-	"Deck": Vector3(0.33, 0.76, 0), "AmuletTray": Vector3(-0.33, 0.76, 0.25),
+	"Deck": Vector3(0.33, 0.76, -0.28), "AmuletTray": Vector3(-0.33, 0.76, 0.25),
 	"Scoreboard": Vector3(1.4, 1.8, -3.9), "TellAnchor": Vector3(0, 1.75, -0.7),
 	"SpeechAnchor": Vector3(-0.5, 1.05, -0.5),
-	"TallyPlayer": Vector3(0.3, 0.7505, 0.24), "TallyDealer": Vector3(0.3, 0.7505, -0.2),
+	"ScoreSheet": Vector3(0.27, 0.7505, -0.1),
 	"PathStand": Vector3(0, 1.6, 1.05), "PathSide": Vector3(1.25, 1.6, 0.7), "PathCounter": Vector3(0.9, 1.6, -1.6),
 }
 ## Grados (x = mirar arriba/abajo, y = girar). Sin entrada: mira hacia -Z.

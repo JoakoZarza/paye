@@ -9,9 +9,9 @@ const HIDDEN_CARD := "[ ? ]"
 ## Vista 3D: los cantos van en un arco alrededor de tu mano (centro y radios en
 ## fracción de pantalla; ángulos en grados, 270 = abajo).
 const RING_CENTER := Vector2(0.5, 0.7)
-const RING_RADII := Vector2(0.27, 0.22)
-const RING_FROM := 165.0
-const RING_TO := 375.0
+const RING_RADII := Vector2(0.2, 0.17)
+const RING_FROM := 160.0
+const RING_TO := 380.0
 ## Margen alrededor de un botón dentro del cual la cabeza se queda quieta.
 const HOLD_MARGIN := 14.0
 
@@ -38,6 +38,8 @@ var _player_title: Label
 var _built := false
 var _ring: Control
 var _table3d: Table3D
+var _log_title: Label
+var _amulets_title: Label
 
 
 func _ready() -> void:
@@ -58,7 +60,9 @@ func setup(p_rc: RunController) -> void:
 ## Vista 3D: las cartas las pone el bar; acá quedan los botones abajo, sin tapar
 ## los clics sobre las cartas.
 func _use_world() -> void:
-	for n in [_dealer_row, _table_row, _player_row, _dealer_title, _table_title, _player_title]:
+	# En 3D lo que pasó se ve en la mesa y los amuletos están apoyados en ella.
+	for n in [_dealer_row, _table_row, _player_row, _dealer_title, _table_title, _player_title,
+			_log_title, _log, _amulets_title, _amulets]:
 		n.visible = false
 	# Título y puntaje arriba, botones abajo, el medio libre para ver la mesa.
 	var gap := Control.new()
@@ -81,6 +85,7 @@ func _use_world() -> void:
 	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_ring)
 	_table3d = Table3D.new(world, presenter, ps1)
+	_table3d.amulet_pressed.connect(_on_amulet)
 	add_child(_table3d)
 
 
@@ -111,6 +116,8 @@ func _arrange_ring() -> void:
 		var c := items[i] as Control
 		_actions.remove_child(c)
 		_ring.add_child(c)
+		if c is Button:
+			RingStyle.shakify(c as Button)
 		var t := 0.5 if n == 1 else float(i) / (n - 1)
 		var a := deg_to_rad(lerpf(RING_FROM, RING_TO, t))
 		var spot := RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y)
@@ -169,7 +176,8 @@ func _build() -> void:
 	_player_row = _row(main)
 	_actions = HFlowContainer.new()
 	main.add_child(_actions)
-	_label(main).text = "Amuletos"
+	_amulets_title = _label(main)
+	_amulets_title.text = "Amuletos"
 	_amulets = HFlowContainer.new()
 	main.add_child(_amulets)
 	_popup_box = VBoxContainer.new()
@@ -178,7 +186,8 @@ func _build() -> void:
 	_tell_label = _label(side)
 	_known_label = _label(side)
 	_evidence_label = _label(side)
-	_label(side, 18).text = "Lo que pasó"
+	_log_title = _label(side, 18)
+	_log_title.text = "Lo que pasó"
 	_log = _label(side, 16)
 	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -310,6 +319,13 @@ func _draw_tanto_picker() -> void:
 	if values.is_empty():
 		return
 	var real := presenter.own_tanto()
+	if world != null:
+		var legal: Array[int] = []
+		legal.assign(values)
+		var dial := TantoDial.new(legal, real)
+		dial.declared.connect(presenter.declare)
+		_actions.add_child(dial)
+		return
 	var picker := OptionButton.new()
 	picker.name = "TantoPicker"
 	for v in values:
