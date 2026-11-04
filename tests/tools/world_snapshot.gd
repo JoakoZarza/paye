@@ -1,6 +1,6 @@
 extends SceneTree
 ## Captura la mesa 3D en un PNG para revisarla sin jugar.
-## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1|0] [fase: start|match|bar|shop] [vista: hand|rival|left|right|back] [puntos: 4,7] [habla: 1]
+## Uso: godot --path . -s res://tests/tools/world_snapshot.gd -- <salida.png> [ps1: 1 (PS1) | 0 (HD, por defecto)] [fase: start|match|bar|shop] [vista: hand|rival|left|right|back] [puntos: 4,7] [habla: 1]
 
 const MAIN := "res://ui/main.tscn"
 
@@ -8,7 +8,7 @@ const MAIN := "res://ui/main.tscn"
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0] if args.size() > 0 else "user://world.png"
-	var ps1 := args.size() < 2 or args[1] != "0"
+	var ps1 := args.size() >= 2 and args[1] == "1"
 	var phase := "match" if args.size() < 3 else args[2]
 	root.size = Vector2i(1280, 720)
 	root.theme = load("res://ui/theme.tres")

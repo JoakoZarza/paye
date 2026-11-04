@@ -20,7 +20,7 @@ Figuras **low poly** con **texturas chicas pixeladas**, mostradas a **resolució
 
 Es el estilo de juegos como CloverPit. Los tamaños exactos de las texturas de CloverPit no son públicos; los de este documento son los de Payé. Están pensados para que se vea así.
 
-> El juego también tiene un modo PS1 (resolución baja, vértices que tiemblan, colores reducidos). Se elige con `"ps1"` en `data/ui.json`: `false` es el modo HD. Los modelos sirven igual para los dos modos.
+> El juego también tiene un modo PS1 (resolución baja, vértices que tiemblan, colores reducidos). El juego arranca en HD (`"ps1": false` en `data/ui.json`); con `true` vuelve el modo PS1. Los modelos sirven igual para los dos modos.
 
 ### La regla de oro: el mismo tamaño de pixel en todo
 

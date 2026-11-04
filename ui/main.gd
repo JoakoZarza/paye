@@ -18,7 +18,7 @@ func _ready() -> void:
 	var config: Dictionary = get_meta("force_view") if has_meta("force_view") else load_config()
 	router = ScreenRouter.new()
 	if String(config.get("view", "2d")) == "3d":
-		_build_world(bool(config.get("ps1", true)), int(config.get("ps1_shrink", LowResView.SHRINK)))
+		_build_world(bool(config.get("ps1", false)), int(config.get("ps1_shrink", LowResView.SHRINK)))
 	router.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(router)
 	router.setup(rc)
