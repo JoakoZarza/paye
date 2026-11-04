@@ -39,6 +39,15 @@ const WRAP := 24
 const INSPECT_SCREEN := Vector2(0.25, 0.5)
 const INSPECT_DEPTH := 0.5
 const DIM := 0.15
+## Panel de detalles: un tamaño por nivel de lectura (nombre, qué hace, precio, datos chicos)
+## y el aire que separa lo que se lee de lo que se aprieta.
+const DETAIL_TITLE := 36
+const DETAIL_BODY := 22
+const DETAIL_PRICE := 30
+const DETAIL_SMALL := 16
+const DETAIL_GAP := 40
+## El botón principal (comprar, mejorar, retirar) manda sobre todo lo demás que se aprieta.
+const DETAIL_ACTION := 30
 const CATEGORY_NAMES := {
 	AmuletDef.Category.CARDS: "Cartas", AmuletDef.Category.TANTO: "Tanto",
 	AmuletDef.Category.CALLS: "Cantos", AmuletDef.Category.INFO: "Información",
@@ -558,24 +567,34 @@ func _draw_details(item: ShopItem) -> void:
 	_details.anchor_right = 0.95
 	_details.anchor_top = 0.15
 	_details.anchor_bottom = 0.9
-	_details.add_theme_constant_override("separation", 10)
+	_details.add_theme_constant_override("separation", 4)
 	add_child(_details)
-	var title := RingStyle.reading_label(UiText.t(key), 34)
-	title.add_theme_color_override("default_color", RARITY_COLORS[def.rarity].lerp(Color.WHITE, 0.3))
-	_details.add_child(title)
 	var stored := item.has_meta("wardrobe")
 	var level := s.loadout.level(def.id) if item.owned else (int(rc.wardrobe().get("level", 1)) if stored else 0)
-	var lines: Array[String] = [
-		UiText.t("UI_RARITY_" + AmuletDef.Rarity.keys()[def.rarity]) + " · " + CATEGORY_NAMES.get(def.category, ""),
-		UiText.t("UI_DETAIL_ACTIVE") % def.charges if def.kind == AmuletDef.Kind.ACTIVE else UiText.t("UI_DETAIL_PASSIVE"),
-		(UiText.t("UI_DETAIL_LEVEL") % [ROMAN[level], ROMAN[AmuletDef.MAX_LEVEL]]) if item.owned or stored else UiText.t("UI_DETAIL_NOT_YOURS"),
-		"",
-		_wrap_wide(UiText.t(key + "_DESC")),
-	]
-	for line in lines:
-		_details.add_child(RingStyle.reading_label(line, 20))
+	# Se lee en este orden: qué es, qué hace, los datos chicos y, separado, lo que cuesta y
+	# el botón. Cada nivel tiene su tamaño y su brillo; lo obvio no se escribe.
+	var display_name: String = UiText.t(key) + ("  " + ROMAN[level] if level > 0 else "")
+	var title := RingStyle.reading_label(display_name, DETAIL_TITLE)
+	title.name = "DetailName"
+	title.add_theme_color_override("default_color", RARITY_COLORS[def.rarity].lerp(Color.WHITE, 0.3))
+	_details.add_child(title)
+	var what := RingStyle.reading_label(_wrap_wide(UiText.t(key + "_DESC")), DETAIL_BODY)
+	what.name = "DetailWhat"
+	_details.add_child(what)
+	var uses := UiText.t("UI_DETAIL_ACTIVE") % def.charges if def.kind == AmuletDef.Kind.ACTIVE \
+		else UiText.t("UI_DETAIL_PASSIVE")
+	var meta := RingStyle.reading_label(" · ".join([
+		UiText.t("UI_RARITY_" + AmuletDef.Rarity.keys()[def.rarity]), CATEGORY_NAMES.get(def.category, ""), uses]),
+		DETAIL_SMALL)
+	meta.name = "DetailMeta"
+	meta.add_theme_color_override("default_color", MUTED)
+	_details.add_child(meta)
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0, DETAIL_GAP)
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_details.add_child(gap)
 	var row := VBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", 2)
 	_details.add_child(row)
 	if stored:
 		_wardrobe_details(row)
@@ -584,6 +603,14 @@ func _draw_details(item: ShopItem) -> void:
 		var price := rc.shop.price_of(def, s)
 		var quote := rc.shop.quote(price, s)
 		var slots_full := s.loadout.equipped().size() >= Loadout.SLOTS
+		var price_label := RingStyle.reading_label(UiText.t("UI_SHOP_PRICE") % UiText.money(price), DETAIL_PRICE)
+		price_label.name = "DetailPrice"
+		row.add_child(price_label)
+		# El precio comparado con lo que acabás de ganar: se entiende de un vistazo.
+		var share := RingStyle.reading_label(prize_share(price), DETAIL_SMALL)
+		share.name = "PrizeShare"
+		share.add_theme_color_override("default_color", MUTED)
+		row.add_child(share)
 		var why := ""
 		if slots_full:
 			why = UiText.t("UI_SHOP_WHY_FULL")
@@ -591,28 +618,57 @@ func _draw_details(item: ShopItem) -> void:
 			why = UiText.t("UI_SHOP_WHY_MONEY")
 		elif int(quote["fiado"]) > 0:
 			why = UiText.t("UI_SHOP_SPLIT") % [int(quote["paid"]), int(quote["fiado"])]
-		# El precio comparado con lo que acabás de ganar: se entiende de un vistazo.
-		var share := RingStyle.reading_label(prize_share(price), 18)
-		share.name = "PrizeShare"
-		row.add_child(share)
-		if why != "":
-			var warn := RingStyle.reading_label(why, 18)
-			warn.add_theme_color_override("default_color", WARN)
-			row.add_child(warn)
-		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_BUY") + " " + UiText.t("UI_SHOP_PRICE") % UiText.money(price),
-			"Buy%d" % i, _buy_inspected.bind(i), quote["ok"] and not slots_full))
+		_warn(row, why)
+		_main_action(ScreenTools.button(row, UiText.t("UI_SHOP_BUY"), "Buy%d" % i, _buy_inspected.bind(i),
+			quote["ok"] and not slots_full))
 	else:
 		var id: StringName = def.id
 		var up := rc.shop.upgrade_price(id, s)
 		if up >= 0:
 			var can := bool(rc.shop.quote(up, s)["ok"]) and rc.shop.can_upgrade_now()
-			RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_UPGRADE") % [ROMAN[level + 1], up],
+			if not rc.shop.can_upgrade_now():
+				_warn(row, UiText.t("UI_SHOP_WHY_UPGRADED"))
+			_main_action(ScreenTools.button(row, UiText.t("UI_SHOP_UPGRADE") % [ROMAN[level + 1], up],
 				"Upgrade_" + String(id), _upgrade_inspected.bind(id), can))
 		var value := rc.economy.sell_value(int(s.paid_for.get(id, 0)))
 		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_SELL") % value, "Sell_" + String(id),
 			_sell_inspected.bind(id)))
 		_store_button(row, id, true)
-	RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_DETAIL_CLOSE"), "CloseDetails", close_inspect))
+	# Salir es lo de menos: más chico y apagado.
+	var close := ScreenTools.button(row, UiText.t("UI_DETAIL_CLOSE"), "CloseDetails", close_inspect)
+	RingStyle.shakify(close)
+	_quiet(close)
+
+
+## Un aviso corto (por qué no se puede, o cuánto va al fiado), justo arriba del botón.
+func _warn(parent: Container, why: String) -> void:
+	if why == "":
+		return
+	var warn := RingStyle.reading_label(_wrap_wide(why), DETAIL_SMALL)
+	warn.name = "DetailWarn"
+	warn.add_theme_color_override("default_color", WARN)
+	parent.add_child(warn)
+
+
+## El botón principal: más grande, con un poco de aire arriba.
+func _main_action(b: Button) -> void:
+	RingStyle.shakify(b)
+	b.add_theme_font_size_override("font_size", DETAIL_ACTION)
+	var label := b.get_node_or_null("Shaky") as RichTextLabel
+	if label != null:
+		label.add_theme_font_size_override("normal_font_size", DETAIL_ACTION)
+	b.custom_minimum_size.y = DETAIL_ACTION + 22
+
+
+## Botón secundario: letra más chica y apagada (se dora igual al pasar el mouse).
+func _quiet(b: Button) -> void:
+	b.add_theme_font_size_override("font_size", DETAIL_SMALL + 2)
+	var label := b.get_node_or_null("Shaky") as RichTextLabel
+	if label != null:
+		label.add_theme_font_size_override("normal_font_size", DETAIL_SMALL + 2)
+		if not b.disabled:
+			label.add_theme_color_override("default_color", MUTED)
+			b.mouse_exited.connect(func() -> void: label.add_theme_color_override("default_color", MUTED))
 
 
 ## Guardado: cuánto se debe, cuánto aguanta y el botón para retirarlo.
@@ -626,7 +682,9 @@ func _wardrobe_details(row: Container) -> void:
 		lines.append(UiText.t("UI_WARDROBE_OWED") % fee)
 	lines.append(UiText.t("UI_WARDROBE_LAST") if left <= 1 else UiText.t("UI_WARDROBE_LEFT") % (left - 1))
 	for line in lines:
-		row.add_child(RingStyle.reading_label(_wrap_wide(line), 18))
+		var l := RingStyle.reading_label(_wrap_wide(line), DETAIL_SMALL)
+		l.add_theme_color_override("default_color", MUTED)
+		row.add_child(l)
 	var why := ""
 	if s.loadout.equipped().size() >= Loadout.SLOTS:
 		why = UiText.t("UI_SHOP_WHY_FULL")
@@ -634,11 +692,8 @@ func _wardrobe_details(row: Container) -> void:
 		why = UiText.t("UI_WARDROBE_SAME")
 	elif not rc.shop.quote(fee, s)["ok"]:
 		why = UiText.t("UI_SHOP_WHY_MONEY")
-	if why != "":
-		var warn := RingStyle.reading_label(_wrap_wide(why), 18)
-		warn.add_theme_color_override("default_color", WARN)
-		row.add_child(warn)
-	RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_WARDROBE_TAKE") % fee, "Retrieve",
+	_warn(row, why)
+	_main_action(ScreenTools.button(row, UiText.t("UI_WARDROBE_TAKE") % fee, "Retrieve",
 		_retrieve_inspected, why == ""))
 
 

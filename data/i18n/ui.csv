@@ -97,11 +97,11 @@ UI_SHOP_BACK,Volver a la mesa
 UI_SHOP_CASH,Tenés $%d
 UI_SHOP_OWED,Debés $%d fiado
 UI_SHOP_NEXT_ENTRY,Próxima entrada $%d
-UI_DETAIL_ACTIVE,Se usa: %d por partido
-UI_DETAIL_PASSIVE,Funciona solo todo el tiempo
+UI_DETAIL_ACTIVE,%d por partido
+UI_DETAIL_PASSIVE,Siempre activo
 UI_DETAIL_LEVEL,Nivel %s de %s
 UI_DETAIL_NOT_YOURS,Todavía no es tuyo
-UI_DETAIL_CLOSE,Dejarlo en la mesa
+UI_DETAIL_CLOSE,Volver
 UI_WARDROBE,Guardarropas
 UI_WARDROBE_EMPTY,Guardarropas (vacío)
 UI_WARDROBE_STORE,Dejarlo en el guardarropas ($%d por ronda)
