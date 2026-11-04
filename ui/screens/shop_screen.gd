@@ -244,6 +244,9 @@ func _draw_choice() -> void:
 	if world.slot("bar_counter") != null:
 		world_button(UiText.t("UI_SHOP_GO"), "GoShop", _go_to_counter, world.slot("bar_counter"), Vector3(0, 1.35, 0))
 		world_button(UiText.t("UI_SHOP_STAY"), "Stay", _stay, world.slot("table"), Vector3(0, 0.86, 0.15))
+		# Mirando al frente la barra no se ve: una flecha en la mesa apunta hacia ella.
+		world_button("← " + UiText.t("UI_SHOP_GO"), "GoShopHint", _go_to_counter, world.slot("table"),
+			Vector3(-0.42, 0.86, 0.12))
 		return
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)

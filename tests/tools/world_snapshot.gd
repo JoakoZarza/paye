@@ -42,7 +42,8 @@ func _initialize() -> void:
 		rc.table().truco_match.scores[0] = int(pts[0])
 		rc.table().truco_match.scores[1] = int(pts[1])
 	main.router.refresh()
-	if phase == "shop":
+	var choice := phase == "shop" and args.size() > 3 and args[3] in ["hand", "left"]
+	if phase == "shop" and not choice:
 		main.router.find_child("GoShop", true, false).pressed.emit()
 		if args.size() > 3 and args[3] == "inspect":
 			await create_timer(2.0).timeout
@@ -58,7 +59,7 @@ func _initialize() -> void:
 	if args.size() > 5 and args[5] == "1":
 		_force_speech(main.router)
 	await create_timer(1.2).timeout
-	if args.size() > 3 and phase != "shop":
+	if args.size() > 3 and (phase != "shop" or choice):
 		# Dónde queda el mouse para cada vista; back = mantenerlo en el borde derecho.
 		var spots := {"hand": Vector2(0.5, 0.9), "rival": Vector2(0.5, 0.25), "left": Vector2(0.15, 0.4),
 			"right": Vector2(0.85, 0.4), "back": Vector2(1.0, 0.45)}
