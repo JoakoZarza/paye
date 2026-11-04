@@ -114,6 +114,8 @@ func _pick_outside(router: ScreenRouter, screen: Node, buttons: Array[Button], r
 		var close := _named(buttons, "CloseDetails")
 		if close != null:
 			return close
+	if router._screen_name == &"bar" and _named(buttons, "GoShop") != null and rng.randf() < 0.4:
+		return _named(buttons, "GoShop")
 	for wanted in ["Deck_normal", "Sit", "Skip", "Next", "Retire"]:
 		var b := _named(buttons, wanted)
 		if b != null:

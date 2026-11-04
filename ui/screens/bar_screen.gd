@@ -28,11 +28,19 @@ func refresh() -> void:
 		])
 	if rc.wardrobe_lost != &"":
 		ScreenTools.label(box, _wardrobe_gone(), 18)
+	if rc.can_visit_counter():
+		ScreenTools.button(box, UiText.t("UI_SHOP_GO"), "GoShop", _go_shop)
 	var can_pay := s.can_pay_entry(rc.economy)
 	ScreenTools.button(
 		box, UiText.t("UI_BAR_SIT") if can_pay else UiText.t("UI_BAR_CANT_PAY"),
 		"Sit", _sit,
 	)
+
+
+## Antes del primer partido: a la barra a retirar, vender o comprar.
+func _go_shop() -> void:
+	rc.visit_counter()
+	acted.emit()
 
 
 func _sit() -> void:
@@ -64,6 +72,8 @@ func _draw_world() -> void:
 	if rc.wardrobe_lost != &"":
 		world_label(wrap_text(_wardrobe_gone(), 30), table, Vector3(0, 0.79, 0.04), 18) \
 			.name = "WardrobeGone"
+	if rc.can_visit_counter() and world.slot("bar_counter") != null:
+		world_button(UiText.t("UI_SHOP_GO"), "GoShop", _go_shop, world.slot("bar_counter"), Vector3(0, 1.35, 0))
 	var can_pay := s.can_pay_entry(rc.economy)
 	var text := UiText.t("UI_BAR_CANT_PAY")
 	if can_pay:

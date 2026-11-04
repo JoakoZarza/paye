@@ -64,6 +64,9 @@ func refresh() -> void:
 		c.queue_free()
 	_clear_tags()
 	_clear_counter()
+	# Antes del primer partido venís del bar directo a la barra: no hay nada que elegir.
+	if rc.pre_round():
+		_at_counter = true
 	if world != null and not _at_counter:
 		_draw_choice()
 		return
@@ -94,7 +97,7 @@ func refresh() -> void:
 	header.add_theme_constant_override("separation", 24)
 	box.add_child(header)
 	ScreenTools.label(header, title, 28).autowrap_mode = TextServer.AUTOWRAP_OFF
-	var money := ScreenTools.label(header, UiText.t("UI_SHOP_MONEY") % [s.money, s.fiado, rc.economy.entry(s.round + 1)], 20)
+	var money := ScreenTools.label(header, UiText.t("UI_SHOP_MONEY") % [s.money, s.fiado, rc.economy.entry(s.round + (0 if rc.pre_round() else 1))], 20)
 	money.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	money.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_muted(ScreenTools.label(box, UiText.t("UI_SHOP_HELP"), 15))
@@ -244,9 +247,12 @@ func _draw_choice() -> void:
 	if world.slot("bar_counter") != null:
 		world_button(UiText.t("UI_SHOP_GO"), "GoShop", _go_to_counter, world.slot("bar_counter"), Vector3(0, 1.35, 0))
 		world_button(UiText.t("UI_SHOP_STAY"), "Stay", _stay, world.slot("table"), Vector3(0, 0.86, 0.15))
-		# Mirando al frente la barra no se ve: una flecha en la mesa apunta hacia ella.
-		world_button("← " + UiText.t("UI_SHOP_GO"), "GoShopHint", _go_to_counter, world.slot("table"),
-			Vector3(-0.42, 0.86, 0.12))
+		# Mirando al frente la barra no se ve: una flechita apagada en la mesa avisa que
+		# está a la izquierda. Solo avisa; el cartel para ir es el de la barra.
+		var hint := world_label("←", world.slot("table"), Vector3(-0.46, 0.8, 0.1), 30)
+		hint.name = "GoShopHint"
+		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hint.modulate.a = 0.45
 		return
 	var box := VBoxContainer.new()
 	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -374,7 +380,7 @@ func _draw_counter() -> void:
 	var money: Array[String] = [UiText.t("UI_SHOP_CASH") % s.money]
 	if s.fiado > 0:
 		money.append(UiText.t("UI_SHOP_OWED") % s.fiado)
-	money.append(UiText.t("UI_SHOP_NEXT_ENTRY") % rc.economy.entry(s.round + 1))
+	money.append(UiText.t("UI_SHOP_NEXT_ENTRY") % rc.economy.entry(s.round + (0 if rc.pre_round() else 1)))
 	world_label("\n".join(money), counter, Vector3(-SIDE_X, COUNTER_TOP, 0), 20).name = "ShopMoney"
 	if _message != "":
 		world_label(_wrap(_message), counter, Vector3(-SIDE_X, COUNTER_TOP, 0.3), 16) \

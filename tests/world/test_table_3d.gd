@@ -829,3 +829,47 @@ func test_el_bar_avisa_si_el_guardarropas_tiro_algo() -> void:
 	assert_not_null(router.find_child("WardrobeGone", true, false), "el aviso está en el bar")
 	(router.find_child("Sit", true, false) as Button).pressed.emit()
 	assert_eq(rc.wardrobe_lost, &"", "se olvida al sentarse")
+
+
+func test_al_empezar_la_run_la_barra_esta_abierta() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	assert_eq(router.camera_marker(), &"CamBar")
+	router.find_child("GoShop", true, false).pressed.emit()
+	assert_eq(rc.phase, RunController.Phase.SHOP)
+	assert_eq(router.camera_marker(), &"CamShop", "directo a la barra, sin preguntar")
+	router.find_child("Next", true, false).pressed.emit()
+	assert_eq(rc.phase, RunController.Phase.BAR)
+	assert_eq(rc.state.round, 1)
+	assert_eq(router.camera_marker(), &"CamBar", "de vuelta en el bar, de pie")
+	assert_not_null(router.find_child("Sit", true, false))
+
+
+func test_al_ganar_un_solo_cartel_para_ir_a_la_barra() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	rc.enter_match()
+	var m := rc.table().truco_match
+	m.start_hand()
+	m.award(1, 3)
+	m.award(0, m.target)
+	rc.finish_match()
+	rc.skip_one_more()
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	var go := 0
+	for b in router.find_children("*", "Button", true, false):
+		if (b as Button).text.contains(UiText.t("UI_SHOP_GO")):
+			go += 1
+	assert_eq(go, 1, "el cartel está solo en la barra")
+	var hint := router.find_child("GoShopHint", true, false) as Control
+	assert_not_null(hint, "una flechita en la mesa avisa")
+	assert_eq(hint.mouse_filter, Control.MOUSE_FILTER_IGNORE)

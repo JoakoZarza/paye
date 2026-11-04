@@ -37,6 +37,11 @@ var _legacy_snapshot: Array[StringName] = []
 ## Lo que el guardarropas tiró al empezar esta run (para avisarlo en el bar); se olvida
 ## al sentarse.
 var wardrobe_lost: StringName = &""
+## Antes del primer partido se puede pasar por la barra (retirar del guardarropas,
+## vender, comprar). Mientras tanto la fase es SHOP pero la ronda no avanza.
+var _pre_round := false
+## Las ofertas de esa barra salen una sola vez por run: volver no las cambia.
+var _opening_shop_open := false
 
 
 func _init(p_economy: Economy, p_meta: MetaState, p_seed: int, p_meta_path: String = MetaState.DEFAULT_PATH) -> void:
@@ -64,6 +69,8 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 	_one_more_stake = 0
 	_bill_missing = 0
 	_single_hand = null
+	_pre_round = false
+	_opening_shop_open = false
 	state.money = economy.start_money
 	state.debt = meta.debt
 	state.deck = _decks[deck_id]
@@ -85,6 +92,29 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 	_checkpoint()
 	return [GameEvent.make(&"run_started", {"money": state.money, "debt": state.debt, "legacy": legacy,
 		"deck": deck_id, "wardrobe_lost": wardrobe_lost})]
+
+
+## Al empezar la run (ronda 1, todavía en el bar) se puede ir a la barra.
+func can_visit_counter() -> bool:
+	return state != null and phase == Phase.BAR and state.round == 1
+
+
+## Va a la barra antes del primer partido. Volver con next_round() no pasa la ronda.
+func visit_counter() -> bool:
+	if not can_visit_counter():
+		return false
+	if not _opening_shop_open:
+		shop.open(state, false)
+		_opening_shop_open = true
+	phase = Phase.SHOP
+	_pre_round = true
+	_checkpoint()
+	return true
+
+
+## true en la barra de antes del primer partido (no después de ganar).
+func pre_round() -> bool:
+	return phase == Phase.SHOP and _pre_round
 
 
 ## La versión de cada ronda la eligió la semilla al empezar la run.
@@ -332,6 +362,12 @@ func condemn() -> Array[GameEvent]:
 func next_round() -> Array[GameEvent]:
 	if phase != Phase.SHOP:
 		return [_illegal()]
+	if _pre_round:
+		# Volvés de la barra al bar: la ronda es la misma y no corre nada.
+		_pre_round = false
+		phase = Phase.BAR
+		_checkpoint()
+		return [GameEvent.make(&"counter_left", {"round": state.round})]
 	# Cada ronda que pasa, el guardarropas cobra la suya.
 	if not meta.wardrobe.is_empty():
 		meta.wardrobe["fee"] = int(meta.wardrobe["fee"]) + economy.wardrobe_round_fee(state.round)

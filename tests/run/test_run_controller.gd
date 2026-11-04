@@ -398,3 +398,38 @@ func test_guardarropas_se_pierde_en_la_tercera_run() -> void:
 	var events := rc.start_run(&"normal")
 	assert_true(rc.wardrobe().is_empty(), "a la tercera run nueva desaparece")
 	assert_eq(events[0].data["wardrobe_lost"], &"hat")
+
+
+func test_al_empezar_la_run_se_puede_ir_a_la_barra() -> void:
+	var rc := _controller()
+	rc.start_run(&"normal")
+	assert_true(rc.can_visit_counter())
+	assert_true(rc.visit_counter())
+	assert_eq(rc.phase, RunController.Phase.SHOP)
+	assert_true(rc.pre_round())
+	var offers := rc.shop.offers.duplicate()
+	assert_false(offers.is_empty(), "hay ofertas para comprar")
+	rc.next_round()
+	assert_eq(rc.phase, RunController.Phase.BAR, "volver de la barra no juega nada")
+	assert_eq(rc.state.round, 1, "ni pasa la ronda")
+	assert_true(rc.visit_counter(), "se puede volver")
+	assert_eq(rc.shop.offers, offers, "las ofertas no cambian por ir y volver")
+	rc.next_round()
+	_win_round(rc)
+	assert_false(rc.pre_round(), "después de ganar es la tienda de siempre")
+	rc.next_round()
+	assert_eq(rc.state.round, 2)
+	assert_false(rc.can_visit_counter(), "solo antes del primer partido")
+	assert_false(rc.visit_counter())
+
+
+func test_retirar_del_guardarropas_al_empezar_la_run() -> void:
+	var meta := MetaState.new()
+	meta.wardrobe = {"id": &"hat", "level": 2, "paid": 120, "fee": 0, "runs": 0}
+	var rc := _controller(meta)
+	rc.start_run(&"normal")
+	rc.visit_counter()
+	assert_true(rc.retrieve_amulet()["ok"])
+	assert_eq(rc.state.loadout.level(&"hat"), 2)
+	rc.next_round()
+	assert_eq(rc.phase, RunController.Phase.BAR)
