@@ -15,8 +15,8 @@ var _focused: Card
 var _focus_light: OmniLight3D
 ## Dónde queda (fracción de pantalla: el centro de la flor) y a qué distancia de la cámara.
 const FOCUS_SCREEN := Vector2(0.5, 0.68)
-const FOCUS_DEPTH := 0.2
-const FOCUS_DIM := 0.2
+const FOCUS_DEPTH := 0.3
+const FOCUS_DIM := 0.3
 
 const CARD_SCENE := preload("res://world/card_3d.tscn")
 const MOVE_SECONDS := 0.25
@@ -207,8 +207,8 @@ func focus_card(i: int) -> void:
 		_focus_light = OmniLight3D.new()
 		_focus_light.name = "FocusLight"
 		_focus_light.light_color = Color("#ffd9a0")
-		_focus_light.light_energy = 0.35
-		_focus_light.omni_range = 0.15
+		_focus_light.light_energy = 0.12
+		_focus_light.omni_range = 0.5
 		_root.add_child(_focus_light)
 	sync()
 
@@ -280,7 +280,7 @@ func sync() -> void:
 				if _focus_light != null:
 					# Entre la cámara y la carta, para que se lea con el bar oscuro.
 					var eye: Vector3 = _root.to_local(bar.camera.global_position) if bar.camera != null else spot[0] + Vector3(0, 0.2, 0.2)
-					_focus_light.position = spot[0] + (eye - spot[0]).normalized() * 0.08
+					_focus_light.position = spot[0] + (eye - spot[0]).normalized() * 0.25
 			_place(mine[i], i, false, spot[0], spot[1], _hand_raised and my_turn and mine[i] != _focused)
 			wanted[mine[i]] = true
 		# El rival también las agarra en abanico, de espaldas a vos.

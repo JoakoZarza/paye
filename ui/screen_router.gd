@@ -127,7 +127,7 @@ func _update_hud() -> void:
 	var s := rc.state if rc != null else null
 	_hud.visible = s != null and _screen.wants_hud()
 	if s != null:
-		_hud_plain = UiText.t("UI_HUD_MONEY") % [s.money, s.fiado, s.debt]
+		_hud_plain = UiText.t("UI_HUD_MONEY") % [s.money, s.fiado, UiText.money(rc.economy.debt_base + s.debt)]
 		_hud.text = "[right]" + RingStyle.JITTER % _hud_plain + "[/right]"
 
 

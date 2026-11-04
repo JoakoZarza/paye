@@ -12,6 +12,20 @@ const RING_CENTER := Vector2(0.5, 0.68)
 const RING_RADII := Vector2(0.135, 0.165)
 const RING_FROM := 160.0
 const RING_TO := 380.0
+## Cada canto tiene su lugar fijo en el arco (grados, crecen en sentido antihorario):
+## aunque cambien las opciones, el truco o el envido siguen donde estaban. Van de menor a
+## mayor: envidos a la izquierda, respuestas abajo, trucos a la derecha y el mazo al final.
+const RING_SLOTS := {
+	"Accuse": 150.0,
+	"Act_ENVIDO": 168.0, "Act_REAL_ENVIDO": 188.0, "Act_FALTA_ENVIDO": 208.0,
+	"Act_SON_BUENAS": 228.0, "Act_ACCEPT_TANTO": 228.0, "Act_SHOW_TANTO": 228.0, "Act_DEMAND_SHOW": 228.0,
+	"Act_QUIERO": 250.0, "Continue": 270.0, "TantoDial": 270.0, "Act_NO_QUIERO": 290.0,
+	"Act_TRUCO": 318.0, "Act_RETRUCO": 338.0, "Act_VALE_CUATRO": 358.0,
+	"Act_MAZO": 382.0,
+}
+## Lo que no está en la tabla va abajo; si dos caen en el mismo lugar, el segundo se corre.
+const RING_DEFAULT := 270.0
+const RING_NUDGE := 16.0
 ## Espacio mínimo entre dos cantos (píxeles) y hasta cuánto se puede abrir el arco.
 const RING_GAP := 6.0
 const RING_MAX_GROW := 1.8
@@ -176,7 +190,7 @@ func _arrange_ring() -> void:
 			break
 		grow += 0.06
 	ring_grow = grow
-	var spots := ring_spots(items.size(), grow)
+	var spots := ring_spots_for(_slot_angles(items), grow)
 	for i in items.size():
 		var c := items[i]
 		var r := _ring_rect(c, spots[i], grow, Vector2.ONE)
@@ -201,7 +215,7 @@ func _ring_rect(c: Control, spot: Vector2, grow: float, _screen: Vector2) -> Rec
 
 func _ring_rects(items: Array[Control], grow: float, screen: Vector2) -> Array[Rect2]:
 	var out: Array[Rect2] = []
-	var spots := ring_spots(items.size(), grow)
+	var spots := ring_spots_for(_slot_angles(items), grow)
 	for i in items.size():
 		var r := _ring_rect(items[i], spots[i], grow, screen)
 		out.append(Rect2(spots[i] * screen + r.position, r.size))
@@ -214,6 +228,34 @@ static func _any_overlap(rects: Array[Rect2]) -> bool:
 			if rects[i].grow(RING_GAP).intersects(rects[j]):
 				return true
 	return false
+
+
+## El ángulo de cada canto según su nombre (ver RING_SLOTS).
+func _slot_angles(items: Array[Control]) -> Array[float]:
+	var names: Array[String] = []
+	for c in items:
+		names.append("TantoDial" if c is TantoDial else String(c.name))
+	return slot_angles(names)
+
+
+## Ángulos para estos nombres: el de su lugar fijo, corrido si ya está ocupado.
+static func slot_angles(names: Array[String]) -> Array[float]:
+	var out: Array[float] = []
+	for n in names:
+		var a: float = RING_SLOTS.get(n, RING_DEFAULT)
+		while out.has(a):
+			a += RING_NUDGE
+		out.append(a)
+	return out
+
+
+## El punto (fracción de pantalla) de cada ángulo sobre el arco.
+static func ring_spots_for(angles: Array[float], grow := 1.0) -> Array[Vector2]:
+	var out: Array[Vector2] = []
+	for deg in angles:
+		var a := deg_to_rad(deg)
+		out.append(RING_CENTER + Vector2(cos(a) * RING_RADII.x, -sin(a) * RING_RADII.y) * grow)
+	return out
 
 
 ## n puntos (fracción de pantalla) a la misma distancia uno de otro sobre el arco.

@@ -536,10 +536,14 @@ func test_los_cantos_no_se_pisan() -> void:
 	for old in screen._ring.get_children():
 		screen._ring.remove_child(old)
 		old.free()
-	for t in ["Quiero", "No quiero", "Quiero retruco", "Envido", "Real envido", "Falta envido",
-			"Me voy al mazo", "Acusar…", "Mostrar el tanto"]:
+	var calls := {"Act_QUIERO": "Quiero", "Act_NO_QUIERO": "No quiero", "Act_RETRUCO": "Quiero retruco",
+		"Act_ENVIDO": "Envido", "Act_REAL_ENVIDO": "Real envido", "Act_FALTA_ENVIDO": "Falta envido",
+		"Act_MAZO": "Me voy al mazo", "Accuse": "Acusar…", "Act_SHOW_TANTO": "Mostrar el tanto",
+		"Act_TRUCO": "Truco", "Act_VALE_CUATRO": "Quiero vale cuatro"}
+	for n in calls:
 		var b := Button.new()
-		b.text = t
+		b.name = n
+		b.text = calls[n]
 		screen._actions.add_child(b)
 	screen._arrange_ring()
 	for c in screen._ring.get_children():
@@ -627,6 +631,7 @@ func test_quedarte_sentado_el_bar_te_deja_jugar_desde_la_mesa() -> void:
 	assert_not_null(sit)
 	assert_eq(sit.text, UiText.t("UI_BAR_PLAY"))
 	assert_string_contains(router.hud_text(), "deuda")
+	assert_string_contains(router.hud_text(), "10.000.", "la deuda arranca en los 10 millones")
 	sit.pressed.emit()
 	assert_eq(rc.phase, RunController.Phase.MATCH)
 
@@ -872,9 +877,19 @@ func test_al_ganar_un_solo_cartel_para_ir_a_la_barra() -> void:
 		if (b as Button).text.contains(UiText.t("UI_SHOP_GO")):
 			go += 1
 	assert_eq(go, 1, "el cartel está solo en la barra")
-	var hint := router.find_child("GoShopHint", true, false) as Control
-	assert_not_null(hint, "una flechita en la mesa avisa")
+	var hint := router.find_child("GoShopHint", true, false) as OffscreenHint
+	assert_not_null(hint, "un indicador al borde avisa")
 	assert_eq(hint.mouse_filter, Control.MOUSE_FILTER_IGNORE)
+	var cam: CameraRig = r[1]
+	cam.go_to(&"CamSeat", true)
+	assert_true(hint.wanted(), "sentado mirando al frente, la barra no se ve")
+	assert_eq(hint.side, -1, "y está a la izquierda")
+	cam.look_at(rc_counter_top(r[0]))
+	assert_false(hint.wanted(), "mirándola, el indicador se apaga")
+
+
+func rc_counter_top(bar: Bar3D) -> Vector3:
+	return bar.slot("bar_counter").global_position + Vector3(0, 1.1, 0)
 
 
 func test_con_el_marcador_tocar_la_carta_no_la_juega() -> void:
@@ -908,3 +923,26 @@ func test_los_amuletos_dicen_su_nombre_solo_al_pasar_el_mouse() -> void:
 	assert_true(token._label.visible)
 	token._hover(false)
 	assert_false(token._label.visible)
+
+
+func test_cada_canto_tiene_su_lugar_y_van_en_orden() -> void:
+	var TS := load("res://ui/screens/table_screen.gd")
+	var a: Array[float] = TS.slot_angles(_names(["Act_TRUCO", "Act_ENVIDO", "Act_MAZO"]))
+	var b: Array[float] = TS.slot_angles(_names(["Act_QUIERO", "Act_NO_QUIERO", "Act_TRUCO"]))
+	assert_eq(a[0], b[2], "el truco queda en el mismo lugar con otras opciones")
+	var order: Array[float] = TS.slot_angles(_names(["Act_ENVIDO", "Act_REAL_ENVIDO", "Act_FALTA_ENVIDO",
+		"Act_QUIERO", "Act_NO_QUIERO", "Act_TRUCO", "Act_RETRUCO", "Act_VALE_CUATRO", "Act_MAZO"]))
+	for i in range(1, order.size()):
+		assert_gt(order[i], order[i - 1], "crecen en sentido antihorario, el mazo al final")
+
+
+func _names(list: Array) -> Array[String]:
+	var out: Array[String] = []
+	out.assign(list)
+	return out
+
+
+func test_la_plata_se_escribe_con_puntos() -> void:
+	assert_eq(UiText.money(10000228), "10.000.228")
+	assert_eq(UiText.money(950), "950")
+	assert_eq(UiText.money(1000), "1.000")

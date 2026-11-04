@@ -19,7 +19,7 @@ func refresh() -> void:
 		if rc.meta.legacy != &"" else UiText.t("UI_START_NONE")
 	)
 	ScreenTools.label(box, UiText.t("UI_START_META") % [
-		rc.meta.debt, legacy, rc.meta.runs_played, rc.meta.best_round,
+		UiText.money(rc.economy.debt_base + rc.meta.debt), legacy, rc.meta.runs_played, rc.meta.best_round,
 	])
 	if rc.meta.run_in_progress:
 		ScreenTools.label(box, UiText.t("UI_START_LOST"))
@@ -60,7 +60,7 @@ func _draw_world() -> void:
 		UiText.t("UI_AMULET_" + String(rc.meta.legacy).to_upper())
 		if rc.meta.legacy != &"" else UiText.t("UI_START_NONE")
 	)
-	var lines := [UiText.t("UI_BOARD_DEBT") % rc.meta.debt, UiText.t("UI_BOARD_LEGACY") % legacy]
+	var lines := [UiText.t("UI_BOARD_DEBT") % UiText.money(rc.economy.debt_base + rc.meta.debt), UiText.t("UI_BOARD_LEGACY") % legacy]
 	if rc.meta.best_round > 0:
 		lines.append(UiText.t("UI_BOARD_BEST") % rc.meta.best_round)
 	var info := RingStyle.reading_label("\n".join(lines), 22)

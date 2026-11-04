@@ -16,6 +16,16 @@ static func t(key: String, args: Array = []) -> String:
 	return value
 
 
+## Plata con puntos de miles: 10000228 -> "10.000.228".
+static func money(n: int) -> String:
+	var digits := str(absi(n))
+	var out := ""
+	while digits.length() > 3:
+		out = "." + digits.right(3) + out
+		digits = digits.left(digits.length() - 3)
+	return ("-" if n < 0 else "") + digits + out
+
+
 static func _load() -> void:
 	_loaded = true
 	var file := FileAccess.open(PATH, FileAccess.READ)

@@ -14,7 +14,7 @@ func refresh() -> void:
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(box)
 	ScreenTools.label(box, UiText.t("UI_DEATH_TITLE"), 28)
-	ScreenTools.label(box, UiText.t("UI_DEATH_INFO") % [rc.state.round, rc.state.debt])
+	ScreenTools.label(box, UiText.t("UI_DEATH_INFO") % [rc.state.round, UiText.money(rc.economy.debt_base + rc.state.debt)])
 	for id in rc.legacy_choices():
 		ScreenTools.button(
 			box, UiText.t("UI_AMULET_" + String(id).to_upper()),
@@ -36,7 +36,7 @@ func _start(id: StringName) -> void:
 
 
 func _draw_world() -> void:
-	world_label(UiText.t("UI_DEATH_TITLE") + "\n" + UiText.t("UI_DEATH_INFO").replace(" · ", "\n") % [rc.state.round, rc.state.debt],
+	world_label(UiText.t("UI_DEATH_TITLE") + "\n" + UiText.t("UI_DEATH_INFO").replace(" · ", "\n") % [rc.state.round, UiText.money(rc.economy.debt_base + rc.state.debt)],
 		board(), Vector3(0, 0.2, 0.05), 20)
 	var choices := rc.legacy_choices()
 	for i in choices.size():

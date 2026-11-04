@@ -19,7 +19,7 @@ func refresh() -> void:
 	ScreenTools.label(box, UiText.t("UI_BAR_INFO") % [
 		s.round, UiText.t("UI_SIN_" + String(rival.sin).to_upper()),
 		rc.economy.entry(s.round), rc.economy.tip(s.money, s.round),
-		rc.economy.target_points(s.round), s.money, s.fiado, s.debt,
+		rc.economy.target_points(s.round), s.money, s.fiado, UiText.money(rc.economy.debt_base + s.debt),
 	])
 	for def in s.loadout.equipped():
 		ScreenTools.label(box, "%s · %s %d" % [

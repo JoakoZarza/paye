@@ -247,17 +247,14 @@ func _draw_choice() -> void:
 	if world.slot("bar_counter") != null:
 		world_button(UiText.t("UI_SHOP_GO"), "GoShop", _go_to_counter, world.slot("bar_counter"), Vector3(0, 1.35, 0))
 		world_button(UiText.t("UI_SHOP_STAY"), "Stay", _stay, world.slot("table"), Vector3(0, 0.86, 0.15))
-		# Mirando al frente la barra no se ve: una "<" apagada al borde izquierdo de la
-		# pantalla avisa que está para ese lado. Solo avisa; el cartel para ir es el de la barra.
-		var hint := Label.new()
-		hint.text = "<"
+		# Mirando al frente la barra no se ve: un indicador al borde de la pantalla
+		# avisa que está para ese lado y se apaga cuando la ves. Solo avisa; el cartel para ir
+		# es el de la barra.
+		var hint := OffscreenHint.new()
 		hint.name = "GoShopHint"
-		hint.add_theme_font_size_override("font_size", 40)
-		hint.add_theme_color_override("font_color", RingStyle.COLOR)
-		hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		hint.modulate.a = 0.45
-		hint.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-		hint.offset_left = 10
+		hint.target = world.slot("bar_counter")
+		hint.offset = Vector3(0, COUNTER_TOP, 0)
+		hint.camera = world.camera
 		add_child(hint)
 		return
 	var box := VBoxContainer.new()
