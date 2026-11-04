@@ -790,7 +790,8 @@ func test_el_marcador_se_elige_en_flores() -> void:
 	screen._on_amulet(&"marker", &"marker")
 	assert_not_null(screen.find_child("FlowerTitle", true, false), "la flor dice qué se elige")
 	assert_null(screen.find_child("*OptionButton*", true, false), "sin listas 2D")
-	(screen.find_child("PickCard0", true, false) as Button).pressed.emit()
+	assert_null(screen.find_child("PickCard0", true, false), "la carta no es un pétalo")
+	screen._table3d.player_card(0).press()
 	screen._after_action()  # el rival juega o canta: la flor sigue abierta
 	var seven := screen.find_child("PickNumber7", true, false) as Button
 	assert_not_null(seven, "después, los números")
@@ -807,7 +808,7 @@ func test_el_mazo_aparte_se_elige_en_flores() -> void:
 	var screen: BaseScreen = s[1]
 	var before := rc.state.loadout.charges_left(&"spare_deck")
 	screen._on_amulet(&"spare_deck", &"spare_deck")
-	(screen.find_child("PickCard1", true, false) as Button).pressed.emit()
+	screen._table3d.player_card(1).press()
 	var pick := screen.find_child("PickSpare0", true, false) as Button
 	if pick != null:
 		pick.pressed.emit()
@@ -873,3 +874,28 @@ func test_al_ganar_un_solo_cartel_para_ir_a_la_barra() -> void:
 	var hint := router.find_child("GoShopHint", true, false) as Control
 	assert_not_null(hint, "una flechita en la mesa avisa")
 	assert_eq(hint.mouse_filter, Control.MOUSE_FILTER_IGNORE)
+
+
+func test_con_el_marcador_tocar_la_carta_no_la_juega() -> void:
+	var s := _setup_with([&"marker"])
+	var rc: RunController = s[0]
+	var screen: BaseScreen = s[1]
+	var hand := rc.table().truco_match.hand
+	var in_hand: int = hand.cards[0].size()
+	screen._on_amulet(&"marker", &"marker")
+	screen._table3d.player_card(0).press()
+	assert_eq(hand.cards[0].size(), in_hand, "la carta sigue en la mano")
+	assert_not_null(screen.find_child("PickNumber7", true, false))
+	(screen.find_child("CancelAccuse", true, false) as Button).pressed.emit()
+	assert_false(screen._table3d.card_pick.is_valid(), "cancelar vuelve a jugar normal")
+
+
+func test_los_amuletos_dicen_su_nombre_solo_al_pasar_el_mouse() -> void:
+	var s := _setup_with([&"marker"])
+	var screen: BaseScreen = s[1]
+	var token: AmuletToken = screen._table3d.amulet_tokens()[0]
+	assert_false(token._label.visible)
+	token._hover(true)
+	assert_true(token._label.visible)
+	token._hover(false)
+	assert_false(token._label.visible)

@@ -6,6 +6,10 @@ extends Node
 
 signal amulet_pressed(id: StringName, needs: StringName)
 
+## Si está puesto, el próximo clic en una de tus cartas la elige (Marcador, Mazo aparte)
+## en vez de jugarla. Se usa una vez.
+var card_pick: Callable = Callable()
+
 const CARD_SCENE := preload("res://world/card_3d.tscn")
 const MOVE_SECONDS := 0.25
 ## Abanico como se agarran las cartas: giran alrededor del puño, la de la derecha encima.
@@ -304,6 +308,11 @@ func _place(card: Card, index: int, dealer: bool, pos: Vector3, rot: Vector3, ho
 
 
 func _on_card_clicked(index: int) -> void:
+	if index >= 0 and card_pick.is_valid():
+		var pick := card_pick
+		card_pick = Callable()
+		pick.call(index)
+		return
 	if index >= 0:
 		presenter.act(presenter.card_action(index))
 

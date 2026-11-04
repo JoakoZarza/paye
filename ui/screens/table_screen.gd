@@ -373,6 +373,8 @@ func _redraw() -> void:
 		keep.queue_free()
 		keep = null
 		_flower = null
+		if _table3d != null:
+			_table3d.card_pick = Callable()
 	if hand == null:
 		return
 	if world == null:
@@ -546,7 +548,7 @@ func _card_picker() -> OptionButton:
 func _show_marker() -> void:
 	_popup_close()
 	if _ring != null:
-		bloom(_card_petals(_marker_number), "Marcador: ¿qué carta?")
+		_await_card("Marcador: tocá la carta", _marker_number)
 		return
 	_label(_popup_box).text = "Marcador: ¿qué carta y qué número?"
 	var card := _card_picker()
@@ -572,7 +574,7 @@ func _show_marker() -> void:
 func _show_spare() -> void:
 	_popup_close()
 	if _ring != null:
-		bloom(_card_petals(_spare_choice), "Mazo aparte: ¿qué carta cambiás?")
+		_await_card("Mazo aparte: tocá la carta que cambiás", _spare_choice)
 		return
 	_label(_popup_box).text = "Mazo aparte: ¿qué carta cambiás?"
 	var card := _card_picker()
@@ -591,6 +593,14 @@ func _show_spare() -> void:
 		_use_amulet(&"spare_deck", args))
 	_button(row, "Cancelar", _popup_close)
 	_popup_built()
+
+
+## Vista 3D: la carta se elige tocándola en la mano (no se juega). Arriba queda qué se
+## está eligiendo y "Cancelar".
+func _await_card(title: String, next: Callable) -> void:
+	# "Cancelar" arriba de las cartas, no encima: las cartas tienen que poder tocarse.
+	bloom([], title, Vector2(0, -PETAL_RADIUS * 0.75 - 30))
+	_table3d.card_pick = next
 
 
 ## Un pétalo por carta tuya; al elegir una sigue next(card_index).
@@ -657,7 +667,7 @@ func wants_backdrop() -> bool:
 
 ## Los cantos se esconden y las acusaciones se abren como pétalos desde el centro de
 ## tus cartas; en el medio queda "Cancelar".
-func bloom(options: Array, title := "") -> void:
+func bloom(options: Array, title := "", cancel_offset := Vector2.ZERO) -> void:
 	_close_flower()
 	for c in _ring.get_children():
 		(c as Control).visible = false
@@ -674,7 +684,7 @@ func bloom(options: Array, title := "") -> void:
 		var callback: Callable = o["callback"] if o.has("callback") else _accuse.bind(o["accusation"])
 		_petal(o["text"], o["name"], callback, center,
 			center + Vector2(cos(a), sin(a) * 0.75) * _petal_radius(options.size()), i * PETAL_STAGGER)
-	_petal("Cancelar", "CancelAccuse", _close_flower, center, center, 0.0)
+	_petal("Cancelar", "CancelAccuse", _close_flower, center + cancel_offset, center + cancel_offset, 0.0)
 	if title != "":
 		var head := RingStyle.reading_label("[center]" + RingStyle.JITTER % title + "[/center]", 22)
 		head.name = "FlowerTitle"
@@ -708,6 +718,8 @@ func _petal(text: String, node_name: String, callback: Callable, from: Vector2, 
 
 
 func _close_flower() -> void:
+	if _table3d != null:
+		_table3d.card_pick = Callable()
 	if not is_instance_valid(_flower):
 		_flower = null
 		return

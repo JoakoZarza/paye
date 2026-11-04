@@ -55,7 +55,7 @@ func _initialize() -> void:
 		for c in main.router.get_children():
 			if c is BaseScreen and c.has_method("bloom"):
 				c._on_amulet(&"marker", &"marker")
-				(c.find_child("PickCard0", true, false) as Button).pressed.emit()
+				c._table3d.player_card(0).press()
 	if args.size() > 5 and args[5] == "1":
 		_force_speech(main.router)
 	await create_timer(1.2).timeout

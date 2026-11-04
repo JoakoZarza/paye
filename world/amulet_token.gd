@@ -37,6 +37,8 @@ func setup(info: Dictionary, ps1: bool) -> void:
 	_label.modulate = RingStyle.COLOR if enabled else RingStyle.DISABLED
 	_label.rotation.x = -PI * 0.35
 	_label.position = Vector3(0, 0.01, SIZE.z * 0.5 + 0.03)
+	# El nombre aparece solo al pasar el mouse: con todos escritos la mesa se llena de texto.
+	_label.visible = false
 	add_child(_label)
 	var area := Area3D.new()
 	var shape := CollisionShape3D.new()
@@ -57,6 +59,7 @@ func press() -> void:
 
 
 func _hover(on: bool) -> void:
+	_label.visible = on
 	if not enabled:
 		return
 	_label.modulate = RingStyle.HOVER if on else RingStyle.COLOR
