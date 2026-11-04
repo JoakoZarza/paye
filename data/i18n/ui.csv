@@ -83,7 +83,7 @@ UI_SHOP_OFFERS,Ofertas
 UI_SHOP_YOURS,"Tus amuletos (%d de %d lugares)"
 UI_SHOP_EMPTY_SLOT,Lugar vacío
 UI_SHOP_SOLD_OUT,No quedan ofertas. Podés cambiarlas.
-UI_SHOP_PRICE,$%d
+UI_SHOP_PRICE,$%s
 UI_SHOP_SPLIT,"Pagás $%d y $%d va fiado."
 UI_SHOP_WHY_FULL,"Tus 2 lugares están ocupados: vendé uno para comprar."
 UI_SHOP_WHY_MONEY,"No te alcanza, ni fiado."
@@ -125,3 +125,9 @@ UI_LEVEL_N,Nivel %s
 UI_SHOP_CHOICE,Ganaste. ¿Qué hacés?
 UI_SHOP_GO,Ir a la barra
 UI_SHOP_STAY,Quedarme en la mesa
+UI_SHARE_QUARTER,"≈ un cuarto del premio"
+UI_SHARE_HALF,"≈ medio premio"
+UI_SHARE_ONE,"≈ un premio"
+UI_SHARE_ONE_HALF,"≈ un premio y medio"
+UI_SHARE_TWO,"≈ dos premios"
+UI_SHARE_THREE,"≈ tres premios"

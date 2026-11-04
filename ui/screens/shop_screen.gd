@@ -164,7 +164,7 @@ func _offer_card(parent: Node, i: int, slots_full: bool) -> void:
 	_amulet_header(card, def)
 	var price := rc.shop.price_of(def, s)
 	var quote := rc.shop.quote(price, s)
-	ScreenTools.label(card, UiText.t("UI_SHOP_PRICE") % price, 22)
+	ScreenTools.label(card, UiText.t("UI_SHOP_PRICE") % UiText.money(price), 22)
 	var why := ""
 	if slots_full:
 		why = UiText.t("UI_SHOP_WHY_FULL")
@@ -368,7 +368,7 @@ func _draw_counter() -> void:
 		var def: AmuletDef = rc.shop.offers[i]
 		var price := rc.shop.price_of(def, s)
 		var at := top + flat * Vector3(OFFER_X[i % OFFER_X.size()], 0, BACK_Z)
-		var item := _put_item(def, "$%d" % price, false, at, counter.rotation.y)
+		var item := _put_item(def, "$" + UiText.money(price), false, at, counter.rotation.y)
 		item.set_meta("offer", i)
 	if rc.shop.offers.is_empty():
 		world_label(UiText.t("UI_SHOP_SOLD_OUT"), counter, Vector3(0, COUNTER_TOP, BACK_Z), 18)
@@ -533,6 +533,21 @@ func _dim(on: bool) -> void:
 	world.dim(on, DIM)
 
 
+## "Medio premio", "un premio"…: el precio comparado con el premio de esta ronda.
+const PRIZE_SHARES := [[0.25, "UI_SHARE_QUARTER"], [0.5, "UI_SHARE_HALF"], [1.0, "UI_SHARE_ONE"],
+	[1.5, "UI_SHARE_ONE_HALF"], [2.0, "UI_SHARE_TWO"], [3.0, "UI_SHARE_THREE"]]
+
+
+func prize_share(price: int) -> String:
+	var prize := maxi(1, rc.economy.base_prize(rc.state.round))
+	var ratio := float(price) / float(prize)
+	var best: Array = PRIZE_SHARES[0]
+	for option in PRIZE_SHARES:
+		if absf(ratio - float(option[0])) < absf(ratio - float(best[0])):
+			best = option
+	return UiText.t(best[1])
+
+
 func _draw_details(item: ShopItem) -> void:
 	var s := rc.state
 	var def := item.def
@@ -576,11 +591,15 @@ func _draw_details(item: ShopItem) -> void:
 			why = UiText.t("UI_SHOP_WHY_MONEY")
 		elif int(quote["fiado"]) > 0:
 			why = UiText.t("UI_SHOP_SPLIT") % [int(quote["paid"]), int(quote["fiado"])]
+		# El precio comparado con lo que acabás de ganar: se entiende de un vistazo.
+		var share := RingStyle.reading_label(prize_share(price), 18)
+		share.name = "PrizeShare"
+		row.add_child(share)
 		if why != "":
 			var warn := RingStyle.reading_label(why, 18)
 			warn.add_theme_color_override("default_color", WARN)
 			row.add_child(warn)
-		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_BUY") + " " + UiText.t("UI_SHOP_PRICE") % price,
+		RingStyle.shakify(ScreenTools.button(row, UiText.t("UI_SHOP_BUY") + " " + UiText.t("UI_SHOP_PRICE") % UiText.money(price),
 			"Buy%d" % i, _buy_inspected.bind(i), quote["ok"] and not slots_full))
 	else:
 		var id: StringName = def.id

@@ -946,3 +946,23 @@ func test_la_plata_se_escribe_con_puntos() -> void:
 	assert_eq(UiText.money(10000228), "10.000.228")
 	assert_eq(UiText.money(950), "950")
 	assert_eq(UiText.money(1000), "1.000")
+
+
+func test_la_tienda_dice_cuanto_premio_es_el_precio() -> void:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	rc.visit_counter()
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	var shop: Node = null
+	for c in router.get_children():
+		if c is BaseScreen:
+			shop = c
+	assert_eq(shop.prize_share(180), UiText.t("UI_SHARE_HALF"), "un común: 40% del premio")
+	assert_eq(shop.prize_share(360), UiText.t("UI_SHARE_ONE"))
+	assert_eq(shop.prize_share(720), UiText.t("UI_SHARE_ONE_HALF"))
+	shop.inspect(shop.shop_items()[0])
+	assert_not_null(shop.find_child("PrizeShare", true, false))

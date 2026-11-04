@@ -7,11 +7,11 @@ var start_money: int = 135
 var rounds: Array[Dictionary] = []
 var debt_base: int = 10000000
 var shop_offers: int = 3
-var shop_growth: float = 0.25
-var reroll_base: float = 0.10
-var reroll_step: float = 0.05
+var shop_growth: float = 0.10
+var reroll_base: float = 0.05
+var reroll_step: float = 0.025
 var sell_ratio: float = 0.5
-var rarity_price: Dictionary = {"COMMON": 0.3, "RARE": 0.6, "LEGENDARY": 1.2}
+var rarity_price: Dictionary = {"COMMON": 0.4, "RARE": 0.8, "LEGENDARY": 1.6}
 var rarity_weight: Dictionary = {"COMMON": 0.6, "RARE": 0.3, "LEGENDARY": 0.1}
 var fiado_limit: float = 2.0
 var flawless_multiplier: float = 2.0
@@ -139,9 +139,19 @@ func target_points(round: int) -> int:
 	return _row(round)["points"]
 
 
-## Los precios de la tienda toman como referencia la entrada siguiente.
-func _reference_entry(round: int) -> int:
-	return entry(mini(round + 1, rounds_total()))
+## Los precios de la tienda son una parte del premio de la ronda que acabás de ganar:
+## así un común vale siempre lo mismo comparado con lo que tenés en la mano
+## (docs/ECONOMIA_ROGUELIKES.md). Antes de jugar la primera, el de la primera.
+func _reference_prize(round: int) -> int:
+	return base_prize(clampi(round, 1, rounds_total()))
+
+
+## Dos cifras significativas: 135 -> 140, 1.234 -> 1.200. Números fáciles de leer.
+static func nice(value: float) -> int:
+	if value < 100.0:
+		return roundi(value)
+	var step := pow(10.0, floorf(log(value) / log(10.0)) - 1.0)
+	return roundi(roundf(value / step) * step)
 
 
 ## purchases: amuletos ya comprados en la run (cada uno encarece shop_growth).
@@ -149,15 +159,13 @@ func _reference_entry(round: int) -> int:
 func price(rarity: AmuletDef.Rarity, round: int, purchases: int = 0, multiplier: float = 1.0) -> int:
 	var rarity_name: String = AmuletDef.Rarity.keys()[rarity]
 	var growth := 1.0 + shop_growth * float(purchases)
-	var raw := float(_reference_entry(round)) * float(rarity_price.get(rarity_name, 0.0)) * growth * multiplier
-	# El épsilon evita que 89,999… por error de float pierda un peso.
-	return floori(raw + PRICE_EPSILON)
+	var raw := float(_reference_prize(round)) * float(rarity_price.get(rarity_name, 0.0)) * growth * multiplier
+	return nice(raw + PRICE_EPSILON)
 
 
 func reroll_cost(round: int, rerolls_done: int) -> int:
-	# En centésimos enteros: 0.10 + 0.05 * k en float da 0.3499... y redondea mal.
-	var percent := roundi((reroll_base + reroll_step * float(rerolls_done)) * 100.0)
-	return _reference_entry(round) * percent / 100
+	var percent := (reroll_base + reroll_step * float(rerolls_done)) * 100.0
+	return nice(float(_reference_prize(round)) * float(percent) / 100.0)
 
 
 ## JSON.new().parse no ensucia el log con un error de motor si el archivo está mal.
