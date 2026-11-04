@@ -48,6 +48,24 @@ func _ready() -> void:
 	_build()
 
 
+## Baja las luces del bar mientras se mira algo de cerca (eso trae su propia luz).
+func dim(on: bool, factor := 0.15) -> void:
+	for light_name in ["LampLight", "DimFill", "CounterLight"]:
+		var light := get_node_or_null(light_name) as Light3D
+		if light == null:
+			continue
+		if not light.has_meta("bright"):
+			light.set_meta("bright", light.light_energy)
+		var bright: float = light.get_meta("bright")
+		light.light_energy = bright * (factor if on else 1.0)
+	var env := get_node_or_null("WorldEnvironment") as WorldEnvironment
+	if env != null and env.environment != null:
+		if not env.has_meta("bright"):
+			env.set_meta("bright", env.environment.ambient_light_energy)
+		var bright_env: float = env.get_meta("bright")
+		env.environment.ambient_light_energy = bright_env * (factor if on else 1.0)
+
+
 func marker(node_name: String) -> Marker3D:
 	return get_node_or_null(node_name) as Marker3D
 

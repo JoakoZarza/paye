@@ -798,6 +798,7 @@ func test_el_marcador_se_elige_en_flores() -> void:
 	var before := rc.state.loadout.charges_left(&"marker")
 	seven.pressed.emit()
 	assert_null(screen._flower, "al elegir el número se usa y se cierra")
+	assert_null(screen._table3d.focused_card(), "vuelve a la mano con el valor nuevo")
 	assert_eq(rc.state.loadout.charges_left(&"marker"), before - 1)
 	assert_eq(rc.table().truco_match.hand.cards[0][0].effective_number(), 7)
 
@@ -883,11 +884,19 @@ func test_con_el_marcador_tocar_la_carta_no_la_juega() -> void:
 	var hand := rc.table().truco_match.hand
 	var in_hand: int = hand.cards[0].size()
 	screen._on_amulet(&"marker", &"marker")
+	var card: Card = hand.cards[0][0]
 	screen._table3d.player_card(0).press()
 	assert_eq(hand.cards[0].size(), in_hand, "la carta sigue en la mano")
+	assert_eq(screen._table3d.focused_card(), card, "la carta vino al frente")
+	var lamp := screen.world.get_node_or_null("LampLight") as Light3D
+	if lamp != null:
+		assert_lt(lamp.light_energy, float(lamp.get_meta("bright")), "el bar se oscurece")
 	assert_not_null(screen.find_child("PickNumber7", true, false))
 	(screen.find_child("CancelAccuse", true, false) as Button).pressed.emit()
 	assert_false(screen._table3d.card_pick.is_valid(), "cancelar vuelve a jugar normal")
+	assert_null(screen._table3d.focused_card(), "y la carta vuelve a la mano")
+	if lamp != null:
+		assert_eq(lamp.light_energy, float(lamp.get_meta("bright")))
 
 
 func test_los_amuletos_dicen_su_nombre_solo_al_pasar_el_mouse() -> void:

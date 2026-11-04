@@ -9,6 +9,14 @@ signal amulet_pressed(id: StringName, needs: StringName)
 ## Si está puesto, el próximo clic en una de tus cartas la elige (Marcador, Mazo aparte)
 ## en vez de jugarla. Se usa una vez.
 var card_pick: Callable = Callable()
+## La carta que se está cambiando (Marcador, Mazo aparte): al frente de la cámara, con el
+## bar oscuro detrás. Al soltarla vuelve a la mano, ya con su valor nuevo.
+var _focused: Card
+var _focus_light: OmniLight3D
+## Dónde queda (fracción de pantalla: el centro de la flor) y a qué distancia de la cámara.
+const FOCUS_SCREEN := Vector2(0.5, 0.68)
+const FOCUS_DEPTH := 0.2
+const FOCUS_DIM := 0.2
 
 const CARD_SCENE := preload("res://world/card_3d.tscn")
 const MOVE_SECONDS := 0.25
@@ -184,6 +192,51 @@ func card_nodes() -> Array[Card3D]:
 	return out
 
 
+## Trae tu carta i al frente y oscurece el bar.
+func focus_card(i: int) -> void:
+	var h := presenter.hand()
+	if h == null or i < 0 or i >= h.cards[PLAYER].size():
+		return
+	_focused = h.cards[PLAYER][i]
+	bar.dim(true, FOCUS_DIM)
+	if _focus_light == null:
+		_focus_light = OmniLight3D.new()
+		_focus_light.name = "FocusLight"
+		_focus_light.light_color = Color("#ffd9a0")
+		_focus_light.light_energy = 0.35
+		_focus_light.omni_range = 0.15
+		_root.add_child(_focus_light)
+	sync()
+
+
+func focused_card() -> Card:
+	return _focused
+
+
+## La carta vuelve a la mano y el bar se prende.
+func unfocus() -> void:
+	if _focused == null:
+		return
+	_focused = null
+	bar.dim(false)
+	if _focus_light != null:
+		_focus_light.queue_free()
+		_focus_light = null
+	sync()
+
+
+## [posición, rotación] (respecto de la mesa) para la carta al frente: de cara a la cámara.
+func _focus_spot() -> Array:
+	var cam := bar.camera
+	if cam == null or not cam.is_inside_tree():
+		var c := bar.marker("PlayerHand").position + Vector3(0, 0.15, 0)
+		return [c, Vector3.ZERO]
+	var view := cam.get_viewport().get_visible_rect().size
+	var at := cam.project_position(view * FOCUS_SCREEN, FOCUS_DEPTH)
+	var basis := _root.global_basis.inverse() * cam.global_basis
+	return [_root.to_local(at), basis.get_euler()]
+
+
 ## Nodo de tu carta i en la mano, o null.
 func player_card(i: int) -> Card3D:
 	var h := presenter.hand()
@@ -210,9 +263,21 @@ func sync() -> void:
 		var center := bar.marker("PlayerHand").position
 		if not _hand_raised:
 			center += HAND_LOWERED
+		# Con una carta al frente las otras bajan y quedan en la sombra.
+		if _focused != null:
+			center += HAND_LOWERED * 3.0
+		if _focused != null and not mine.has(_focused):
+			unfocus()
+			return
 		for i in mine.size():
 			var spot := fan(center, i, mine.size(), HAND_TILT, 0.0)
-			_place(mine[i], i, false, spot[0], spot[1], _hand_raised and my_turn)
+			if mine[i] == _focused:
+				spot = _focus_spot()
+				if _focus_light != null:
+					# Entre la cámara y la carta, para que se lea con el bar oscuro.
+					var eye: Vector3 = _root.to_local(bar.camera.global_position) if bar.camera != null else spot[0] + Vector3(0, 0.2, 0.2)
+					_focus_light.position = spot[0] + (eye - spot[0]).normalized() * 0.08
+			_place(mine[i], i, false, spot[0], spot[1], _hand_raised and my_turn and mine[i] != _focused)
 			wanted[mine[i]] = true
 		# El rival también las agarra en abanico, de espaldas a vos.
 		if presenter.shown_id != _shown_id:

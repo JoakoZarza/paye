@@ -533,20 +533,7 @@ func _end_inspect(instant: bool) -> void:
 
 ## Baja las luces del bar mientras se mira un objeto (él trae su propia luz).
 func _dim(on: bool) -> void:
-	for light_name in ["LampLight", "DimFill", "CounterLight"]:
-		var light := world.get_node_or_null(light_name) as Light3D
-		if light == null:
-			continue
-		if not light.has_meta("bright"):
-			light.set_meta("bright", light.light_energy)
-		var bright: float = light.get_meta("bright")
-		light.light_energy = bright * (DIM if on else 1.0)
-	var env := world.get_node_or_null("WorldEnvironment") as WorldEnvironment
-	if env != null and env.environment != null:
-		if not env.has_meta("bright"):
-			env.set_meta("bright", env.environment.ambient_light_energy)
-		var bright_env: float = env.get_meta("bright")
-		env.environment.ambient_light_energy = bright_env * (DIM if on else 1.0)
+	world.dim(on, DIM)
 
 
 func _draw_details(item: ShopItem) -> void:

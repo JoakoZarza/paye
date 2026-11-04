@@ -121,6 +121,9 @@ func _process(delta: float) -> void:
 func _exit_tree() -> void:
 	if world != null and world.camera != null:
 		world.camera.ui_hold = false
+	# Si te vas con una carta al frente, el bar no queda a oscuras.
+	if world != null and _table3d != null and _table3d.focused_card() != null:
+		world.dim(false)
 
 
 ## Los cantos están pegados a tu mano en el mundo: si subís la mirada se van con ella
@@ -375,6 +378,7 @@ func _redraw() -> void:
 		_flower = null
 		if _table3d != null:
 			_table3d.card_pick = Callable()
+			_table3d.unfocus()
 	if hand == null:
 		return
 	if world == null:
@@ -598,9 +602,11 @@ func _show_spare() -> void:
 ## Vista 3D: la carta se elige tocándola en la mano (no se juega). Arriba queda qué se
 ## está eligiendo y "Cancelar".
 func _await_card(title: String, next: Callable) -> void:
-	# "Cancelar" arriba de las cartas, no encima: las cartas tienen que poder tocarse.
-	bloom([], title, Vector2(0, -PETAL_RADIUS * 0.75 - 30))
-	_table3d.card_pick = next
+	# "Cancelar" al costado, no encima: las cartas tienen que poder tocarse.
+	bloom([], title, Vector2(PETAL_RADIUS + 130, 0))
+	_table3d.card_pick = func(i: int) -> void:
+		_table3d.focus_card(i)
+		next.call(i)
 
 
 ## Un pétalo por carta tuya; al elegir una sigue next(card_index).
@@ -668,7 +674,7 @@ func wants_backdrop() -> bool:
 ## Los cantos se esconden y las acusaciones se abren como pétalos desde el centro de
 ## tus cartas; en el medio queda "Cancelar".
 func bloom(options: Array, title := "", cancel_offset := Vector2.ZERO) -> void:
-	_close_flower()
+	_close_flower(true)
 	for c in _ring.get_children():
 		(c as Control).visible = false
 	_flower = Control.new()
@@ -684,6 +690,9 @@ func bloom(options: Array, title := "", cancel_offset := Vector2.ZERO) -> void:
 		var callback: Callable = o["callback"] if o.has("callback") else _accuse.bind(o["accusation"])
 		_petal(o["text"], o["name"], callback, center,
 			center + Vector2(cos(a), sin(a) * 0.75) * _petal_radius(options.size()), i * PETAL_STAGGER)
+	# Con una carta al frente "Cancelar" va al costado: en el medio está la carta.
+	if cancel_offset == Vector2.ZERO and _table3d != null and _table3d.focused_card() != null:
+		cancel_offset = Vector2(_petal_radius(options.size()) + 130, 0)
 	_petal("Cancelar", "CancelAccuse", _close_flower, center + cancel_offset, center + cancel_offset, 0.0)
 	if title != "":
 		var head := RingStyle.reading_label("[center]" + RingStyle.JITTER % title + "[/center]", 22)
@@ -717,9 +726,12 @@ func _petal(text: String, node_name: String, callback: Callable, from: Vector2, 
 	t.tween_property(b, "modulate:a", 1.0, PETAL_SECONDS * 0.6).set_delay(delay)
 
 
-func _close_flower() -> void:
+## keep_focus: se cierra para abrir la flor siguiente; la carta sigue al frente.
+func _close_flower(keep_focus := false) -> void:
 	if _table3d != null:
 		_table3d.card_pick = Callable()
+		if not keep_focus:
+			_table3d.unfocus()
 	if not is_instance_valid(_flower):
 		_flower = null
 		return
