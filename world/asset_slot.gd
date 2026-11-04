@@ -20,6 +20,27 @@ func _ready() -> void:
 	_load_asset()
 
 
+## Cambia de modelo: prueba cada nombre en orden y usa el primero que exista; si
+## ninguno existe, el cubo provisorio. No hace nada si ya muestra ese mismo.
+func set_asset(names: Array[String]) -> void:
+	var pick: String = names[0] if not names.is_empty() else ""
+	for n in names:
+		if ResourceLoader.exists(models_dir.path_join(n + model_ext)):
+			pick = n
+			break
+	if pick == asset_name and (_loaded_model != null or _placeholder != null):
+		return
+	asset_name = pick
+	for c in [_loaded_model, _placeholder]:
+		if c != null:
+			remove_child(c)
+			c.queue_free()
+	_loaded_model = null
+	_placeholder = null
+	if is_inside_tree():
+		_load_asset()
+
+
 func has_model() -> bool:
 	return _loaded_model != null
 

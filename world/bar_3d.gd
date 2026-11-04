@@ -176,6 +176,17 @@ func _add_environment() -> void:
 	add_child(environment_node)
 
 
+## La cabeza del rival según quién es: primero la de su versión
+## (head_<pecado>_<versión>.glb), después la del pecado y, si no hay, la de las almas.
+func set_rival(rival: RivalProfile) -> void:
+	var head := slot("rival_head")
+	if head == null or rival == null:
+		return
+	var sin := String(rival.sin)
+	var names: Array[String] = ["head_%s_%s" % [sin, rival.variant], "head_" + sin, "head_alma"]
+	head.set_asset(names)
+
+
 func rival_pose() -> StringName:
 	return _rival_pose
 

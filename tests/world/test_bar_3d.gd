@@ -13,3 +13,20 @@ func test_escena_construye_huecos_y_marcadores() -> void:
 		assert_not_null(bar.marker(marker_name), "Falta el marcador %s" % marker_name)
 	assert_not_null(bar.get_node_or_null("LampLight"))
 	assert_not_null(bar.get_node_or_null("WorldEnvironment"))
+
+
+func test_la_cabeza_del_rival_sigue_al_pecado() -> void:
+	var bar: Bar3D = load("res://world/bar_3d.tscn").instantiate()
+	add_child_autofree(bar)
+	var rival := RivalProfile.new()
+	rival.sin = &"ira"
+	rival.variant = &"rencor"
+	bar.set_rival(rival)
+	var head := bar.slot("rival_head")
+	# Sin modelos todavía, se queda con el primer nombre y muestra el cubo.
+	assert_eq(head.asset_name, "head_ira_rencor")
+	assert_false(head.has_model())
+	rival.sin = &"alma"
+	rival.variant = &"mudo"
+	bar.set_rival(rival)
+	assert_eq(head.asset_name, "head_alma_mudo")

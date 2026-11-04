@@ -31,7 +31,11 @@
     "amulet_marked_cards": {"triangles": 300, "texture": 64},
     "amulet_red_ribbon": {"triangles": 300, "texture": 64},
     "amulet_train_coin": {"triangles": 300, "texture": 64},
-    "money_stack": {"triangles": 300, "texture": 64}
+    "money_stack": {"triangles": 300, "texture": 64},
+    "deck": {"triangles": 100, "texture": 64, "size": [0.063, 0.014, 0.095]},
+    "wardrobe": {"triangles": 400, "texture": 128, "size": [0.2, 0.06, 0.14]},
+    "bartender": {"triangles": 2500, "texture": 256, "size": [0.5, 1.75, 0.25]},
+    "soul": {"triangles": 1200, "texture": 128, "size": [0.38, 1.6, 0.28]}
   },
   "card_size": [128, 192]
 }

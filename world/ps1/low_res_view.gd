@@ -21,7 +21,8 @@ func _init() -> void:
 	add_child(viewport)
 
 
-## ps1 false: resolución completa y sin pasada de colores, para comparar.
+## ps1 false: resolución completa, sin pasada de colores y con bordes suavizados (estilo HD:
+## figuras low poly con texturas pixeladas, ver docs/ASSETS.md).
 func configure(ps1: bool, shrink := SHRINK) -> void:
 	stretch_shrink = shrink if ps1 else 1
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if ps1 else CanvasItem.TEXTURE_FILTER_LINEAR
@@ -31,6 +32,8 @@ func configure(ps1: bool, shrink := SHRINK) -> void:
 		material = post
 	else:
 		material = null
+		# Resolución completa: bordes de las figuras limpios, sin dientes de sierra.
+		viewport.msaa_3d = Viewport.MSAA_4X
 
 
 func add_world(node: Node3D) -> void:

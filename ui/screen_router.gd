@@ -105,6 +105,8 @@ func _update_backdrop() -> void:
 	_backdrop.color.a = _screen.backdrop_alpha()
 	move_child(_backdrop, 0)
 	world.set_rival_pose(_screen.rival_pose())
+	if rc != null and rc.state != null:
+		world.set_rival(rc.rival_for(rc.state.round))
 	# Sin fondo, la pantalla no ataja el mouse: la cámara lo sigue y los clics llegan al bar.
 	if not _screen.wants_backdrop():
 		_screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
