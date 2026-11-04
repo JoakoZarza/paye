@@ -48,6 +48,7 @@ var _built := false
 var _ring: Control
 ## Vista 3D: las opciones de acusar abiertas como una flor alrededor de tus cartas.
 var _flower: Control
+var _flower_hand: TrucoHand
 ## Cuánto se abrió el arco para que no se pisen los cantos (1 = nada).
 var ring_grow := 1.0
 var _table3d: Table3D
@@ -336,7 +337,9 @@ func _clear(node: Node) -> void:
 # --- Dibujo ---
 
 func _after_action() -> void:
-	_popup_close()
+	# La flor de un amuleto sigue abierta aunque el rival juegue, si es la misma mano.
+	if not is_instance_valid(_flower) or presenter.hand() != _flower_hand:
+		_popup_close()
 	_redraw()
 	if world != null:
 		_let_clicks_through(self)
@@ -359,9 +362,17 @@ func _redraw() -> void:
 	_clear(_player_row)
 	_clear(_actions)
 	_clear(_amulets)
+	# Una flor abierta sobrevive a que el rival hable o cante, mientras siga la misma mano.
+	var keep: Control = _flower if is_instance_valid(_flower) else null
+	if keep != null:
+		_ring.remove_child(keep)
 	if _ring != null:
 		_clear(_ring)
 	var hand := p.hand()
+	if keep != null and hand != _flower_hand:
+		keep.queue_free()
+		keep = null
+		_flower = null
 	if hand == null:
 		return
 	if world == null:
@@ -369,6 +380,10 @@ func _redraw() -> void:
 	_draw_actions(hand)
 	if _ring != null:
 		_arrange_ring()
+		if keep != null:
+			for c in _ring.get_children():
+				(c as Control).visible = false
+			_ring.add_child(keep)
 
 
 func _draw_actions(_hand: TrucoHand) -> void:
@@ -530,6 +545,9 @@ func _card_picker() -> OptionButton:
 
 func _show_marker() -> void:
 	_popup_close()
+	if _ring != null:
+		bloom(_card_petals(_marker_number), "Marcador: ¿qué carta?")
+		return
 	_label(_popup_box).text = "Marcador: ¿qué carta y qué número?"
 	var card := _card_picker()
 	var number := OptionButton.new()
@@ -553,6 +571,9 @@ func _show_marker() -> void:
 
 func _show_spare() -> void:
 	_popup_close()
+	if _ring != null:
+		bloom(_card_petals(_spare_choice), "Mazo aparte: ¿qué carta cambiás?")
+		return
 	_label(_popup_box).text = "Mazo aparte: ¿qué carta cambiás?"
 	var card := _card_picker()
 	var options := presenter.spare_options()
@@ -570,6 +591,47 @@ func _show_spare() -> void:
 		_use_amulet(&"spare_deck", args))
 	_button(row, "Cancelar", _popup_close)
 	_popup_built()
+
+
+## Un pétalo por carta tuya; al elegir una sigue next(card_index).
+func _card_petals(next: Callable) -> Array:
+	var out := []
+	var hand := presenter.hand()
+	for i in hand.cards[PLAYER].size():
+		out.append({"text": card_text(hand.cards[PLAYER][i]), "name": "PickCard%d" % i, "callback": next.bind(i)})
+	return out
+
+
+func _marker_number(card_index: int) -> void:
+	var out := []
+	for n in Card.VALID_NUMBERS:
+		out.append({"text": str(n), "name": "PickNumber%d" % n, "callback": _marker_suit.bind(card_index, n)})
+	bloom(out, "Marcador: ¿qué número?")
+
+
+func _marker_suit(card_index: int, number: int) -> void:
+	if not presenter.marker_can_change_suit():
+		_use_amulet(&"marker", {"card_index": card_index, "number": number, "suit": -1})
+		return
+	var mark := func(suit: int) -> void:
+		_use_amulet(&"marker", {"card_index": card_index, "number": number, "suit": suit})
+	var out := [{"text": "mismo palo", "name": "PickSuitSame", "callback": mark.bind(-1)}]
+	for su in Card.Suit.size():
+		out.append({"text": UiText.t("UI_SUIT_" + Card.Suit.keys()[su]), "name": "PickSuit%d" % su,
+			"callback": mark.bind(su)})
+	bloom(out, "Marcador: ¿qué palo?")
+
+
+func _spare_choice(card_index: int) -> void:
+	var options := presenter.spare_options()
+	if options.is_empty():
+		_use_amulet(&"spare_deck", {"card_index": card_index})
+		return
+	var out := []
+	for i in options.size():
+		out.append({"text": "por el " + card_text(options[i]), "name": "PickSpare%d" % i,
+			"callback": _use_amulet.bind(&"spare_deck", {"card_index": card_index, "choice": i})})
+	bloom(out, "Mazo aparte: ¿por cuál?")
 
 
 func _popup_built() -> void:
@@ -595,12 +657,13 @@ func wants_backdrop() -> bool:
 
 ## Los cantos se esconden y las acusaciones se abren como pétalos desde el centro de
 ## tus cartas; en el medio queda "Cancelar".
-func bloom(options: Array) -> void:
+func bloom(options: Array, title := "") -> void:
 	_close_flower()
 	for c in _ring.get_children():
 		(c as Control).visible = false
 	_flower = Control.new()
 	_flower.name = "Flower"
+	_flower_hand = presenter.hand()
 	_flower.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_flower.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ring.add_child(_flower)
@@ -608,9 +671,22 @@ func bloom(options: Array) -> void:
 	for i in options.size():
 		var o: Dictionary = options[i]
 		var a := -PI * 0.5 + TAU * i / options.size()
-		_petal(o["text"], o["name"], _accuse.bind(o["accusation"]), center,
-			center + Vector2(cos(a), sin(a) * 0.75) * PETAL_RADIUS, i * PETAL_STAGGER)
+		var callback: Callable = o["callback"] if o.has("callback") else _accuse.bind(o["accusation"])
+		_petal(o["text"], o["name"], callback, center,
+			center + Vector2(cos(a), sin(a) * 0.75) * _petal_radius(options.size()), i * PETAL_STAGGER)
 	_petal("Cancelar", "CancelAccuse", _close_flower, center, center, 0.0)
+	if title != "":
+		var head := RingStyle.reading_label("[center]" + RingStyle.JITTER % title + "[/center]", 22)
+		head.name = "FlowerTitle"
+		head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		head.size = Vector2(520, 40)
+		head.position = center - Vector2(260, _petal_radius(options.size()) * 0.75 + 95)
+		_flower.add_child(head)
+
+
+## Con muchas opciones (los números del marcador) la flor se abre más.
+static func _petal_radius(count: int) -> float:
+	return PETAL_RADIUS * clampf(float(count) / 6.0, 1.0, 1.35)
 
 
 func _petal(text: String, node_name: String, callback: Callable, from: Vector2, to: Vector2, delay: float) -> void:

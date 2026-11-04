@@ -22,7 +22,10 @@ func _initialize() -> void:
 	var rc: RunController = main.rc
 	if phase != "start":
 		rc.start_run(&"normal")
+	var flower := args.size() > 3 and args[3] == "marker"
 	if phase == "match":
+		if flower:
+			rc.state.loadout.equip(AmuletDef.load_all()[&"marker"])
 		rc.enter_match()
 	elif phase == "shop":
 		rc.enter_match()
@@ -46,6 +49,12 @@ func _initialize() -> void:
 			for c in main.router.get_children():
 				if c is BaseScreen and c.has_method("shop_items"):
 					c.inspect(c.shop_items()[0])
+	if flower:
+		await create_timer(1.0).timeout
+		for c in main.router.get_children():
+			if c is BaseScreen and c.has_method("bloom"):
+				c._on_amulet(&"marker", &"marker")
+				(c.find_child("PickCard0", true, false) as Button).pressed.emit()
 	if args.size() > 5 and args[5] == "1":
 		_force_speech(main.router)
 	await create_timer(1.2).timeout

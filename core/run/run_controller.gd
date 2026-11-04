@@ -34,6 +34,9 @@ var _single_hand: TrucoHand = null
 var _defs: Dictionary
 var _decks: Dictionary
 var _legacy_snapshot: Array[StringName] = []
+## Lo que el guardarropas tiró al empezar esta run (para avisarlo en el bar); se olvida
+## al sentarse.
+var wardrobe_lost: StringName = &""
 
 
 func _init(p_economy: Economy, p_meta: MetaState, p_seed: int, p_meta_path: String = MetaState.DEFAULT_PATH) -> void:
@@ -72,7 +75,7 @@ func start_run(deck_id: StringName) -> Array[GameEvent]:
 	# El legado se consume al empezar: guardarlo ya evita recuperarlo cerrando el juego.
 	meta.legacy = &""
 	# Lo que nadie retira del guardarropas se pierde en la tercera run nueva.
-	var wardrobe_lost: StringName = &""
+	wardrobe_lost = &""
 	if not meta.wardrobe.is_empty():
 		meta.wardrobe["runs"] = int(meta.wardrobe["runs"]) + 1
 		if int(meta.wardrobe["runs"]) >= economy.wardrobe_runs:
@@ -90,6 +93,7 @@ func rival_for(round: int) -> RivalProfile:
 
 
 func enter_match() -> Array[GameEvent]:
+	wardrobe_lost = &""
 	if state == null or phase != Phase.BAR:
 		return [_illegal()]
 	var entry := economy.entry(state.round)

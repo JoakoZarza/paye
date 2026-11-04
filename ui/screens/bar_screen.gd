@@ -26,6 +26,8 @@ func refresh() -> void:
 			UiText.t("UI_AMULET_" + String(def.id).to_upper()),
 			UiText.t("UI_LEVEL"), s.loadout.level(def.id),
 		])
+	if rc.wardrobe_lost != &"":
+		ScreenTools.label(box, _wardrobe_gone(), 18)
 	var can_pay := s.can_pay_entry(rc.economy)
 	ScreenTools.button(
 		box, UiText.t("UI_BAR_SIT") if can_pay else UiText.t("UI_BAR_CANT_PAY"),
@@ -58,6 +60,10 @@ func _draw_world() -> void:
 	var spots := row_spots(texts, 0.24, 0.07)
 	for i in texts.size():
 		world_label(texts[i], table, Vector3(0, 0.79, -0.18) + spots[i], 20)
+	# El cantinero te avisa, sobre la mesa, si tiró lo que tenías guardado.
+	if rc.wardrobe_lost != &"":
+		world_label(wrap_text(_wardrobe_gone(), 30), table, Vector3(0, 0.79, 0.04), 18) \
+			.name = "WardrobeGone"
 	var can_pay := s.can_pay_entry(rc.economy)
 	var text := UiText.t("UI_BAR_CANT_PAY")
 	if can_pay:
@@ -66,6 +72,10 @@ func _draw_world() -> void:
 		world_button(text, "Sit", _sit, table, Vector3(0, 0.8, 0.22))
 	else:
 		world_button(text, "Sit", _sit, world.slot("chair_player"), Vector3(0, 1.05, 0))
+
+
+func _wardrobe_gone() -> String:
+	return UiText.t("UI_WARDROBE_GONE") % UiText.t("UI_AMULET_" + String(rc.wardrobe_lost).to_upper())
 
 
 func seated() -> bool:

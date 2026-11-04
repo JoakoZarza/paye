@@ -766,3 +766,66 @@ func test_el_guardarropas_de_la_barra() -> void:
 	shop.inspect(stored)
 	(router.find_child("Retrieve", true, false) as Button).pressed.emit()
 	assert_true(rc.state.loadout.has(&"hat"), "se retira desde la vista de cerca")
+
+
+func _setup_with(ids: Array) -> Array:
+	var rc := RunController.new(Economy.load_from(), MetaState.new(), 4, META_PATH)
+	rc.start_run(&"normal")
+	for id: StringName in ids:
+		rc.state.loadout.equip(AmuletDef.load_all()[id])
+	rc.enter_match()
+	var bar: Bar3D = BAR.instantiate()
+	add_child_autofree(bar)
+	var screen: BaseScreen = SCENE.instantiate()
+	screen.world = bar
+	add_child_autofree(screen)
+	screen.setup(rc)
+	return [rc, screen]
+
+
+func test_el_marcador_se_elige_en_flores() -> void:
+	var s := _setup_with([&"marker"])
+	var rc: RunController = s[0]
+	var screen: BaseScreen = s[1]
+	screen._on_amulet(&"marker", &"marker")
+	assert_not_null(screen.find_child("FlowerTitle", true, false), "la flor dice qué se elige")
+	assert_null(screen.find_child("*OptionButton*", true, false), "sin listas 2D")
+	(screen.find_child("PickCard0", true, false) as Button).pressed.emit()
+	screen._after_action()  # el rival juega o canta: la flor sigue abierta
+	var seven := screen.find_child("PickNumber7", true, false) as Button
+	assert_not_null(seven, "después, los números")
+	var before := rc.state.loadout.charges_left(&"marker")
+	seven.pressed.emit()
+	assert_null(screen._flower, "al elegir el número se usa y se cierra")
+	assert_eq(rc.state.loadout.charges_left(&"marker"), before - 1)
+	assert_eq(rc.table().truco_match.hand.cards[0][0].effective_number(), 7)
+
+
+func test_el_mazo_aparte_se_elige_en_flores() -> void:
+	var s := _setup_with([&"spare_deck"])
+	var rc: RunController = s[0]
+	var screen: BaseScreen = s[1]
+	var before := rc.state.loadout.charges_left(&"spare_deck")
+	screen._on_amulet(&"spare_deck", &"spare_deck")
+	(screen.find_child("PickCard1", true, false) as Button).pressed.emit()
+	var pick := screen.find_child("PickSpare0", true, false) as Button
+	if pick != null:
+		pick.pressed.emit()
+	assert_null(screen._flower)
+	assert_eq(rc.state.loadout.charges_left(&"spare_deck"), before - 1)
+
+
+func test_el_bar_avisa_si_el_guardarropas_tiro_algo() -> void:
+	var meta := MetaState.new()
+	meta.wardrobe = {"id": &"hat", "level": 1, "paid": 0, "fee": 0, "runs": 2}
+	var rc := RunController.new(Economy.load_from(), meta, 4, META_PATH)
+	var r := _rig()
+	var router := ScreenRouter.new()
+	router.world = r[0]
+	add_child_autofree(router)
+	router.setup(rc)
+	(router.find_child("Deck_normal", true, false) as Button).pressed.emit()
+	assert_eq(rc.wardrobe_lost, &"hat")
+	assert_not_null(router.find_child("WardrobeGone", true, false), "el aviso está en el bar")
+	(router.find_child("Sit", true, false) as Button).pressed.emit()
+	assert_eq(rc.wardrobe_lost, &"", "se olvida al sentarse")

@@ -113,6 +113,7 @@ UI_WARDROBE_LAST,Última run: si no lo retirás lo tiran.
 UI_WARDROBE_STORED,%s quedó en el guardarropas.
 UI_WARDROBE_TAKEN,%s volvió con vos.
 UI_WARDROBE_SAME,Ya tenés uno igual.
+UI_WARDROBE_GONE,"Del guardarropas tiraron tu %s: nadie lo retiró en tres runs."
 UI_WARDROBE_HELP,"Guardado conserva su nivel. Cobran por cada ronda que pasa, y se paga al retirarlo."
 UI_SHOP_BOUGHT,Compraste %s.
 UI_SHOP_BOUGHT_FIADO,"Quedaron $%d fiados."
