@@ -670,12 +670,12 @@ func test_el_bar_esta_vivo_y_el_rival_te_espera() -> void:
 	for soul in life.souls:
 		assert_gt(Vector2(soul.position.x, soul.position.z).length(), 1.2, "lejos de la mesa")
 	bar.set_rival_pose(&"away", true)
-	assert_false(bar.slot("rival_base").visible, "en el menú la mesa está vacía")
+	assert_false(bar.slot("rival").visible, "en el menú la mesa está vacía")
 	bar.set_rival_pose(&"waiting", true)
-	assert_true(bar.slot("rival_base").visible)
-	assert_gt(bar.slot("rival_base").position.x, 0.3, "parado al lado de su silla")
+	assert_true(bar.slot("rival").visible)
+	assert_gt(bar.slot("rival").position.x, 0.3, "parado al lado de su silla")
 	bar.set_rival_pose(&"seated", true)
-	assert_almost_eq(bar.slot("rival_base").position.x, 0.0, 0.001)
+	assert_almost_eq(bar.slot("rival").position.x, 0.0, 0.001)
 
 
 func test_el_menu_de_inicio_tiene_velo_y_panel() -> void:

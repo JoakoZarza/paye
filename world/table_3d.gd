@@ -75,6 +75,10 @@ var _speech: Subtitle3D
 var _said_id := 0
 var _call: Subtitle3D
 var _call_id := 0
+## Para las animaciones del rival: lo último que vio (humor, cartas jugadas, puntos).
+var _anim_tell: StringName = &""
+var _anim_played := 0
+var _anim_scores := [0, 0]
 var _sheet: ScoreSheet
 var _amulets: Array[AmuletToken] = []
 var _amulets_key := ""
@@ -384,18 +388,46 @@ func _on_card_clicked(index: int) -> void:
 
 func _sync_tell() -> void:
 	# Lo que murmura se va solo; el canto queda abajo hasta que respondas.
+	var rival := bar.slot("rival")
 	if presenter.rival_line_id != _said_id:
 		_said_id = presenter.rival_line_id
 		_speech.say(presenter.rival_line)
+		if rival != null and presenter.rival_line != "":
+			rival.play_once(&"talk")
 	if presenter.rival_call_id != _call_id:
 		_call_id = presenter.rival_call_id
 		_call.say(presenter.rival_call, presenter.rival_waiting)
+		if rival != null and presenter.rival_call != "":
+			rival.play_once(&"call")
 	elif _call.persistent and not presenter.rival_waiting:
 		_call.dismiss()
 	var t := presenter.tell()
+	if rival != null:
+		_animate_rival(rival, t)
 	var light := bar.get_node_or_null("LampLight") as Light3D
 	if light != null:
 		light.light_color = LAMP_COLORS.get(t.get("kind", &""), LAMP_DEFAULT)
+
+
+## El rival se mueve según lo que pasa en la mesa (ver docs/ASSETS.md, animaciones):
+## "think" de fondo en su turno, y de a una: tirar carta, ganar o perder puntos, su humor.
+func _animate_rival(rival: AssetSlot, tell: Dictionary) -> void:
+	rival.set_loop(&"think" if presenter.dealer_should_play() else &"idle")
+	var h := presenter.hand()
+	var played: int = h.played[DEALER].size() if h != null else 0
+	if played > _anim_played:
+		rival.play_once(&"play_card")
+	_anim_played = played
+	var scores: Array = presenter.rc.table().truco_match.scores
+	if scores[DEALER] > _anim_scores[1]:
+		rival.play_once(&"gain_points")
+	elif scores[PLAYER] > _anim_scores[0]:
+		rival.play_once(&"lose_points")
+	_anim_scores = [scores[PLAYER], scores[DEALER]]
+	var kind: StringName = tell.get("kind", &"")
+	if kind != _anim_tell and kind != &"":
+		rival.play_once(StringName("tell_" + String(kind)))
+	_anim_tell = kind
 
 
 ## Lo que vale la mano con el truco cantado (2, 3 o 4); 0 sin truco.

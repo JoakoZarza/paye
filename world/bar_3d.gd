@@ -3,7 +3,7 @@ extends Node3D
 ## Arma el bar a partir del catálogo de cubos provisorios.
 
 const PLACEHOLDERS_PATH: String = "res://world/placeholders.json"
-const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival_base", "lamp", "rival_head", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
+const SLOT_NAMES: Array[String] = ["table", "chair_player", "chair_rival", "rival", "lamp", "room", "bar_counter", "door", "window", "scoreboard", "accomplice"]
 const MARKER_POSITIONS: Dictionary = {
 	"CamSeat": Vector3(0, 1.2, 0.62), "CamBar": Vector3(1.6, 1.6, 2.6), "CamShop": Vector3(-2.9, 1.86, -0.3),
 	"PlayerHand": Vector3(0, 0.99, 0.43), "DealerHand": Vector3(0, 0.95, -0.42),
@@ -40,7 +40,9 @@ const RIVAL_POSES := {
 	&"seated": [Vector3.ZERO, 0.0],
 	&"waiting": [Vector3(0.52, 0.12, 0.08), -0.18],
 }
-const RIVAL_PARTS := ["rival_base", "rival_head"]
+const RIVAL_PARTS := ["rival"]
+## Arriba de la cabeza del rival (respecto de él): ahí va su nombre en el bar.
+const RIVAL_HEAD := Vector3(0, 1.3, 0)
 const RIVAL_SIT_SECONDS := 0.8
 
 
@@ -100,6 +102,11 @@ func _build() -> void:
 		asset_slot.visible = not bool(data.get("hidden", false))
 		add_child(asset_slot)
 		_slots[asset_key] = asset_slot
+		if asset_key == "rival":
+			var head := Node3D.new()
+			head.name = "RivalHead"
+			head.position = RIVAL_HEAD
+			asset_slot.add_child(head)
 	life = BarLife.new()
 	life.name = "BarLife"
 	life.ps1 = ps1
@@ -176,15 +183,21 @@ func _add_environment() -> void:
 	add_child(environment_node)
 
 
-## La cabeza del rival según quién es: primero la de su versión
-## (head_<pecado>_<versión>.glb), después la del pecado y, si no hay, la de las almas.
+## El rival entero según quién es: primero el modelo de su versión
+## (rival_<pecado>_<versión>.glb), después el del pecado y, si no hay, el de las almas.
 func set_rival(rival: RivalProfile) -> void:
-	var head := slot("rival_head")
-	if head == null or rival == null:
+	var body := slot("rival")
+	if body == null or rival == null:
 		return
 	var sin := String(rival.sin)
-	var names: Array[String] = ["head_%s_%s" % [sin, rival.variant], "head_" + sin, "head_alma"]
-	head.set_asset(names)
+	var names: Array[String] = ["rival_%s_%s" % [sin, rival.variant], "rival_" + sin, "rival_alma"]
+	body.set_asset(names)
+
+
+## Un punto arriba de la cabeza del rival; se mueve con él.
+func rival_head() -> Node3D:
+	var body := slot("rival")
+	return body.get_node_or_null("RivalHead") as Node3D if body != null else null
 
 
 func rival_pose() -> StringName:
@@ -206,6 +219,8 @@ func set_rival_pose(pose: StringName, instant := false) -> void:
 		if not s.has_meta("home"):
 			s.set_meta("home", s.position)
 		s.visible = pose != &"away"
+		# Con modelo, la pose es una animación: esperando de pie o sentado.
+		s.set_loop(&"waiting" if pose == &"waiting" else &"idle")
 	if pose == &"away":
 		return
 	var p: Array = RIVAL_POSES[pose]
@@ -218,9 +233,16 @@ func set_rival_pose(pose: StringName, instant := false) -> void:
 		if s == null:
 			continue
 		var at: Vector3 = (s.get_meta("home") as Vector3) + (p[0] as Vector3)
+		# El cubo se levanta y se inclina para parecer parado; un modelo ya lo hace con su
+		# animación, así que solo se corre al costado de la silla.
+		var tilt: float = p[1]
+		if s.has_model():
+			at.y = (s.get_meta("home") as Vector3).y
+			tilt = 0.0
 		if animate:
+			s.play_once(&"sit")
 			_rival_tween.tween_property(s, "position", at, RIVAL_SIT_SECONDS)
-			_rival_tween.tween_property(s, "rotation:x", float(p[1]), RIVAL_SIT_SECONDS)
+			_rival_tween.tween_property(s, "rotation:x", tilt, RIVAL_SIT_SECONDS)
 		else:
 			s.position = at
-			s.rotation.x = p[1]
+			s.rotation.x = tilt

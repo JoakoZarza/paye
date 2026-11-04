@@ -72,6 +72,7 @@ func step(delta: float) -> void:
 	bartender.position.z = BARTENDER_AT.z + sin(_time * TAU / BARTENDER_PERIOD) * BARTENDER_SWAY
 	for i in souls.size():
 		var soul := souls[i]
+		soul.set_loop(&"idle" if _wait[i] > 0.0 else &"walk")
 		if _wait[i] > 0.0:
 			_wait[i] -= delta
 			var other := _closest(i)
@@ -87,8 +88,9 @@ func step(delta: float) -> void:
 		var stride := minf(SOUL_SPEED * delta, to.length())
 		soul.position += to.normalized() * stride
 		_face(soul, soul.position + to)
-		# Un leve vaivén al caminar.
-		soul.rotation.z = sin(_time * 5.0 + i) * 0.03
+		# Un leve vaivén al caminar (solo el cubo: un modelo camina con su animación).
+		if not soul.has_model():
+			soul.rotation.z = sin(_time * 5.0 + i) * 0.03
 
 
 func _closest(i: int) -> AssetSlot:

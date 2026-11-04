@@ -60,7 +60,7 @@ func _draw_world() -> void:
 	var s := rc.state
 	var rival := rc.rival_for(s.round)
 	var table := world.slot("table")
-	world_label(UiText.t("UI_SIN_" + String(rival.sin).to_upper()), world.slot("rival_head"), Vector3(0, 0.45, 0), 26)
+	world_label(UiText.t("UI_SIN_" + String(rival.sin).to_upper()), world.rival_head(), Vector3(0, 0.3, 0), 26)
 	var texts: Array[String] = [UiText.t("UI_BAR_ENTRY") % rc.economy.entry(s.round)]
 	var tip := rc.economy.tip(s.money, s.round)
 	if tip > 0:

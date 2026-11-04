@@ -25,9 +25,9 @@ func test_presupuesto_de_modelos_y_cartas() -> void:
 
 func _check_model(file_name: String, limits: Dictionary) -> void:
 	var asset_name: String = file_name.trim_suffix(".glb")
-	# Las versiones de un rival (head_ira_rencor) usan los límites de su pecado (head_ira).
+	# Las versiones de un rival (rival_ira_rencor) usan los límites de su pecado (rival_ira).
 	var parts := asset_name.split("_")
-	if not limits.has(asset_name) and asset_name.begins_with("head_") and parts.size() > 2:
+	if not limits.has(asset_name) and asset_name.begins_with("rival_") and parts.size() > 2:
 		asset_name = parts[0] + "_" + parts[1]
 	if not limits.has(asset_name):
 		fail_test("%s no tiene límites en asset_budget.json" % file_name)

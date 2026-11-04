@@ -14,6 +14,13 @@ var ps1 := false
 
 var _loaded_model: Node3D
 var _placeholder: MeshInstance3D
+## Animaciones del modelo (si trae un AnimationPlayer). Una de fondo que se repite
+## (por defecto "idle") y, encima, de a una que se reproduce una vez y vuelve a la de fondo.
+## Si el modelo no tiene la animación pedida, no pasa nada.
+const BLEND := 0.2
+var _anim: AnimationPlayer
+var _base_anim: StringName = &"idle"
+var _one_shot: StringName = &""
 
 
 func _ready() -> void:
@@ -37,8 +44,63 @@ func set_asset(names: Array[String]) -> void:
 			c.queue_free()
 	_loaded_model = null
 	_placeholder = null
+	_anim = null
+	_one_shot = &""
 	if is_inside_tree():
 		_load_asset()
+
+
+func has_animation(anim: StringName) -> bool:
+	return _anim != null and _anim.has_animation(anim)
+
+
+## Animación de fondo, que se repite. Si el modelo no la tiene, usa "idle".
+func set_loop(anim: StringName) -> void:
+	_base_anim = anim
+	if _one_shot == &"":
+		_play_base()
+
+
+## Reproduce una animación una vez y vuelve a la de fondo. false si el modelo no la tiene.
+func play_once(anim: StringName) -> bool:
+	if not has_animation(anim):
+		return false
+	_anim.get_animation(anim).loop_mode = Animation.LOOP_NONE
+	_one_shot = anim
+	_anim.play(anim, BLEND)
+	return true
+
+
+## Lo que se está reproduciendo ("" sin modelo o sin animación).
+func current_animation() -> StringName:
+	return StringName(_anim.current_animation) if _anim != null else &""
+
+
+func _play_base() -> void:
+	if _anim == null:
+		return
+	var anim := _base_anim if _anim.has_animation(_base_anim) else &"idle"
+	if not _anim.has_animation(anim):
+		return
+	_anim.get_animation(anim).loop_mode = Animation.LOOP_LINEAR
+	if StringName(_anim.current_animation) != anim:
+		_anim.play(anim, BLEND)
+
+
+func _on_anim_finished(anim: StringName) -> void:
+	if anim == _one_shot:
+		_one_shot = &""
+		_play_base()
+
+
+func _find_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node
+	for c in node.get_children():
+		var found := _find_player(c)
+		if found != null:
+			return found
+	return null
 
 
 func has_model() -> bool:
@@ -54,6 +116,10 @@ func _load_asset() -> void:
 			if _loaded_model != null:
 				add_child(_loaded_model)
 				_apply_nearest(_loaded_model)
+				_anim = _find_player(_loaded_model)
+				if _anim != null:
+					_anim.animation_finished.connect(_on_anim_finished)
+					_play_base()
 	if _loaded_model == null:
 		_make_placeholder()
 	if ps1:
