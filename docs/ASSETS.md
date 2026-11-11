@@ -4,7 +4,7 @@ Esta es la lista de **todo** lo que el juego puede cargar, con medidas, límites
 
 **Cómo funciona.** Cada archivo va en su carpeta con el **nombre exacto** de la tabla. Si el archivo está, el juego lo usa. Si no está, muestra un cubo del mismo tamaño en su lugar. El test `tests/world/test_assets_budget.gd` avisa si un modelo se pasa de triángulos, de textura o de medida. Los límites están en `world/asset_budget.json`.
 
-**Estado hoy (2026-11-04):** no hay ningún modelo ni textura cargado. Todo se ve con cubos.
+**Estado hoy (2026-11-11):** cargados `table`, `chair_player`, `chair_rival`, `deck` y `lamp` (sin textura todavía). El resto se ve con cubos.
 
 ---
 
@@ -59,7 +59,7 @@ Las **cartas** son la excepción: 128 × 192 px para una carta de 6,3 cm. Se mir
 | Orientación | Y hacia arriba. El frente mira hacia −Z, hacia la cámara del jugador. |
 | Origen (pivote) | Abajo y al centro: el objeto queda apoyado en Y = 0. |
 | Sombreado | Plano (*flat shading*) o con bordes duros: que se noten las caras. |
-| Materiales | Uno o dos por modelo. |
+| Materiales | Uno o dos por modelo. Si un modelo no trae material ni textura, el juego lo pinta del color de su cubo provisorio (madera, sombra, etc.) hasta que la tenga. |
 | Luces y cámaras | No incluir: se ignoran. |
 | Animaciones | Dentro del `.glb`, con los nombres exactos de la sección de personajes. En el lugar (el juego mueve al personaje). |
 
@@ -83,10 +83,10 @@ Carpeta `assets/models/`, salvo las cartas.
 | # | Archivo | Qué es | Medida (m) | Triáng. máx. | Textura máx. |
 |---|---|---|---|---|---|
 | 1 | `table.glb` | Mesa de bar vieja, de madera, cuadrada. La tapa queda a 0,75 m | 0,9 × 0,75 × 0,9 | 800 | 256 |
-| 2 | `deck.glb` | El mazo apoyado en la mesa (pila de cartas boca abajo) | 0,063 × 0,014 × 0,095 | 100 | 64 |
-| 3 | `lamp.glb` | Lámpara colgante sobre la mesa, con cable o cadena hacia arriba. Origen abajo: la pantalla queda a 1,55 m del piso | 0,4 × 0,6 × 0,4 | 500 | 128 |
-| 4 | `chair_rival.glb` | Silla del rival | 0,45 × 0,9 × 0,45 | 400 | 128 |
-| 5 | `chair_player.glb` | Tu silla: casi no se ve, alcanza con algo simple | 0,45 × 0,9 × 0,45 | 400 | 128 |
+| 2 | `deck.glb` | El mazo apoyado en la mesa (pila de cartas boca abajo) | 0,063 × 0,014 × 0,095 | 250 | 64 |
+| 3 | `lamp.glb` | Lámpara colgante sobre la mesa, con cable o cadena hacia arriba. Origen abajo: la pantalla queda a 1,55 m del piso. El cable puede ser largo: lo que pasa el techo (1,45 m arriba del origen) no se ve | 0,4 × 2 × 0,4 | 600 | 128 |
+| 4 | `chair_rival.glb` | Silla del rival | 0,6 × 0,9 × 0,6 | 600 | 128 |
+| 5 | `chair_player.glb` | Tu silla: casi no se ve, alcanza con algo simple | 0,6 × 0,9 × 0,6 | 600 | 128 |
 
 **Cartas:** van en `assets/cards/`. No son modelos: el juego las arma sobre un plano.
 
@@ -242,6 +242,7 @@ El juego los dibuja con formas básicas y todavía no carga modelos para ellos. 
 ## 6. Cómo entregar cada modelo (checklist para el modelador)
 
 - [ ] Nombre exacto de la tabla, en minúsculas, `.glb`.
+- [ ] El objeto en el centro de la escena (0, 0, 0) al exportar. Si está corrido en Blender, sale corrido en el juego.
 - [ ] Escala aplicada, 1 unidad = 1 m, dentro de la medida de la tabla.
 - [ ] Y arriba, frente hacia −Z, pivote abajo al centro (rivales: en el piso, bajo el asiento de su silla).
 - [ ] Triángulos y textura dentro del límite.

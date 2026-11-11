@@ -116,6 +116,7 @@ func _load_asset() -> void:
 			if _loaded_model != null:
 				add_child(_loaded_model)
 				_apply_nearest(_loaded_model)
+				_fill_missing_materials(_loaded_model)
 				_anim = _find_player(_loaded_model)
 				if _anim != null:
 					_anim.animation_finished.connect(_on_anim_finished)
@@ -139,6 +140,30 @@ func _make_placeholder() -> void:
 		material.cull_mode = BaseMaterial3D.CULL_FRONT
 	_placeholder.material_override = material
 	add_child(_placeholder)
+
+
+## Un modelo sin material se vería blanco (y la lámpara lo quema): se le pone el color
+## de su cubo provisorio, mate, hasta que traiga su textura.
+func _fill_missing_materials(node: Node) -> void:
+	if node is MeshInstance3D:
+		var mi := node as MeshInstance3D
+		if mi.mesh != null:
+			for surface: int in range(mi.mesh.get_surface_count()):
+				if _is_blank(mi.get_active_material(surface)):
+					var m := StandardMaterial3D.new()
+					m.albedo_color = placeholder_color
+					m.roughness = 1.0
+					mi.set_surface_override_material(surface, m)
+	for child: Node in node.get_children():
+		_fill_missing_materials(child)
+
+
+## Sin material, o el blanco que Godot inventa al importar un glTF que no trae ninguno.
+static func _is_blank(material: Material) -> bool:
+	if material == null:
+		return true
+	var m := material as StandardMaterial3D
+	return m != null and m.albedo_texture == null and m.albedo_color.is_equal_approx(Color.WHITE)
 
 
 func _apply_nearest(node: Node) -> void:

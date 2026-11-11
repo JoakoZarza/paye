@@ -17,3 +17,8 @@ window/stretch/mode="canvas_items"
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
+[filesystem]
+
+import/blender/enabled=false
+import/fbx2gltf/enabled=false

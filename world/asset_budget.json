@@ -2,8 +2,8 @@
   "models": {
     "accomplice": {"triangles": 2000, "texture": 256, "size": [0.5, 1.75, 0.35]},
     "table": {"triangles": 800, "texture": 256, "size": [0.9, 0.75, 0.9]},
-    "chair_player": {"triangles": 400, "texture": 128, "size": [0.45, 0.9, 0.45]},
-    "chair_rival": {"triangles": 400, "texture": 128, "size": [0.45, 0.9, 0.45]},
+    "chair_player": {"triangles": 600, "texture": 128, "size": [0.6, 0.9, 0.6]},
+    "chair_rival": {"triangles": 600, "texture": 128, "size": [0.6, 0.9, 0.6]},
     "rival_ira": {"triangles": 5000, "texture": 512, "size": [0.6, 1.4, 0.7]},
     "rival_gula": {"triangles": 5000, "texture": 512, "size": [0.6, 1.4, 0.7]},
     "rival_pereza": {"triangles": 5000, "texture": 512, "size": [0.6, 1.4, 0.7]},
@@ -12,7 +12,7 @@
     "rival_soberbia": {"triangles": 5000, "texture": 512, "size": [0.6, 1.4, 0.7]},
     "rival_alma": {"triangles": 4000, "texture": 512, "size": [0.6, 1.4, 0.7]},
     "rival_gualicho": {"triangles": 6000, "texture": 512, "size": [0.6, 1.4, 0.7]},
-    "lamp": {"triangles": 500, "texture": 128, "size": [0.4, 0.6, 0.4]},
+    "lamp": {"triangles": 600, "texture": 128, "size": [0.4, 2.0, 0.4]},
     "room": {"triangles": 1500, "texture": 256, "size": [8, 3, 8]},
     "bar_counter": {"triangles": 1500, "texture": 256, "size": [3, 1.1, 0.9]},
     "door": {"triangles": 300, "texture": 128, "size": [0.9, 2.1, 0.1]},
@@ -31,7 +31,7 @@
     "amulet_red_ribbon": {"triangles": 300, "texture": 64},
     "amulet_train_coin": {"triangles": 300, "texture": 64},
     "money_stack": {"triangles": 300, "texture": 64},
-    "deck": {"triangles": 100, "texture": 64, "size": [0.063, 0.014, 0.095]},
+    "deck": {"triangles": 250, "texture": 64, "size": [0.063, 0.014, 0.095]},
     "wardrobe": {"triangles": 400, "texture": 128, "size": [0.2, 0.06, 0.14]},
     "bartender": {"triangles": 2500, "texture": 256, "size": [0.5, 1.75, 0.25]},
     "soul": {"triangles": 1200, "texture": 128, "size": [0.38, 1.6, 0.28]}
