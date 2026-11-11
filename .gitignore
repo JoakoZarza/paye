@@ -11,3 +11,4 @@ Thumbs.db
 
 # Ledger de ejecución de planes
 .superpowers/
+*.blend1
